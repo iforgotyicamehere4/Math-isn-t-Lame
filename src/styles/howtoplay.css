@@ -1,0 +1,1184 @@
+/* HowToPlay page styles — adjusted so the moving card is positioned by JS,
+   and the page never scrolls. Fire canvas remains visible. */
+
+/* Base / font */
+:root {
+  --text: #635d3d;
+  --muted: rgb(197, 208, 255);
+  --card-bg: rgba(0, 0, 0, 0.18);
+  --card-width: 360px;
+}
+.tagline {
+  color: #336e9e;
+  font-weight: 700;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(
+    180deg,
+    #f7e9d6 0%,
+    #f2d7a7 35%,
+    #d3b58b 60%,
+    #cba86f 100%
+  );
+  overflow: hidden; /* <- prevent scrolling */
+}
+
+/* subtle animated mirage shimmer */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(
+      600px 200px at 15% 20%,
+      rgba(87, 83, 83, 0.685),
+      transparent 20%
+    ),
+    radial-gradient(
+      600px 200px at 85% 80%,
+      rgba(236, 240, 205, 0.822),
+      transparent 20%
+    );
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: shimmer 12s linear infinite;
+  z-index: 0;
+}
+@keyframes shimmer {
+  0% {
+    transform: translateY(-2%) rotate(0.01deg);
+  }
+  50% {
+    transform: translateY(2%) rotate(-0.01deg);
+  }
+  100% {
+    transform: translateY(-2%) rotate(0.01deg);
+  }
+}
+
+/* header hero small */
+.hero-card.small {
+  font-size: 16px;
+  max-width: 1020px;
+  margin: 18px auto;
+  padding: -16px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  text-align: center;
+  z-index: 10;
+}
+
+/* Scene */
+.campfire-scene {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 150px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+/* Chair ring */
+.chair-ring {
+  margin: -133px;
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+/* Chair styles */
+.chair {
+  width: 84px;
+  height: 84px;
+  position: absolute;
+  box-sizing: border-box;
+  transform-origin: 50% 300px;
+  pointer-events: none;
+  transition: transform 0.3s ease;
+  filter: drop-shadow(0 8px 6px rgba(0, 0, 0, 0.25));
+}
+.chair .back {
+  position: absolute;
+  left: 16%;
+  top: 6%;
+  width: 68%;
+  height: 46%;
+  background: #e6680e;
+  border-radius: 4px;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+}
+.chair .seat {
+  position: absolute;
+  left: 12%;
+  top: 50%;
+  width: 76%;
+  height: 20%;
+  background: #fffdfd;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+}
+.chair .leg-left,
+.chair .leg-right {
+  position: absolute;
+  bottom: -10%;
+  width: 9%;
+  height: 34%;
+  background: #d4d2bfc5;
+  border-radius: 3px;
+}
+.chair .leg-left {
+  left: 15%;
+  transform: rotate(-22deg);
+}
+.chair .leg-right {
+  right: 15%;
+  transform: rotate(-12deg);
+}
+.chair .desk {
+  position: absolute;
+  right: -10%;
+  top: 22%;
+  width: 42%;
+  height: 26%;
+  background: #a77905;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transform: rotate(-6deg);
+}
+
+/* Campfire wrapper */
+.campfire-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  z-index: 1;
+}
+
+/* Calculator pile */
+.calculator-pile {
+  position: absolute;
+  left: 38%;
+  top: 30%;
+  width: 360px;
+  height: 220px;
+  transform: translate(-50%, -8%);
+  display: block;
+  z-index: 1;
+  pointer-events: none;
+}
+/* .calc styles same as before */
+.calc {
+  position: absolute;
+  width: 120px;
+  height: 170px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #222, #111);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.45),
+    inset 0 2px 0 rgba(255, 255, 255, 0.02);
+  border: 4px solid #cfcfcf22;
+  transform-origin: center;
+}
+.calc::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  width: 60%;
+  height: 18%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #f6f6f6, #ddd);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+.calc::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  bottom: 12%;
+  width: 80%;
+  height: 32%;
+  background: linear-gradient(180deg, #131313, #0b0b0b);
+  border-radius: 4px;
+  box-shadow: inset 0 -3px 6px rgba(255, 255, 255, 0.02);
+}
+.calc-1 {
+  left: 36%;
+  top: 20%;
+  transform: rotate(-12deg) scale(0.98);
+  z-index: 2;
+}
+.calc-2 {
+  left: 22%;
+  top: 34%;
+  transform: rotate(6deg) scale(1.02);
+  z-index: 3;
+}
+.calc-3 {
+  left: 46%;
+  top: 36%;
+  transform: rotate(-28deg) scale(0.92);
+  z-index: 1;
+}
+.calc-4 {
+  left: 54%;
+  top: 28%;
+  transform: rotate(18deg) scale(1.04);
+  z-index: 4;
+}
+.calc-5 {
+  left: 40%;
+  top: 44%;
+  transform: rotate(4deg) scale(0.96);
+  z-index: 5;
+}
+
+/* Canvas */
+#fireCanvas {
+  position: absolute;
+  left: 35%;
+  top: 38%;
+  width: 520px;
+  height: 360px;
+  transform: translate(-50%, -20%);
+  z-index: 6;
+  pointer-events: none;
+  filter: drop-shadow(0 20px 40px rgba(255, 120, 0, 0.15));
+  display: block;
+}
+
+/* Instructions card:
+   - positioned absolutely with no centering transform so JS can reliably control it
+   - flexbox layout inside */
+.instructions-card {
+  display: flex;
+  flex-direction: column;
+  transform: none; /* JS will set transform to place the card */
+  width: var(--card-width);
+  max-width: 86%;
+  background: var(--card-bg);
+  padding: 18px;
+  border-radius: 12px;
+  color: var(--text);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+.instructions-card h2 {
+  margin: 0;
+  color: #585650;
+}
+.instructions-card ol {
+  background: yellow;
+  list-style: decimal;
+  padding-left: 1.05rem;
+  margin: 0;
+  color: var(--muted);
+}
+.back-link {
+  display: inline-block;
+  margin-top: 6px;
+  color: #eee8ea;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+/* Focus style */
+.instructions-card:focus {
+  outline: 3px solid rgb(143, 96, 4);
+  outline-offset: 4px;
+}
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+  .campfire-wrapper {
+    height: 560px;
+  }
+  #fireCanvas {
+    width: 420px;
+    height: 300px;
+    transform: translate(-50%, -10%);
+  }
+  :root {
+    --card-width: 300px;
+  }
+}
+@media (max-width: 520px) {
+  .campfire-wrapper {
+    flex-direction: column;
+    gap: 10px;
+    height: auto;
+    padding: 12px;
+  }
+  .instructions-card {
+    width: 92%;
+    max-width: 92%;
+  }
+}
+
+/* =========================
+   NIGHT THEME (added)
+   - toggled by the Contrast button which now toggles the `night-theme` class on <body>
+   - styles are additive (they don't remove existing layout)
+   ========================= */
+#nightOverlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0; /* behind content which uses z-index >=1 */
+  display: none;
+  background: transparent;
+}
+
+/* show overlay when night-theme active */
+body.night-theme #nightOverlay {
+  display: block;
+}
+
+/* Stars layer: using multiple small radial gradients for a starfield; will animate opacity to twinkle */
+.night-overlay {
+  background-image:
+    radial-gradient(
+      1px 1px at 6% 12%,
+      rgba(255, 255, 255, 0.95) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      1.3px 1.3px at 18% 28%,
+      rgba(255, 255, 220, 0.95) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      0.9px 0.9px at 24% 68%,
+      rgba(255, 255, 255, 0.9) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      1.4px 1.4px at 40% 8%,
+      rgba(255, 255, 255, 0.95) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      1.1px 1.1px at 60% 22%,
+      rgba(255, 240, 220, 0.95) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      0.8px 0.8px at 72% 52%,
+      rgba(255, 255, 255, 0.95) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      1.2px 1.2px at 86% 40%,
+      rgba(255, 255, 255, 0.95) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      0.8px 0.8px at 14% 78%,
+      rgba(255, 255, 255, 0.9) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      1px 1px at 48% 60%,
+      rgba(255, 255, 255, 0.95) 0,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      0.9px 0.9px at 32% 46%,
+      rgba(255, 255, 255, 0.9) 0,
+      rgba(255, 255, 255, 0) 60%
+    );
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.95;
+  transition: opacity 600ms ease;
+  animation: twinkle 6s linear infinite;
+  /* subtle darkening overlay for night */
+  box-shadow: inset 0 0 160px rgba(6, 18, 41, 0.55);
+}
+
+/* Twinkle animation toggles a slight opacity change to simulate scintillation */
+@keyframes twinkle {
+  0% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+
+/* Moon: geometric sphere made with layered gradients and a faceted overlay */
+.geometric-moon {
+  position: absolute;
+  right: 6%;
+  top: 8%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  z-index: 1;
+  pointer-events: none;
+  /* spherical shading base */
+  background: radial-gradient(
+    circle at 30% 25%,
+    rgba(255, 255, 235, 0.95) 0%,
+    rgba(220, 220, 240, 0.9) 18%,
+    rgba(170, 180, 210, 0.7) 50%,
+    rgba(70, 80, 110, 0.35) 100%
+  );
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    inset -18px -10px 30px rgba(0, 0, 0, 0.12);
+  transform: translateZ(0);
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+}
+
+/* geometric facets overlay (subtle) - uses repeating-linear-gradients to suggest low-poly facets */
+.geometric-moon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  mix-blend-mode: overlay;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(0, 0, 0, 0.02) 100%
+    ),
+    repeating-linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.03) 0 6px,
+      rgba(0, 0, 0, 0.02) 6px 12px
+    ),
+    linear-gradient(200deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.02));
+  transform: rotate(-12deg);
+  clip-path: polygon(
+    50% 0%,
+    62% 12%,
+    85% 18%,
+    92% 36%,
+    72% 50%,
+    80% 68%,
+    60% 82%,
+    42% 76%,
+    20% 84%,
+    12% 62%,
+    22% 42%,
+    12% 28%,
+    28% 18%,
+    42% 10%
+  );
+}
+
+/* subtle crescent rim for depth */
+.geometric-moon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset -22px -6px 40px rgba(10, 20, 30, 0.35);
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+
+/* Night-theme body-wide adjustments */
+body.night-theme {
+  /* dark night gradient */
+  background: radial-gradient(
+    1200px 600px at 16% 18%,
+    #081026 0%,
+    #061224 18%,
+    #031426 40%,
+    #010814 100%
+  );
+  color: #dfeafc;
+}
+
+/* Bring nav slightly darker on night */
+body.night-theme nav {
+  background: rgba(2, 6, 20, 0.45);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+body.night-theme .logo {
+  color: #f3f6ff;
+}
+body.night-theme .nav a {
+  color: #9fc6ff;
+}
+
+/* adjust calculator pile to be slightly silhouetted at night */
+body.night-theme .calculator-pile .calc {
+  filter: saturate(0.6) brightness(0.8);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    inset 0 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* lighter tagline contrast at night */
+body.night-theme .tagline {
+  color: #bcd9ff;
+}
+
+/* keep instructions card readable on night */
+body.night-theme .instructions-card {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 16, 26, 0.72),
+    rgba(6, 10, 18, 0.7)
+  );
+  color: #f0f6ff;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* small responsive tweak for moon size */
+@media (max-width: 900px) {
+  .geometric-moon {
+    width: 140px;
+    height: 140px;
+    right: 8%;
+    top: 8%;
+  }
+}
+@media (max-width: 520px) {
+  .geometric-moon {
+    width: 110px;
+    height: 110px;
+    right: 6%;
+    top: 10%;
+  }
+}
+
+/* high-contrast (kept for compatibility) */
+.high-contrast,
+.high-contrast html,
+.high-contrast body {
+  background: #e6bfbf !important;
+  color: #ffff00 !important;
+}
+.high-contrast .hero-card {
+  background: #7146b6 !important;
+  border: 2px solid #fd028c;
+}
+.high-contrast .tagline {
+  background: transparent !important;
+  color: #f55894 !important;
+  box-shadow: none;
+}
+.high-contrast #contrast-toggle {
+  background: #ffce84ab;
+  color: #4e4242;
+}
+/* === Campfire scene overrides for Mr. Boooiiii + Benny === */
+body {
+  background: linear-gradient(180deg, #020024 0%, #090979 50%, #00d4ff 100%);
+  color: #e6f4ff;
+}
+.tagline {
+  color: #b7eaff;
+}
+nav {
+  background: rgba(6, 10, 20, 0.75);
+  color: #cfe8ff;
+}
+.logo {
+  color: #cfe8ff;
+}
+
+.hero-card.small {
+  padding: 16px;
+  background: rgba(5, 12, 40, 0.5);
+}
+.howto-header {
+  display: flex;
+  justify-content: center;
+}
+.throw-btn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: none;
+  background: #7dd3fc;
+  color: #0b1220;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.benny-ball {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    #fff6a6,
+    #ff8c2b 60%,
+    #e65a1f 100%
+  );
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+  z-index: 16;
+  animation: tossBall 1.6s ease-in-out forwards;
+}
+
+@keyframes tossBall {
+  0% {
+    transform: translate(0, 0) scale(0.8);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(160px, -120px) scale(1);
+  }
+  100% {
+    transform: translate(260px, -20px) scale(0.9);
+    opacity: 0;
+  }
+}
+.chair-ring {
+  display: none;
+}
+.campfire-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.campfire-stage {
+  position: relative;
+  width: min(900px, 92vw);
+  height: min(520px, 70vh);
+  border-radius: 24px;
+  background: rgba(7, 14, 48, 0.35);
+  box-shadow: 0 18px 40px rgba(5, 8, 26, 0.45);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.campfire {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  width: 380px;
+  height: 260px;
+  z-index: 8;
+}
+#fireCanvas {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 380px;
+  height: 260px;
+  transform: translateX(-50%);
+  z-index: 12;
+  filter: drop-shadow(0 24px 40px rgba(255, 140, 0, 0.4));
+}
+.instructions {
+  position: fixed;
+  right: 6%;
+  top: 40%;
+  width: min(320px, 32vw);
+  background: rgba(12, 28, 80, 0.72);
+  padding: 16px;
+  border-radius: 14px;
+  color: #e7f5ff;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.3);
+  z-index: 18;
+}
+.instructions h2 {
+  margin: 0 0 8px;
+  color: #b7f7ff;
+}
+.instructions ol {
+  list-style: decimal;
+  padding-left: 1.1rem;
+  margin: 0;
+  color: #c7d7ea;
+}
+.instructions .back-link {
+  color: #a6d7ff;
+}
+.booiiii {
+  perspective: 600px;
+  position: absolute;
+  left: 16%;
+  bottom: 20%;
+  width: 190px;
+  height: 260px;
+  z-index: 10;
+  image-rendering: pixelated;
+}
+.booiiii .dot {
+  rotate: calc(90deg);
+  position: absolute;
+  background: #d3d3d3;
+  width: 20px;
+  height: 5px;
+  top: 50px;
+}
+.booiiii .dot:first-of-type {
+  right: -5px;
+}
+
+.booiiii .hat {
+  border-radius: 114px 0 10px 114px;
+  position: absolute;
+  rotate: calc(90deg);
+  top: 16px;
+  left: 79px;
+  width: 28px;
+  height: 66px;
+  background: #181b2e;
+  image-rendering: pixelated;
+  z-index: 14;
+}
+.booiiii .hat-brim {
+  transform: translate(-40px, 0) rotate(-40deg) translate(10px, 0);
+  width: 24px;
+  min-height: 40px;
+  border-radius: 114px 0 10px 114px;
+  position: absolute;
+  perspective: 600px;
+  rotate: calc(-303deg);
+  top: -12px;
+  right: -22px;
+
+  background: #171718;
+  position: relative;
+}
+.booiiii .head {
+  position: absolute;
+  top: 40px;
+  left: 60px;
+  width: 70px;
+  height: 70px;
+  background: #c49a6c;
+  border-radius: 50%;
+}
+.booiiii .head .eye {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #4d5a12be;
+  top: 26px;
+}
+.booiiii .head .eye:first-of-type {
+  left: 18px;
+}
+.booiiii .head .eye:last-of-type {
+  right: 18px;
+}
+.booiiii .head .mouth {
+  position: absolute;
+  width: 20px;
+  height: 10px;
+  border: 4px solid #101010;
+  border-color: transparent transparent #fc060680 transparent;
+  border-radius: 0 0 12px 12px;
+  left: 25px;
+  top: 40px;
+}
+.booiiii .collar {
+  display: none;
+}
+.booiiii .torso {
+  position: absolute;
+  top: 108px;
+  left: 52px;
+  width: 86px;
+  height: 86px;
+  background: #ddd6ce;
+}
+.booiiii .torso::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 36px;
+  height: 14px;
+  background: #2a221c;
+}
+.booiiii .torso::before {
+  content: "";
+  position: absolute;
+  top: 32px;
+  left: 36px;
+  width: 14px;
+  height: 14px;
+  background: #b0b5c9;
+  transform: rotate(45deg);
+}
+.booiiii .torso-left,
+.booiiii .torso-right {
+  display: none;
+}
+.booiiii .arms {
+  position: absolute;
+  top: 120px;
+  left: 6px;
+  width: 178px;
+  height: 50px;
+}
+.booiiii .arm {
+  position: absolute;
+  width: 25px;
+  height: 15px;
+  background: #c49a6c;
+}
+.booiiii .arm.left {
+  left: -20px;
+  top: 10px;
+}
+.booiiii .arm.right {
+  right: 0;
+}
+.booiiii .radius {
+  position: absolute;
+  width: 80px;
+  height: 30px;
+
+  border-radius: 50%;
+  opacity: 0.7;
+}
+.booiiii .radius.one {
+  left: 5px;
+  top: 110px;
+  transform: rotate(-22deg);
+  box-shadow: 0 0 12px rgba(229, 232, 236, 0.45);
+  background: #03305a;
+}
+.booiiii .radius.two {
+  width: 40px;
+  height: 25px;
+  right: 25px;
+  bottom: 130px;
+  transform: rotate(18deg);
+  box-shadow: 0 0 12px rgba(229, 232, 236, 0.45);
+  background: #03305a;
+}
+.booiiii .hand {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #c49a6c;
+  border-radius: 50%;
+  top: 12px;
+}
+.booiiii .hand.left {
+  left: -30px;
+  bottom: 90px;
+}
+.booiiii .hand.right {
+  right: 8px;
+}
+
+.booiiii .legs {
+  position: absolute;
+  top: 190px;
+  left: 60px;
+  width: 90px;
+  height: 60px;
+}
+.booiiii .leg {
+  position: absolute;
+  width: 20px;
+  height: 48px;
+  background: #4b4b4b;
+}
+.booiiii .leg.left {
+  left: 0;
+}
+.booiiii .leg.right {
+  right: 20px;
+}
+.booiiii .foot {
+  position: absolute;
+  width: 36px;
+  height: 16px;
+  background: #101010;
+  bottom: 0;
+  border-radius: 10px;
+}
+.booiiii .foot.left {
+  left: -16px;
+}
+.booiiii .foot.right {
+  right: 16px;
+}
+.howto-benny {
+  position: fixed;
+  top: 16%;
+  left: 12%;
+  width: 64px;
+  height: 64px;
+  z-index: 11;
+  animation: bennyRoam 16s ease-in-out infinite;
+}
+.howto-benny .benny-base {
+  width: 64px;
+  height: 64px;
+  background: transparent 100%;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+.howto-benny .benny-shape {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+.howto-benny .back {
+  position: absolute;
+  left: 12%;
+  top: 50%;
+  width: 76%;
+  height: 20%;
+  background: #7dd3fc;
+  border-radius: 4px;
+}
+.howto-benny .leg-left,
+.howto-benny .leg-right {
+  position: absolute;
+  bottom: -10%;
+  width: 9%;
+  height: 34%;
+  background: #d4d2bfc5;
+  border-radius: 3px;
+}
+.howto-benny .leg-left {
+  left: 15%;
+  transform: rotate(-22deg);
+}
+.howto-benny .leg-right {
+  right: 15%;
+  transform: rotate(-12deg);
+}
+.howto-benny .head {
+  position: absolute;
+  right: -10%;
+  top: 22%;
+  width: 42%;
+  height: 26%;
+  background: #7dd3fc;
+  border-radius: 4px;
+  transform: rotate(-6deg);
+}
+@keyframes bennyRoam {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  30% {
+    transform: translate(26vw, 10vh) rotate(-6deg);
+  }
+  55% {
+    transform: translate(50vw, 18vh) rotate(6deg);
+  }
+  70% {
+    transform: translate(60vw, 28vh) rotate(-8deg);
+  }
+  85% {
+    transform: translate(54vw, 24vh) rotate(8deg) scale(1.08);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+@media (max-width: 900px) {
+  #fireCanvas {
+    width: 320px;
+    height: 220px;
+  }
+  .instructions {
+    right: 4%;
+    width: min(300px, 44vw);
+  }
+}
+@media (max-width: 520px) {
+  /* Aggressive mobile scaling for header */
+  .hero-card.small {
+    font-size: 12px;
+    max-width: 95vw;
+    margin: 8px auto;
+    padding: 8px;
+    border-radius: 8px;
+  }
+  .hero-card.small h1 {
+    font-size: 1.1rem;
+    margin: 0 0 4px;
+  }
+  .hero-card.small p {
+    font-size: 0.75rem;
+    margin: 0;
+  }
+  .throw-btn {
+    margin-top: 6px;
+    padding: 6px 8px;
+    font-size: 0.7rem;
+  }
+
+  /* Reduce campfire scene height */
+  .campfire-scene {
+    height: calc(100vh - 100px);
+    padding: 8px;
+    gap: 8px;
+    flex-direction: column;
+  }
+
+  /* Scale campfire stage down */
+  .campfire-stage {
+    width: 94vw;
+    height: 300px;
+    border-radius: 16px;
+  }
+
+  /* Scale fire canvas significantly */
+  #fireCanvas {
+    width: 200px;
+    height: 130px;
+    bottom: 2%;
+  }
+  .campfire {
+    width: 200px;
+    height: 130px;
+    bottom: 2%;
+  }
+
+  /* Scale Mr. Boooiiii down proportionally */
+  .booiiii {
+    width: 190px;
+    height: 260px;
+    left: 8%;
+    bottom: 10%;
+    transform: scale(0.5);
+    transform-origin: bottom left;
+  }
+
+  /* Scale Benny down */
+  .howto-benny {
+    width: 80px;
+    height: 100px;
+    right: 8%;
+    bottom: 10%;
+  }
+  .howto-benny .benny-base {
+    width: 100%;
+    height: 100%;
+    transform: scale(0.6);
+    transform-origin: bottom center;
+  }
+
+  /* Instructions card - move to bottom and reduce */
+  .instructions {
+    position: static;
+    width: 92%;
+    margin: 8px auto;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+  }
+  .instructions h2 {
+    font-size: 0.9rem;
+    margin: 0 0 6px;
+  }
+  .instructions ol {
+    font-size: 0.7rem;
+    padding-left: 1rem;
+  }
+  .instructions li {
+    margin-bottom: 3px;
+  }
+}
+
+/* Ultra-small screens (320px - 380px) */
+@media (max-width: 380px) {
+  .hero-card.small {
+    font-size: 11px;
+    margin: 4px auto;
+    padding: 6px;
+  }
+  .hero-card.small h1 {
+    font-size: 0.95rem;
+    margin: 0 0 2px;
+  }
+  .hero-card.small p {
+    font-size: 0.65rem;
+    line-height: 1.3;
+  }
+  .throw-btn {
+    margin-top: 4px;
+    padding: 4px 6px;
+    font-size: 0.65rem;
+  }
+
+  .campfire-scene {
+    height: calc(100vh - 80px);
+    padding: 4px;
+  }
+
+  .campfire-stage {
+    width: 96vw;
+    height: 240px;
+  }
+
+  #fireCanvas {
+    width: 160px;
+    height: 100px;
+  }
+  .campfire {
+    width: 160px;
+    height: 100px;
+  }
+
+  .booiiii {
+    width: 190px;
+    height: 260px;
+    left: 4%;
+    transform: scale(0.35);
+    transform-origin: bottom left;
+  }
+
+  .howto-benny {
+    width: 60px;
+    height: 80px;
+    right: 4%;
+  }
+
+  .instructions {
+    width: 94%;
+    padding: 8px;
+    font-size: 0.65rem;
+  }
+  .instructions h2 {
+    font-size: 0.8rem;
+    margin: 0 0 4px;
+  }
+  .instructions ol {
+    font-size: 0.65rem;
+    padding-left: 0.8rem;
+  }
+}

@@ -1,0 +1,787 @@
+.mathsynth .palette-controls {
+  flex: 1 1 320px;
+}
+
+.mathsynth .board-panel .palette-controls {
+  margin-top: 0px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: fit-content;
+}
+
+.mathsynth .palette {
+  align-items: center;
+  align-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  gap: 8px;
+  margin: 8px 0 6px;
+}
+
+.mathsynth .palette .swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+}
+
+.mathsynth .palette .swatch.selected {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.mathsynth .palette .swatch.locked {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.mathsynth .color-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  margin-left: 6px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.mathsynth-hint {
+  color: #d8e6ff;
+  max-width: 420px;
+  font-size: 0.95rem;
+}
+
+.mathsynth-grid-note {
+  display: flex;
+  flex-direction: row;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.mathsynth-board-name {
+  width: 100%;
+  color: #cde9ff;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.mathsynth-board {
+  position: sticky;
+  margin-left: 9px;
+  margin-top: -55px;
+  transform: scale(1.5);
+  display: grid;
+  gap: 6px;
+  width: fit-content;
+  padding: 16px;
+  --ms-accent: #dace29;
+  --ms-accent-2: #3d2568;
+  background: linear-gradient(135deg, var(--ms-accent), var(--ms-accent-2));
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
+}
+
+.mathsynth-others {
+  position: relative;
+  min-height: 140px;
+}
+
+.others-card {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(10, 12, 28, 0.72);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.3);
+  color: #e7f3ff;
+  max-width: 360px;
+  z-index: 6;
+  transition: transform 1600ms ease-in-out;
+}
+
+.others-figure {
+  width: 44px;
+  height: 92px;
+  position: relative;
+  image-rendering: pixelated;
+}
+
+.others-figure .hat {
+  position: absolute;
+  top: 0;
+  left: 6px;
+  width: 52px;
+  height: 20px;
+  background: #333333;
+}
+
+.others-figure .head {
+  position: absolute;
+  top: 14px;
+  left: 10px;
+  width: 44px;
+  height: 44px;
+  background: #c49a6c;
+  border-radius: 50%;
+}
+
+.others-figure .torso {
+  position: absolute;
+  top: 46px;
+  left: 4px;
+  width: 56px;
+  height: 30px;
+  background: #e68c0fab;
+}
+
+.others-figure .belt {
+  position: absolute;
+  top: 58px;
+  left: 4px;
+  width: 56px;
+  height: 10px;
+  background: #222;
+}
+
+.others-figure .legs {
+  position: absolute;
+  top: 74px;
+  left: 10px;
+  width: 44px;
+  height: 18px;
+  background: #3c3c3c;
+}
+
+.others-content {
+  display: grid;
+  gap: 6px;
+}
+
+.others-title {
+  font-weight: 700;
+  color: #b9f0ff;
+}
+
+.others-phrase {
+  font-size: 0.9rem;
+  color: #d6e6ff;
+}
+
+.others-timer {
+  font-size: 0.85rem;
+  color: #a8d7ff;
+}
+
+.others-equation {
+  font-weight: 700;
+  color: #eaf6ff;
+}
+
+.others-input {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  font-weight: 700;
+}
+
+.others-submit {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #1da8a8;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.others-status {
+  font-size: 0.85rem;
+  color: #9fe1b4;
+}
+
+.ms-cell {
+  background: rgba(10, 12, 28, 0.72);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: 6px;
+  color: #e3edff;
+  font-weight: 600;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.ms-cell.correct {
+  background: rgba(20, 120, 90, 0.6);
+  border-color: rgba(125, 250, 220, 0.4);
+  color: #e8fff7;
+}
+
+.ms-cell.solved .ms-equation,
+.ms-cell.solved .ms-answer {
+  display: none;
+}
+
+.ms-cell.solved.pattern-dark {
+  background: #050505;
+  color: #f2f2f2;
+}
+
+.ms-cell.solved.pattern-light {
+  background: #bbb5b5;
+  color: #111;
+}
+
+.ms-symbol {
+  display: none;
+  font-size: 1.4em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ms-cell.reveal .ms-symbol {
+  display: block;
+}
+
+.ms-cell.blocked {
+  background: #050505;
+  border-color: #050505;
+}
+
+.ms-cell.blocked .ms-equation,
+.ms-cell.blocked .ms-answer {
+  display: none;
+}
+
+.ms-cell.wrong {
+  animation: msShake 220ms ease-in-out;
+  border-color: rgba(255, 122, 122, 0.6);
+}
+
+.ms-equation {
+  font-size: 0.85em;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.ms-answer {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95em;
+  outline: none;
+}
+
+.ms-answer:disabled {
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ms-answer:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Hide warm up equations globally */
+.mathsynth-equations {
+  display: none;
+}
+
+@keyframes msShake {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-4px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.mathsynth-clues {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: #e6f1ff;
+  font-weight: 600;
+}
+
+.mathsynth-label {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #cfe9ff;
+}
+
+.mathsynth-equations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.mathsynth-quote {
+  font-size: 0.9rem;
+  color: #c7d7ff;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .mathsynth .game-shell__body {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    justify-items: center;
+  }
+
+  .mathsynth .board-panel .palette-controls {
+    margin-top: -25px;
+    display: flex;
+    align-self: flex-start;
+  }
+
+  .mathsynth .game-shell__board {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    flex-direction: row-reverse;
+    gap: 12px;
+    margin-left: 0;
+  }
+
+  .mathsynth .mathsynth-board {
+    transform: scale(0.85);
+    transform-origin: top right;
+    position: sticky;
+    margin-left: -85px;
+    margin-top: -135px;
+    margin-bottom: -40px;
+  }
+
+  .mathsynth .mathsynth-board[data-cols="8"] {
+    transform: scale(0.75);
+    position: sticky;
+    margin-left: -142px;
+    margin-top: -120px;
+    margin-bottom: -55px;
+  }
+
+  .mathsynth .mathsynth-board[data-cols="10"] {
+    transform: scale(0.63);
+
+    position: sticky;
+    margin-left: -246px;
+    margin-top: -120px;
+    margin-bottom: -87px;
+  }
+
+  .mathsynth .mathsynth-clues {
+    margin-bottom: -6px;
+  }
+
+  .mathsynth .game-shell__body {
+    position: sticky;
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+  }
+  .mathsynth-grid-note {
+    display: none;
+  }
+  .mathsynth-board-name {
+    display: none;
+  }
+  .mathsynth .game-shell__header {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .mathsynth .game-shell__header h1 {
+    display: flex;
+    margin-left: auto;
+    font-size: 1.25rem;
+    text-align: right;
+    order: 2;
+  }
+
+  .mathsynth .game-shell__controls {
+    width: 100%;
+    justify-content: flex-start;
+    order: 3;
+  }
+
+  .mathsynth .game-shell__header .back-link {
+    order: 1;
+    margin-right: auto;
+  }
+
+  .mathsynth-grid-note {
+    width: 100%;
+    margin-left: 0;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .mathsynth-board-name {
+    text-align: left;
+  }
+
+  .mathsynth .palette {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 140px;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+
+  .mathsynth .palette .swatch {
+    width: 28px;
+    height: 28px;
+  }
+  @media screen and (max-width: 480px) {
+    .mathsynth .mathsynth-board {
+      transform: scale(0.95);
+      transform-origin: top right;
+      position: sticky;
+      margin-left: -101px;
+      margin-top: -135px;
+      margin-bottom: -40px;
+    }
+    .mathsynth .mathsynth-board[data-cols="8"] {
+      transform: scale(0.95);
+      position: sticky;
+      margin-left: -162px;
+      margin-top: -120px;
+      margin-bottom: -55px;
+    }
+    .mathsynth .mathsynth-board[data-cols="10"] {
+      transform: scale(0.63);
+      position: sticky;
+      margin-left: -267px;
+      margin-top: -120px;
+      margin-bottom: -87px;
+    }
+    .mathsynth .board-panel .palette-controls {
+      display: flex;
+      align-self: flex-start;
+    }
+    .mathsynth .palette {
+      overflow-y: visible;
+      max-height: 180px;
+      align-items: center;
+      align-content: flex-start;
+      display: flex;
+      flex-wrap: wrap;
+      flex-direction: row;
+      gap: 8px;
+      margin: 0px 0 6px;
+      margin-bottom: 130px;
+    }
+  }
+}
+.mathsynth .game-shell__body {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.mathsynth .board-panel .palette-controls {
+  margin-top: -25px;
+  display: flex;
+  align-self: flex-start;
+}
+
+.mathsynth .game-shell__board {
+  position: sticky;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
+  margin-left: 0;
+}
+
+@media (max-width: 480px) {
+  .mathsynth .palette {
+    max-height: 140px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Aggressive mobile scaling */
+  .mathsynth.game-shell {
+    margin: 8px auto 12px;
+    padding: 8px 10px 12px;
+  }
+  .ms-cell {
+    scale: 110%;
+    font-family: "Courier New", Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
+  }
+
+  .mathsynth .game-shell__header {
+    gap: 8px;
+  }
+
+  .mathsynth .game-shell__header h1 {
+    font-size: 1.9rem;
+    margin: 0;
+  }
+
+  .mathsynth .game-shell__controls {
+    gap: 6px;
+  }
+
+  .mathsynth .game-shell__controls select,
+  .mathsynth .game-shell__controls button {
+    font-size: 0.75rem;
+    padding: 4px 6px;
+  }
+
+  .mathsynth .mathsynth-grid-note {
+    font-size: 0.7rem;
+  }
+
+  .mathsynth .mathsynth-board-name {
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+  }
+
+  .status-row {
+    gap: 8px;
+    font-size: 0.75rem;
+  }
+
+  .mathsynth .game-shell__body {
+    flex-direction: column-reverse;
+    gap: 4px;
+  }
+
+  .mathsynth .side-panel {
+    padding: 8px;
+  }
+
+  .mathsynth .prompt {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+
+  .mathsynth .mathsynth-hint {
+    font-size: 0.7rem;
+    max-width: 100%;
+    margin-top: 4px;
+  }
+
+  .mathsynth .mathsynth-clues {
+    margin-top: 4px;
+  }
+
+  .mathsynth .mathsynth-label {
+    font-size: 0.75rem;
+  }
+
+  .mathsynth .mathsynth-equations {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+  }
+
+  .mathsynth .mathsynth-equations .eq {
+    font-size: 0.65rem;
+    padding: 3px;
+  }
+
+  .mathsynth .mathsynth-quote {
+    font-size: 0.65rem;
+  }
+
+  .mathsynth .board-panel {
+    width: 100%;
+  }
+
+  .mathsynth .mathsynth-board {
+    transform: scale(0.95);
+    transform-origin: top center;
+    margin-left: -57px;
+    margin-top: -110px;
+    margin-bottom: -40px;
+    position: relative;
+  }
+
+  .mathsynth .mathsynth-board[data-cols="8"] {
+    transform: scale(0.5);
+    margin-bottom: -55px;
+  }
+
+  .mathsynth .mathsynth-board[data-cols="10"] {
+    transform: scale(0.4);
+    margin-bottom: -75px;
+  }
+
+  .mathsynth .mathsynth-others {
+    min-height: 80px;
+    margin-bottom: 8px;
+  }
+
+  .mathsynth .palette-controls {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .mathsynth .palette {
+    max-height: 100px;
+  }
+
+  .mathsynth .palette .swatch {
+    width: 18px;
+    height: 18px;
+  }
+
+  .mathsynth .palette-title {
+    font-size: 0.75rem;
+  }
+
+  .mathsynth .selected-color {
+    font-size: 0.7rem;
+  }
+
+  .mathsynth .grid-info {
+    font-size: 0.7rem;
+  }
+}
+.mathsynth.game-shell {
+  display: flex;
+  flex-direction: column;
+  margin: 12px auto 24px;
+  padding: 16px 18px 20px;
+  width: calc(100% - 24px);
+  max-width: 1200px;
+  background: rgb(70, 67, 67);
+  border-radius: 14px;
+  box-shadow: 0 10px 35px rgba(235, 234, 235, 0.945);
+  border: 1px solid rgba(209, 202, 202, 0);
+  color: #ebf1f7;
+  box-sizing: border-box;
+}
+
+.mathsynth .game-shell__header {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 4px;
+  width: 100%;
+}
+
+.mathsynth .game-shell__header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #6ef0ff;
+}
+
+.mathsynth .back-link {
+  color: #f8f5ff;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.mathsynth .game-shell__controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.mathsynth .game-shell__controls label {
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+}
+
+.mathsynth .game-shell__controls select,
+.mathsynth .game-shell__controls button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 0;
+  background: #aba1b1;
+  color: #eef7ff;
+}
+
+.mathsynth .game-shell__controls button {
+  background: #0fa5a5;
+  cursor: pointer;
+}
+
+.mathsynth .game-shell__controls button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mathsynth .game-shell__body {
+  margin-top: 10px;
+  padding: 12px;
+  background: rgba(8, 6, 22, 0.2);
+  border-radius: 10px;
+  min-height: 420px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.mathsynth .game-shell__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+
+.mathsynth .game-shell__board {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1 1 320px;
+  min-width: 260px;
+}

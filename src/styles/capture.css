@@ -1,0 +1,185 @@
+.game-page--capture.game-shell {
+  display: flex;
+  flex-direction: column;
+  margin: 12px auto 24px;
+  padding: 16px 18px 20px;
+  width: calc(100% - 24px);
+  max-width: 1200px;
+  background: rgba(153, 76, 194, 0.75);
+  border-radius: 14px;
+  box-shadow: 0 10px 35px rgba(28, 8, 44, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ebf1f7;
+  box-sizing: border-box;
+}
+
+.game-page--capture .game-shell__header {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 4px;
+  width: 100%;
+}
+
+.game-page--capture .game-shell__header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #6ef0ff;
+}
+
+.game-page--capture .back-link {
+  color: #f8f5ff;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.game-page--capture .game-shell__controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.game-page--capture .game-shell__controls label {
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+}
+
+.game-page--capture .game-shell__controls select,
+.game-page--capture .game-shell__controls button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 0;
+  background: #3e1656;
+  color: #eef7ff;
+}
+
+.game-page--capture .game-shell__controls button {
+  background: #0ea5a4;
+  cursor: pointer;
+}
+
+.game-page--capture .game-shell__controls button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.game-page--capture .game-shell__body {
+  margin-top: 10px;
+  padding: 12px;
+  background: rgba(8, 6, 22, 0.2);
+  border-radius: 10px;
+  min-height: 420px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.game-page--capture .game-shell__panel {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+
+.game-page--capture .game-shell__board {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1 1 320px;
+  min-width: 260px;
+}
+
+.game-page--capture .canvas-anchor {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.game-page--capture .canvas-anchor canvas {
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 12px 30px rgba(25, 7, 44, 0.6);
+  border-radius: 10px;
+}
+
+.game-shell .game-info {
+  text-align: left;
+}
+
+.game-shell #scoreDisplay,
+.game-shell #streakDisplay,
+.game-shell #targetFraction {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.game-shell .inputWrap {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.game-shell .inputWrap label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.game-shell #fractionInput {
+  width: 140px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #2a0f3b;
+  color: #eef7ff;
+  font-size: 1rem;
+}
+@media (max-width: 900px) {
+  .game-page--capture.game-shell {
+    margin: 8px;
+    padding: 12px 12px 18px;
+  }
+
+  .game-page--capture .game-shell__header {
+    gap: 10px;
+  }
+
+  .game-page--capture .game-shell__controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .game-page--capture .game-shell__body {
+    flex-direction: column;
+  }
+
+  .game-page--capture .game-shell__panel,
+  .game-page--capture .game-shell__board {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-page--capture .game-shell__header h1 {
+    font-size: 1.1rem;
+  }
+
+  .game-page--capture .game-shell__controls select,
+  .game-page--capture .game-shell__controls button {
+    font-size: 0.85rem;
+    padding: 6px 8px;
+  }
+
+  .game-shell #fractionInput {
+    width: 100%;
+  }
+}

@@ -56,9 +56,9 @@ body {
 
 /* Canvas */
 .canvas-wrap {
-  border: 2px solid #78d3f7;
+  border: 2px solid #1580aa;
   padding: 0.5rem;
-  background: #0c2d47;
+  background: #696a6b;
 }
 
 #gameCanvas {

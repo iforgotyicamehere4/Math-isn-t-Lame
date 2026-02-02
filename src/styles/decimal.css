@@ -1,7 +1,12 @@
 .decimal-page {
   min-height: 100%;
   margin: 0;
-  font-family: Inter, system-ui, Segoe UI, Roboto, Arial;
+  font-family:
+    Inter,
+    system-ui,
+    Segoe UI,
+    Roboto,
+    Arial;
   color: var(--ui-foreground);
   background: linear-gradient(180deg, #5c1a7a 0%, #7a2a9a 45%, #8c36b5 100%);
   --bg: #5c1a7a;
@@ -19,7 +24,7 @@
   max-width: 1280px;
   margin: 12px auto 24px;
   padding: 16px 18px 20px;
-  background: rgba(151, 76, 191, 0.75);
+  background: rgba(241, 138, 42, 0.637);
   border-radius: 14px;
   box-shadow: 0 10px 35px rgba(28, 8, 44, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);

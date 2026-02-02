@@ -5,11 +5,11 @@
   padding: 16px 18px 20px;
   width: calc(100% - 24px);
   max-width: 1200px;
-  background: rgba(153, 76, 194, 0.75);
+  background: rgba(130, 111, 139, 0.75);
   border-radius: 14px;
   box-shadow: 0 10px 35px rgba(28, 8, 44, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #ebf1f7;
+  color: #3d5874;
   box-sizing: border-box;
 }
 
@@ -27,24 +27,24 @@
 .game-page--capture .game-shell__header h1 {
   margin: 0;
   font-size: 1.5rem;
-  color: #6ef0ff;
+  color: #d4b3bbc7;
 }
 
 .game-page--capture .back-link {
-  color: #f8f5ff;
+  color: rgba(226, 208, 208, 0.9);
   text-decoration: underline;
   font-weight: 600;
 }
 
 .game-page--capture .game-shell__controls {
   display: flex;
-  gap: 8px;
+  gap: 0px 12px;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .game-page--capture .game-shell__controls label {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(226, 208, 208, 0.9);
   font-weight: 600;
 }
 
@@ -54,11 +54,11 @@
   border-radius: 8px;
   border: 0;
   background: #3e1656;
-  color: #eef7ff;
+  color: rgba(226, 208, 208, 0.9);
 }
 
 .game-page--capture .game-shell__controls button {
-  background: #0ea5a4;
+  background: #27a0a0;
   cursor: pointer;
 }
 
@@ -70,23 +70,23 @@
 .game-page--capture .game-shell__body {
   margin-top: 10px;
   padding: 12px;
-  background: rgba(8, 6, 22, 0.2);
+  background: rgba(68, 63, 110, 0);
   border-radius: 10px;
   min-height: 420px;
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
-  gap: 16px;
+  gap: 0px;
+  justify-content: center;
 }
 
 .game-page--capture .game-shell__panel {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 8px;
-  color: rgba(255, 255, 255, 0.9);
+  gap: 12px;
+  color: rgba(226, 208, 208, 0.9);
   flex: 1 1 280px;
-  min-width: 240px;
 }
 
 .game-page--capture .game-shell__board {
@@ -106,7 +106,7 @@
 .game-page--capture .canvas-anchor canvas {
   max-width: 100%;
   height: auto;
-  box-shadow: 0 12px 30px rgba(25, 7, 44, 0.6);
+  box-shadow: 100px 100px 100px 100px rgba(85, 158, 187, 0.6);
   border-radius: 10px;
 }
 
@@ -118,7 +118,7 @@
 .game-shell #streakDisplay,
 .game-shell #targetFraction {
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .game-shell .inputWrap {
@@ -130,17 +130,17 @@
 
 .game-shell .inputWrap label {
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(189, 153, 153, 0.9);
 }
-
 .game-shell #fractionInput {
   width: 140px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #2a0f3b;
-  color: #eef7ff;
+  border: 1px solid rgba(126, 31, 31, 0.678);
+  background: rgba(226, 208, 208, 0.9);
+  color: rgba(162, 36, 221, 0.9);
   font-size: 1rem;
+  font-weight: 600;
 }
 @media (max-width: 900px) {
   .game-page--capture.game-shell {
@@ -158,7 +158,11 @@
   }
 
   .game-page--capture .game-shell__body {
-    flex-direction: column;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    flex-direction: row;
+    min-height: 550px;
   }
 
   .game-page--capture .game-shell__panel,
@@ -181,5 +185,10 @@
 
   .game-shell #fractionInput {
     width: 100%;
+  }
+  .game-shell__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 }

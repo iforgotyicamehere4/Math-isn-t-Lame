@@ -265,34 +265,35 @@ h1 {
 }
 
 .start-btn {
+  background-color: rgb(233, 165, 222);
   font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
   transition: transform 0.12s ease;
 }
 .start-btn:hover {
-  font-weight: 700;
+  font-weight: 200;
   transform: translateY(-3px);
-  color: #181717;
-  background: #a5938f;
+  color: #f7e8e8;
+  background: #584ad8;
 }
 
 /* High contrast mode */
 .high-contrast,
 .high-contrast html,
 .high-contrast body {
-  background: #fd91ebcc !important;
+  background: #dd73dd !important;
   color: #ffff00 !important;
 }
 .high-contrast .hero-card {
-  background: #7146b6 !important;
+  background: #590cd4 !important;
   border: 2px solid #ff008cc5;
 }
 .high-contrast .tagline {
   background: transparent !important;
-  color: #f55894 !important;
+  color: #f1a9c5 !important;
   box-shadow: none;
 }
 .high-contrast .home-benny .benny-base {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 0 3px rgb(218, 119, 221);
 }
 
 /* Classroom chairs grid under hero */

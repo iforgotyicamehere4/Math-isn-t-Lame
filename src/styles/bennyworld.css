@@ -1,8 +1,8 @@
 .benny-world {
   min-height: 100vh;
   padding: 8px 8px 130px;
-  background: #0b0a2b;
-  color: #d1d874;
+  background: #5b5a80;
+  color: #e8f076;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -263,8 +263,8 @@
       0deg,
       #f8f896 0px,
       #fdfdf9 22px,
-      #d2e0f8c2 23px,
-      #fce8ea 24px
+      #1f468ac2 23px,
+      #8d2323 24px
     );
 }
 
@@ -274,7 +274,7 @@
     #f7f4e8 0px,
     #f7f4e8 18px,
     #f0e6c8 18px,
-    #f0e6c8 26px
+    #745c17 26px
   );
 }
 
@@ -300,7 +300,7 @@
 
 .benny-world[data-theme="locker"] .bw-area {
   background:
-    linear-gradient(180deg, #d8ecff, #c8dfff),
+    linear-gradient(180deg, #193d5f, #c8dfff),
     repeating-linear-gradient(
       90deg,
       rgba(30, 60, 120, 0.15) 0 60px,
@@ -323,7 +323,7 @@
     linear-gradient(180deg, #ffe2bf, #ffd39d),
     repeating-linear-gradient(
       90deg,
-      rgba(120, 80, 40, 0.2) 0 40px,
+      rgba(120, 80, 40, 0.021) 0 40px,
       transparent 40px 48px
     );
 }

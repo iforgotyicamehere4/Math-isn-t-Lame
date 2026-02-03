@@ -192,7 +192,8 @@
     timeLeft = calcTimeLimit(levelSelect ? levelSelect.value : 'easy');
     timerEl.textContent = `${timeLeft}`;
     promptEl.textContent = 'Solve all equations before the timer runs out.';
-    startOthersSpawner();
+    // Disabled Others popups to prevent popup challenges
+    // startOthersSpawner();
     const stats = loadProfileStats();
     const gameStats = ensureGameStats(stats, 'mathsynth');
     gameStats.gamesPlayed += 1;
@@ -261,10 +262,11 @@
       input.maxLength = 4;
       input.disabled = !running;
 
-      input.addEventListener('focus', () => {
-        promptEl.textContent = `Context: ${data.context}`;
-        feedbackEl.textContent = `Equation: ${data.equation}`;
-      });
+      // Removed focus event to prevent outline/highlighting
+      // input.addEventListener('focus', () => {
+      //   promptEl.textContent = `Context: ${data.context}`;
+      //   feedbackEl.textContent = `Equation: ${data.equation}`;
+      // });
 
       input.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
@@ -273,12 +275,9 @@
         }
       });
 
-      input.addEventListener('blur', () => {
-        checkAnswer(cell, input);
-      });
-
-      cell.addEventListener('click', () => {
-        if (!input.disabled) input.focus();
+      // Allow clicking directly on input to type, but don't auto-focus
+      input.addEventListener('click', (event) => {
+        event.stopPropagation();
       });
 
       cell.appendChild(eq);
@@ -289,7 +288,8 @@
       board.appendChild(cell);
     }
 
-    renderClues(pool, level);
+    // Hide warm-up equations/clues
+    // renderClues(pool, level);
   }
 
   function checkAnswer(cell, input) {

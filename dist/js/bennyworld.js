@@ -181,6 +181,8 @@ window.__BennyWorldBabylonCleanup = null;
   star.textContent = '★';
 
   let bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
+  let starPos = { x: 0, y: 0 };
+  let cameraOffset = 0;
   let platforms = [];
   const obstacles = [];
   let wallContact = 0;
@@ -286,66 +288,79 @@ window.__BennyWorldBabylonCleanup = null;
     platforms = [];
     obstacles.splice(0, obstacles.length);
     distance = 0;
+    cameraOffset = 0;
     bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
     glideCharges = 2;
     glideActive = false;
 
     const rect = area.getBoundingClientRect();
     const groundY = rect.height - 40;
-    addPlatform(0, groundY, rect.width, 40, 'ground');
+    const viewportWidth = rect.width;
+    
+    // Make level MUCH wider - extends far beyond viewport
+    const levelWidth = viewportWidth * (8 + levelIndex * 2);
+    
+    // Ground spans entire level
+    addPlatform(0, groundY, levelWidth, 40, 'ground');
 
     const safePath = [];
-    const pathSteps = 4 + Math.min(6, Math.floor(levelIndex / 4));
+    // Create safe path from start to end of level
+    const pathSteps = Math.floor(levelWidth / 80);
     const startX = 60;
-    const endX = rect.width - 120;
+    const endX = levelWidth - 120;
     const stepX = (endX - startX) / pathSteps;
     let lastY = groundY - 120;
     for (let i = 0; i <= pathSteps; i += 1) {
-      const w = 110 + Math.random() * 40;
+      const w = 60 + Math.random() * 25;
       const x = startX + stepX * i;
-      const yShift = (Math.random() - 0.5) * 120;
+      const yShift = (Math.random() - 0.5) * 100;
       const y = Math.max(80, Math.min(groundY - 120, lastY + yShift));
       lastY = y;
-      safePath.push({ x, y, w, h: 18 });
-      addPlatform(x, y, w, 18, 'desk');
+      safePath.push({ x, y, w, h: 10 });
+      addPlatform(x, y, w, 10, 'desk');
     }
 
-    const extraCount = 2 + Math.min(4, Math.floor(levelIndex / 5));
+    const extraCount = 20 + Math.min(40, Math.floor(levelIndex / 2));
     for (let i = 0; i < extraCount; i += 1) {
-      const w = 90 + Math.random() * 60;
-      const x = 60 + Math.random() * (rect.width - w - 60);
+      const w = 55 + Math.random() * 40;
+      const x = 60 + Math.random() * (levelWidth - w - 60);
       const y = 80 + Math.random() * (groundY - 140);
-      addPlatform(x, y, w, 18, 'desk');
+      addPlatform(x, y, w, 10, 'desk');
     }
 
-    // Moving desk
-    const moverW = 100;
-    const mover = { x: 40, y: groundY - 140, w: moverW, h: 18, vx: 1.2 * getDifficultyScale() };
-    addPlatform(mover.x, mover.y, mover.w, mover.h, 'desk moving');
-    platforms[platforms.length - 1].vx = mover.vx;
+    // Add moving desks throughout level
+    const movingDeskCount = 5 + Math.floor(levelIndex / 4);
+    for (let m = 0; m < movingDeskCount; m += 1) {
+      const moverW = 55;
+      const moverX = 80 + (m * (levelWidth / (movingDeskCount + 1)));
+      const moverY = groundY - 80 - (m % 2) * 60;
+      const mover = { x: moverX, y: moverY, w: moverW, h: 10, vx: 1.2 * getDifficultyScale() };
+      addPlatform(mover.x, mover.y, mover.w, mover.h, 'desk moving');
+      platforms[platforms.length - 1].vx = mover.vx;
+    }
 
-    const eraserCount = Math.max(1, Math.ceil((1 + Math.min(3, Math.floor(levelIndex / 6))) * getDifficultyScale()));
+    const eraserCount = Math.max(5, Math.ceil((5 + Math.min(10, Math.floor(levelIndex / 3))) * getDifficultyScale()));
     for (let i = 0; i < eraserCount; i += 1) {
-      const w = 46;
-      const h = 24;
-      const x = 40 + Math.random() * (rect.width - w - 80);
+      const w = 24;
+      const h = 12;
+      const x = 40 + Math.random() * (levelWidth - w - 80);
       const y = groundY - h;
       const speed = (Math.random() * 1.2 + 0.6) * getDifficultyScale() * (Math.random() < 0.5 ? -1 : 1);
       addObstacle(x, y, w, h, 'eraser');
       obstacles[obstacles.length - 1].vx = speed;
     }
 
-    const fallingCount = Math.max(1, Math.ceil((levelIndex + 1) * getDifficultyScale()));
+    const fallingCount = Math.max(5, Math.ceil((levelIndex + 5) * getDifficultyScale()));
     for (let i = 0; i < fallingCount; i += 1) {
-      const w = 80;
-      const h = 14;
-      const x = 80 + Math.random() * (rect.width - w - 160);
+      const w = 40;
+      const h = 8;
+      const x = 80 + Math.random() * (levelWidth - w - 160);
       addObstacle(x, 24, w, h, 'falling');
     }
 
-    const numberCount = Math.max(1, Math.ceil((1 + Math.floor(levelIndex / 3)) * getDifficultyScale()));
+    const numberCount = Math.max(5, Math.ceil((5 + Math.floor(levelIndex / 2)) * getDifficultyScale()));
     for (let i = 0; i < numberCount; i += 1) {
-      const x = 40 + Math.random() * (rect.width - 80);
+      const x = 40 + Math.random() * (levelWidth - 80);
       const value = `-${1 + Math.floor(Math.random() * 9)}`;
       addFallingNumber(x, 24, value);
     }
@@ -356,6 +371,7 @@ window.__BennyWorldBabylonCleanup = null;
     const lastPath = safePath[safePath.length - 1];
     const starX = lastPath ? lastPath.x + lastPath.w / 2 : rect.width - 70;
     const starY = lastPath ? lastPath.y - 26 : 40 + Math.random() * (groundY - 120);
+    starPos = { x: starX, y: starY };
     star.style.left = `${starX}px`;
     star.style.top = `${starY}px`;
 
@@ -411,7 +427,8 @@ window.__BennyWorldBabylonCleanup = null;
     bennyState.x += bennyState.vx;
     bennyState.y += bennyState.vy;
 
-    bennyState.x = Math.max(8, Math.min(rect.width - 44, bennyState.x));
+    // Allow Benny to move across the entire level width
+    bennyState.x = Math.max(8, bennyState.x);
 
     let landed = false;
     wallContact = 0;
@@ -509,6 +526,26 @@ window.__BennyWorldBabylonCleanup = null;
     benny.style.left = `${bennyState.x}px`;
     benny.style.top = `${bennyState.y}px`;
     distance += Math.abs(bennyState.vx) * 0.2;
+    
+    // Camera follow: Keep Benny in left 25% of viewport
+    const cameraTarget = bennyState.x - rect.width * 0.25;
+    cameraOffset = Math.max(0, cameraTarget);
+    
+    // Update all platform positions with camera offset
+    platforms.forEach(p => {
+      p.el.style.left = `${p.x - cameraOffset}px`;
+    });
+    
+    // Update all obstacle positions with camera offset
+    obstacles.forEach(ob => {
+      ob.el.style.left = `${ob.x - cameraOffset}px`;
+    });
+    
+    // Update star position with camera offset
+    star.style.left = `${starPos.x - cameraOffset}px`;
+    
+    // Update Benny with camera offset
+    benny.style.left = `${bennyState.x - cameraOffset}px`;
   }
 
   function registerPress(list) {
@@ -542,11 +579,8 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function checkGoal() {
-    const starRect = star.getBoundingClientRect();
-    const areaRect = area.getBoundingClientRect();
-    const bx = bennyState.x + areaRect.left;
-    const by = bennyState.y + areaRect.top;
-    const hit = bx + 30 > starRect.left && bx < starRect.right && by + 30 > starRect.top && by < starRect.bottom;
+    // Use the stored star position instead of getBoundingClientRect
+    const hit = bennyState.x + 30 > starPos.x && bennyState.x < starPos.x + 30 && bennyState.y + 30 > starPos.y && bennyState.y < starPos.y + 30;
     if (hit) {
       points += 200;
       levelIndex = Math.min(totalLevels - 1, levelIndex + 1);

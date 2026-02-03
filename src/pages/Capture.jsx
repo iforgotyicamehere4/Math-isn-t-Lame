@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/capture.css';
 import useScriptOnce from '../hooks/useScriptOnce';
+import '../capture/capture.js';
 
 export default function Capture() {
   useScriptOnce('/js/capture.js', 'capture');

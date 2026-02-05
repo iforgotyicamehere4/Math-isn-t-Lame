@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  base: '/Math-isn-t-Lame/',   // 👈 add this
+  base: '/',   // Changed from '/Math-isn-t-Lame/' for GitHub Pages root deployment
   plugins: [react()],
   server: {
     host: true,

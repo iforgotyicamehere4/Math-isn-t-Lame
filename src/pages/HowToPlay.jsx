@@ -1,14 +1,67 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/howtoplay.css';
-import useScriptOnce from '../hooks/useScriptOnce';
+import useScriptOnce, { useScriptsOnce } from '../hooks/useScriptOnce';
 
 export default function HowToPlay() {
-  useScriptOnce('/js/howtoplay.js', 'howtoplay');
-  useScriptOnce('/js/howto-benny.js', 'howto-benny');
-  useEffect(() => () => {
-    if (window.__HowToPlayCleanup) window.__HowToPlayCleanup();
+  const [error, setError] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const scripts = [
+    { src: '/js/howtoplay.js', key: 'howtoplay' },
+    { src: '/js/howto-benny.js', key: 'howto-benny' }
+  ];
+  useScriptsOnce(scripts);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initHowToPlay = async () => {
+      try {
+        if (!window.__HowToPlayInit) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(`Failed to load HowToPlay: ${err.message}`);
+        }
+        return;
+      }
+
+      if (mounted) {
+        setIsInitialized(true);
+        console.log('[HowToPlay] Page initialized');
+      }
+    };
+
+    initHowToPlay();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (window.__HowToPlayCleanup) {
+        console.log('[HowToPlay] Running cleanup');
+        window.__HowToPlayCleanup();
+      }
+    };
+  }, []);
+
+  if (error) {
+    return (
+      <div className="background error-page">
+        <header className="howto-header">
+          <div className="error-message">
+            <p>{error}</p>
+            <button onClick={() => window.location.reload()}>Reload</button>
+          </div>
+        </header>
+      </div>
+    );
+  }
 
   return (
     <div className="background">

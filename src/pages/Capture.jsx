@@ -1,13 +1,66 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/capture.css';
 import useScriptOnce from '../hooks/useScriptOnce';
 
 export default function Capture() {
-  useScriptOnce('/js/capture.js', 'capture');
-  useEffect(() => () => {
-    if (window.__CaptureCleanup) window.__CaptureCleanup();
+  const { loadScript, isLoaded } = useScriptOnce('/js/capture.js', 'capture');
+  const [error, setError] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initCapture = async () => {
+      if (!window.__CaptureCleanup) {
+        try {
+          await loadScript();
+          // Wait a bit for the script to execute
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (err) {
+          if (mounted) {
+            setError(`Failed to load Capture game: ${err.message}`);
+          }
+          return;
+        }
+      }
+
+      if (mounted) {
+        setIsInitialized(true);
+        console.log('[Capture] Game initialized');
+      }
+    };
+
+    initCapture();
+
+    return () => {
+      mounted = false;
+    };
+  }, [loadScript]);
+
+  useEffect(() => {
+    return () => {
+      if (window.__CaptureCleanup) {
+        console.log('[Capture] Running cleanup');
+        window.__CaptureCleanup();
+      }
+    };
   }, []);
+
+  if (error) {
+    return (
+      <main className="game-shell game-page--capture error-page">
+        <header className="game-shell__header">
+          <Link to="/list" className="back-link" id="backBtn">Back</Link>
+          <h1>Capture</h1>
+        </header>
+        <div className="error-message">
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()}>Reload</button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="game-shell game-page--capture">

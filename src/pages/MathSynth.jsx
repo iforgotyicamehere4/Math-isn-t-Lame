@@ -1,13 +1,65 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/mathsynth.css';
 import useScriptOnce from '../hooks/useScriptOnce';
 
 export default function MathSynth() {
-  useScriptOnce('/js/mathsynth.js', 'mathsynth');
-  useEffect(() => () => {
-    if (window.__MathSynthCleanup) window.__MathSynthCleanup();
+  const { loadScript, isLoaded } = useScriptOnce('/js/mathsynth.js', 'mathsynth');
+  const [error, setError] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initMathSynth = async () => {
+      if (!window.MathSynth) {
+        try {
+          await loadScript();
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (err) {
+          if (mounted) {
+            setError(`Failed to load MathSynth: ${err.message}`);
+          }
+          return;
+        }
+      }
+
+      if (mounted) {
+        setIsInitialized(true);
+        console.log('[MathSynth] Game initialized');
+      }
+    };
+
+    initMathSynth();
+
+    return () => {
+      mounted = false;
+    };
+  }, [loadScript]);
+
+  useEffect(() => {
+    return () => {
+      if (window.__MathSynthCleanup) {
+        console.log('[MathSynth] Running cleanup');
+        window.__MathSynthCleanup();
+      }
+    };
   }, []);
+
+  if (error) {
+    return (
+      <main className="game-shell app mathsynth game-page--mathsynth error-page">
+        <header className="game-shell__header">
+          <Link to="/list" className="back-link" id="backBtn">Back</Link>
+          <h1>Ma+h 5Yn+h3</h1>
+        </header>
+        <div className="error-message">
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()}>Reload</button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="game-shell app mathsynth game-page--mathsynth">

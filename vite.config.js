@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  base: '/',   // Changed from '/Math-isn-t-Lame/' for GitHub Pages root deployment
+base: '/Math-isn-t-Lame/',   // GitHub Pages repository subdirectory
   plugins: [react()],
   server: {
     host: true,

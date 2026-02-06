@@ -618,7 +618,7 @@
   .mathsynth .mathsynth-board {
     transform: scale(0.9);
     transform-origin: top center;
-    margin-left: -60px;
+    margin-left: -50px;
     margin-top: 10px;
     margin-bottom: 40px;
     position: relative;

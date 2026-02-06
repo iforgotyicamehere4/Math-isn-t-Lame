@@ -21,7 +21,6 @@
 .mathsynth .game-shell-body {
   background: transparent;
 }
-  
 
 .mathsynth .palette .swatch {
   width: 26px;
@@ -363,7 +362,7 @@
 
 @media (max-width: 900px) {
   .mathsynth .game-shell__body {
-color: transparent;
+    color: transparent;
     display: flex;
     flex-direction: row;
     gap: 8px;
@@ -482,8 +481,6 @@ color: transparent;
     height: 28px;
   }
   @media screen and (max-width: 480px) {
-   
-   
     .mathsynth .palette {
       overflow-y: visible;
       max-height: 180px;
@@ -619,16 +616,16 @@ color: transparent;
   }
 
   .mathsynth .mathsynth-board {
-    transform: scale(0.95);
+    transform: scale(0.9);
     transform-origin: top center;
-    margin-left: -63px;
-    margin-top: -110px;
-    margin-bottom: -40px;
+    margin-left: -65px;
+    margin-top: 10px;
+    margin-bottom: 40px;
     position: relative;
   }
 
   .mathsynth .mathsynth-board[data-cols="8"] {
-    transform: scale(0.5);
+    transform: scale(0.85);
     margin-bottom: -55px;
   }
 

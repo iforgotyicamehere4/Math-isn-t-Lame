@@ -1,0 +1,506 @@
+/* Existing game styles (unchanged) + additions for enemy markers, falling animation,
+   life popups, and small UX tweaks for zombies. */
+
+/* ---------- Original styles ---------- */
+.game-header {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #2f2f30;
+  color: #fff;
+}
+.game-header .back-link {
+  color: #053f68;
+  text-decoration: none;
+}
+.game-main {
+  background: #a7b3e7;
+  max-width: auto;
+}
+.controls {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+select#levelSelect {
+  display: flex;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+button {
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #53f2ff;
+  color: #001;
+}
+.canvas-wrap {
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+canvas {
+  background: #03061a;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  max-width: 100%;
+  height: auto;
+}
+.game-info {
+  margin-top: 22px;
+  text-align: center;
+  color: #072646;
+}
+
+/* game-area overlay for DOM zombies */
+.game-area {
+  position: absolute;
+  width: 800px;
+  height: 600px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+  pointer-events: none; /* allow clicks to pass to zombies which will enable pointer-events */
+  z-index: 80; /* ensure DOM zombies sit above the canvas */
+}
+.game-area .zombie {
+  position: absolute;
+  width: 64px;
+  height: 90px; /* taller than wide = humanoid silhouette */
+  pointer-events: auto;
+  user-select: none;
+
+  /* zombie body */
+  background: #2d6b2d; /* green body */
+  border-radius: 20% / 35%; /* rounded torso shape */
+  border: 3px solid #1f3d1f;
+  box-shadow: inset 0 -8px 0 #1f3d1f;
+}
+
+/* HEAD */
+.game-area .zombie::before {
+  content: "";
+  position: absolute;
+  top: -75px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 48px;
+  height: 48px;
+  background: #3f8f3f;
+  border-radius: 50%;
+  border: 3px solid #1f3d1f;
+
+  /* simple facial shape */
+  box-shadow: -10px 5px 0 0 #000, /* left eye socket */ 10px 5px 0 0 #000,
+    /* right eye socket */ 0px 20px 0 2px #000; /* mouth */
+}
+
+/* ARMS */
+.game-area .zombie::after {
+  content: "";
+  position: absolute;
+  top: 17px;
+  left: -62px;
+
+  width: 188px;
+  height: 18px;
+  background: #3f8f3f;
+  border-radius: 12px;
+  border: 3px solid #1f3d1f;
+
+  /* arm angle */
+  transform: rotate(-10deg);
+}
+
+.game-area .zombie {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  color: #610606;
+  font-size: 2rem;
+  font-weight: 700;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+#score {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+#math-problem {
+  font-size: 25px;
+  margin-bottom: 6px;
+}
+#timer {
+  font-size: 22px;
+  color: rgba(80, 255, 95, 0.747);
+  margin-bottom: 3px;
+}
+
+/* explosion animation for the correct zombie when time runs out */
+.game-area .zombie.explode {
+  pointer-events: none;
+  animation: explode 700ms cubic-bezier(0.2, 0.8, 0, 1) forwards;
+  box-shadow: 0 12px 30px rgba(255, 140, 0, 0.8);
+}
+
+@keyframes explode {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5) rotate(12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.05) rotate(120deg);
+    opacity: 0;
+  }
+}
+
+/* ---------- Additions & enhancements ---------- */
+
+/* Make clickable zombies show pointer to encourage interaction */
+.game-area .zombie {
+  cursor: pointer;
+}
+
+/* Slight pop on hover / tap for feedback */
+.game-area .zombie:hover {
+  transform: translateY(-6px) scale(1.02);
+  transition: transform 160ms ease;
+}
+
+/* Visual marker for "added" enemies (spawned when player gets 3 wrong).
+   These are distinct from .zombie answer options and are not clickable. */
+.game-area .enemy-marker {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  pointer-events: none;
+  user-select: none;
+  border-radius: 8px;
+  background: linear-gradient(
+    180deg,
+    rgba(50, 50, 60, 0.9),
+    rgba(20, 20, 30, 0.85)
+  );
+  color: #ffd;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 -4px 0 rgba(0, 0, 0, 0.2);
+  transform-origin: center;
+  animation: enemyFloat 2200ms ease-in-out infinite;
+  z-index: 85;
+}
+
+/* temporary fallback enemy elements created by the engine (visual only) */
+.game-area .enemy-temp {
+  position: absolute;
+  font-size: 28px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 85;
+}
+
+/* small float animation for enemy markers */
+@keyframes enemyFloat {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-6px) scale(1.03);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Falling animation: used when a zombie or enemy is eliminated (falls into abyss) */
+.game-area .falling,
+.game-area .enemy-temp,
+.game-area .enemy-marker.falling {
+  pointer-events: none;
+  animation: fallIntoAbyss 700ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* keyframes used by JS animations fallback or class-based animation */
+@keyframes fallIntoAbyss {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(40px) rotate(12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(600px) rotate(120deg);
+    opacity: 0;
+  }
+}
+
+/* subtle "removed" state for zombies that are being animated out */
+.game-area .zombie.removed {
+  opacity: 0.01;
+  transform: scale(0.85) translateY(6px);
+  pointer-events: none;
+}
+
+/* Distinguish correct-answer zombies visually (optional highlight) */
+.game-area .zombie[data-correct="true"] {
+  outline: 3px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 20px rgba(255, 255, 255, 0.04),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.18);
+}
+
+/* Style for the numbered label inside the zombie when text is long */
+.game-area .zombie {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 6px; /* space for head pseudo element */
+}
+
+/* Ensure zombies text is legible on small screens */
+.game-area .zombie {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+/* Life-lost popup (matches JS-created element id lifeLostPopup) */
+#lifeLostPopup {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease;
+  will-change: opacity;
+}
+
+/* Life-gained popup (matches JS-created element id lifeGainedPopup) */
+#lifeGainedPopup {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease;
+  will-change: opacity;
+}
+
+/* Accessibility: focus outline for any zombie when keyboard-navigable */
+.game-area .zombie:focus {
+  outline: 3px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 4px;
+}
+
+/* Ensure any temporary/fallback elements fade out nicely */
+.game-area .enemy-temp.fadeout,
+.game-area .enemy-marker.fadeout {
+  transition: opacity 600ms ease;
+  opacity: 0;
+}
+
+/* Give zombies a subtle breathing animation to make the scene lively */
+@keyframes zombieBreathe {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.01);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+.game-area .zombie {
+  animation: zombieBreathe 2200ms ease-in-out infinite;
+}
+
+/* Make exploding/zombie removal more vivid by combining classes (explode+falling) */
+.game-area .zombie.explode.falling {
+  animation: explode 550ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
+    fallIntoAbyss 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 150ms forwards;
+}
+
+/* Small visual polish for the game-info area when night theme or other contrast toggles are active */
+.game-info .status-compact {
+  font-weight: 700;
+  color: #fdfdfd;
+}
+
+/* End of file additions */
+/* Dog/cage danger badge & danger visuals (append to bottom of file) */
+.game-area .dog-cage .danger-badge {
+  position: absolute;
+  left: 8px;
+  top: -8px;
+  min-width: 36px;
+  height: 28px;
+  background: rgba(200, 40, 40, 0.95);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 28px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(200, 40, 40, 0.18);
+  display: none;
+  z-index: 70;
+}
+
+/* When danger active, highlight cage/dog */
+.game-area .dog-cage.danger .cage {
+  box-shadow: inset 0 -6px 12px rgba(80, 8, 8, 0.85);
+  border-color: rgba(255, 40, 40, 0.4);
+}
+.game-area .dog-cage.danger .dog .head {
+  box-shadow: 0 0 18px rgba(255, 80, 80, 0.8),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.14);
+}
+/* --- Append these dog danger styles (if you already have dog/cage styles, ensure these exist) --- */
+
+.game-area .dog-cage {
+  width: 120px;
+  height: 84px;
+  pointer-events: none;
+  display: block;
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 220; /* visible above answer-option zombies */
+  transform-origin: bottom right;
+}
+
+/* cage + bars + dog shapes (simplified) */
+.game-area .dog-cage .cage {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 120px;
+  height: 84px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #1b1b1b, #121212);
+  box-shadow: inset 0 -6px 12px rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.04);
+}
+.game-area .dog-cage .cage-bars {
+  position: absolute;
+  inset: 8px;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0.5px,
+    transparent 0.5px
+  );
+  background-size: 14px 100%;
+  opacity: 0.9;
+  mix-blend-mode: overlay;
+}
+
+/* dog */
+.game-area .dog-cage .dog {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  width: 68px;
+  height: 56px;
+  z-index: 230;
+  pointer-events: none;
+}
+.game-area .dog-cage .dog .head {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 40px;
+  height: 34px;
+  background: linear-gradient(180deg, #ffd59e, #f7a85a);
+  border-radius: 40% 40% 36% 36%;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 -6px 8px rgba(0, 0, 0, 0.12);
+}
+.game-area .dog-cage .dog .ear {
+  position: absolute;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  background: #f7a85a;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}
+.game-area .dog-cage .dog .ear-left {
+  right: 26px;
+  transform: rotate(-22deg);
+}
+.game-area .dog-cage .dog .ear-right {
+  right: 6px;
+  transform: rotate(18deg);
+}
+.game-area .dog-cage .dog .body {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 56px;
+  height: 40px;
+  background: linear-gradient(180deg, #f7a85a, #e37a3a);
+  border-radius: 20% 20% 30% 30%;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 -6px 8px rgba(0, 0, 0, 0.12);
+}
+.game-area .dog-cage .dog .tail {
+  position: absolute;
+  right: 62px;
+  bottom: 8px;
+  width: 16px;
+  height: 6px;
+  background: #e37a3a;
+  border-radius: 4px;
+  transform: rotate(-28deg);
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 -2px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* danger badge + danger visuals */
+.game-area .dog-cage .danger-badge {
+  position: absolute;
+  left: 8px;
+  top: -8px;
+  min-width: 36px;
+  height: 28px;
+  background: rgba(200, 40, 40, 0.95);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 28px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(200, 40, 40, 0.18);
+  display: none;
+  z-index: 240;
+}
+.game-area .dog-cage.danger .cage {
+  box-shadow: inset 0 -6px 12px rgba(80, 8, 8, 0.85);
+  border-color: rgba(255, 40, 40, 0.4);
+}
+.game-area .dog-cage.danger .dog .head {
+  box-shadow: 0 0 18px rgba(255, 80, 80, 0.8),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.14);
+}
+@media (max-width: 880px) {
+  .game-shell {
+    display: flex;
+    flex-direction: column;
+  }
+}

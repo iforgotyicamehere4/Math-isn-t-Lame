@@ -1,0 +1,104 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: #0a233a;
+  color: #fff;
+}
+
+/* Header */
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: #071a2c;
+  border-bottom: 2px solid #204060;
+}
+
+.game-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #78d3f7;
+}
+
+.back-link {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.2rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Layout */
+.game-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+}
+
+/* Controls */
+.controls {
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.controls select,
+.controls button {
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Canvas */
+.canvas-wrap {
+  border: 2px solid #1580aa;
+  padding: 0.5rem;
+  background: #696a6b;
+}
+
+#gameCanvas {
+  background: #000;
+  display: block;
+}
+
+/* Info */
+.game-info {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.game-info div {
+  margin: 0.3rem;
+  font-size: 1.2rem;
+}
+
+.inputWrap {
+  margin-top: 0.8rem;
+}
+
+#fractionInput {
+  padding: 0.4rem;
+  font-size: 1rem;
+  width: 100px;
+  text-align: center;
+}
+#submitBtn {
+  padding: 0.4rem 0.8rem;
+  font-size: 1rem;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+#score {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+#timer {
+  font-size: 22px;
+  color: rgb(160, 6, 27);
+}

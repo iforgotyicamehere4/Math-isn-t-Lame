@@ -2,8 +2,8 @@
   "name": "MathPop - Math Adventure Games",
   "short_name": "MathPop",
   "description": "Educational math games with Benny the Dog Knight. Solve problems, unlock powers, and defeat zombies!",
-  "start_url": "/Math-isn-t-Lame/",
-  "scope": "/Math-isn-t-Lame/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0a1420",
@@ -11,13 +11,13 @@
   "categories": ["education", "games"],
   "screenshots": [
     {
-      "src": "/Math-isn-t-Lame/screenshots/mathpop-540.png",
+      "src": "/screenshots/mathpop-540.png",
       "sizes": "540x720",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "/Math-isn-t-Lame/screenshots/mathpop-1280.png",
+      "src": "/screenshots/mathpop-1280.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"
@@ -25,36 +25,36 @@
   ],
   "icons": [
     {
-      "src": "/Math-isn-t-Lame/favicon.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/Math-isn-t-Lame/favicon.ico",
+      "src": "/favicon.ico",
       "sizes": "64x64",
       "type": "image/x-icon"
     },
     {
-      "src": "/Math-isn-t-Lame/icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/Math-isn-t-Lame/icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/Math-isn-t-Lame/icon-maskable-192.png",
+      "src": "/icon-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/Math-isn-t-Lame/icon-maskable-512.png",
+      "src": "/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -65,10 +65,10 @@
       "name": "Math Pup",
       "short_name": "Math Pup",
       "description": "Play the Math Pup zombie defense game",
-      "url": "/Math-isn-t-Lame/?game=mathpup",
+      "url": "/?game=mathpup",
       "icons": [
         {
-          "src": "/Math-isn-t-Lame/icon-96.png",
+          "src": "/icon-96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -78,10 +78,10 @@
       "name": "Deci-What?",
       "short_name": "Decimal",
       "description": "Play the Decimal Tetris game",
-      "url": "/Math-isn-t-Lame/?game=decimal",
+      "url": "/?game=decimal",
       "icons": [
         {
-          "src": "/Math-isn-t-Lame/icon-96.png",
+          "src": "/icon-96.png",
           "sizes": "96x96",
           "type": "image/png"
         }

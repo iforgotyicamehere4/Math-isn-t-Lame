@@ -31,6 +31,13 @@ export default function Game() {
       }
     }
     
+    // Reset timer module before loading scripts to ensure fresh state
+    if (window.mathPupTimer && typeof window.mathPupTimer.resetTimer === 'function') {
+      window.mathPupTimer.resetTimer();
+    }
+    // Reset game cleanup flag
+    window.__MathPupCleanupDone = false;
+
     const loadScript = (src, key, options = {}) => new Promise(resolve => {
       const existing = document.querySelector(`script[data-script-key="${key}"]`);
       if (existing && existing.parentNode) {
@@ -57,6 +64,9 @@ export default function Game() {
 
     return () => {
       cancelled = true;
+      // Mark cleanup as done to prevent re-execution
+      window.__MathPupCleanupDone = true;
+      
       // Unlock orientation when leaving the game
       if (window.screen && window.screen.orientation) {
         try {
@@ -71,7 +81,20 @@ export default function Game() {
       if (timerScriptEl && timerScriptEl.parentNode) timerScriptEl.parentNode.removeChild(timerScriptEl);
       const gameScriptEl = document.querySelector('script[data-script-key="mathpup"]');
       if (gameScriptEl && gameScriptEl.parentNode) gameScriptEl.parentNode.removeChild(gameScriptEl);
-      if (window.__MathPupCleanup) window.__MathPupCleanup();
+      
+      // Force reset timer module
+      if (window.mathPupTimer && typeof window.mathPupTimer.resetTimer === 'function') {
+        window.mathPupTimer.resetTimer();
+      }
+      
+      // Execute cleanup if defined
+      if (window.__MathPupCleanup) {
+        window.__MathPupCleanup();
+        window.__MathPupCleanup = null;
+      }
+      
+      // Clear any MathPup global references
+      window.MathPup = null;
     };
   }, []);
 

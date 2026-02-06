@@ -44,8 +44,47 @@ colors cost 2500 points each; unlocks persist for Math Pup only.
 if (window.__MathPupCleanup) window.__MathPupCleanup();
 window.__MathPupCleanup = null;
 
+// Reset all game state to ensure clean re-initialization
+window.__MathPupStateReset = true;
+
 (() => {
   const { evaluate } = window.math || {};
+  
+  // -----------------------
+  // State Reset Function
+  // -----------------------
+  function fullGameReset() {
+    // Remove Benny element if it exists
+    const existingBenny = document.querySelector('#game-area .benny');
+    if (existingBenny) {
+      existingBenny.remove();
+    }
+    
+    // Remove any zombie or shot elements
+    document.querySelectorAll('#game-area .zombie, #game-area .benny-shot').forEach(el => el.remove());
+    
+    // Reset typed answer container if it exists
+    const typedContainer = document.getElementById('typedAnswer');
+    if (typedContainer) {
+      typedContainer.textContent = '';
+    }
+    
+    // Reset UI elements
+    const scoreEl = document.getElementById('score');
+    const mathProblemEl = document.getElementById('math-problem');
+    const statusEl = document.getElementById('status');
+    const timerEl = document.getElementById('timer');
+    const pauseBtn = document.getElementById('pauseBtn');
+    
+    if (scoreEl) scoreEl.textContent = 'Score: 0';
+    if (mathProblemEl) mathProblemEl.textContent = 'Problem: --';
+    if (statusEl) statusEl.textContent = 'Press Start to begin.';
+    if (timerEl) timerEl.textContent = 'Time: —';
+    if (pauseBtn) pauseBtn.disabled = true;
+  }
+  
+  // Execute full reset on script load
+  fullGameReset();
   // -----------------------
   // Utilities
   // -----------------------
@@ -1649,8 +1688,11 @@ window.__MathPupCleanup = null;
 
   window.MathPup = { engine };
   window.__MathPupCleanup = () => {
+    // Remove event listeners
     if (keydownHandler) window.removeEventListener('keydown', keydownHandler);
     if (keyupHandler) window.removeEventListener('keyup', keyupHandler);
+    
+    // Stop game state
     running = false;
     roundActive = false;
     clearRoundTimers();
@@ -1659,10 +1701,46 @@ window.__MathPupCleanup = null;
     clearNextRoundTimeout();
     resetJoystick();
     setMobileControlsActive(false);
+    
+    // Remove game elements from DOM
+    const existingBenny = document.querySelector('#game-area .benny');
+    if (existingBenny) {
+      existingBenny.remove();
+    }
+    
+    // Remove any zombie or shot elements
+    document.querySelectorAll('#game-area .zombie, #game-area .benny-shot').forEach(el => el.remove());
+    
+    // Reset typed answer container
+    const typedContainer = document.getElementById('typedAnswer');
+    if (typedContainer) {
+      typedContainer.textContent = '';
+    }
+    
+    // Reset UI elements to initial state
+    if (scoreEl) scoreEl.textContent = 'Score: 0';
+    if (mathProblemEl) mathProblemEl.textContent = 'Problem: --';
+    if (statusEl) statusEl.textContent = 'Press Start to begin.';
+    if (timerEl) timerEl.textContent = 'Time: —';
+    if (pauseBtn) pauseBtn.disabled = true;
+    
+    // Clear Benny reference and state
+    benny = null;
+    bennyState.x = 0;
+    bennyState.y = 0;
+    activeBennyColor = null;
+    
+    // Reset keyboard buffer
+    keyboardBuffer = '';
+    typedBuffer = '';
+    
     // Reset timer module for fresh state on re-entry
     if (window.mathPupTimer && typeof window.mathPupTimer.resetTimer === 'function') {
       window.mathPupTimer.resetTimer();
     }
+    
+    // Clear global references
+    window.MathPup = null;
   };
 })();
 /* eslint-disable no-unused-vars */

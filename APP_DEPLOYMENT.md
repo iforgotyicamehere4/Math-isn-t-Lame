@@ -129,4 +129,10 @@ npm run preview    # Test production build locally
 - `vite.config.js` - Build optimization and code splitting
 - `package.json` - Added @vitejs/plugin-react
 
+---
+
+## GitHub Pages Deployment
+
+MathPop is deployed at the root of the GitHub Pages site: `https://iforgotyicamehere4.github.io/`
+
 **MathPop is app-ready!** 🎮📱

@@ -11,8 +11,10 @@ test('renders home hero content', () => {
     </MemoryRouter>
   );
 
-  expect(screen.getByText(/Do you even math bro/i)).toBeInTheDocument();
   expect(
     screen.getByText(/Math isn't lame — it's an adventure!/i)
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/My homework is gone/i)
   ).toBeInTheDocument();
 });

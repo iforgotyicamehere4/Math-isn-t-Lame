@@ -5,7 +5,7 @@ import {
   buildHundredthsPhrase,
   buildThousandthsPhrase,
   parseEasyRowPhrase
-} from '../decimal.logic.js';
+} from '../decimal/decimal.logic.js';
 
 describe('Deci-What Easy25 formats', () => {
   it('parses word.decimal format', () => {

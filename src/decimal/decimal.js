@@ -11,7 +11,7 @@ import {
   buildHundredthsPhrase,
   buildThousandthsPhrase,
   parseEasyRowPhrase
-} from '../decimal.logic.js';
+} from './decimal.logic.js';
 
 export default function initDecimal() {
   if (window.__DecimalCleanup) window.__DecimalCleanup();

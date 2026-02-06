@@ -633,138 +633,139 @@
   }
 
   .mathsynth .mathsynth-board[data-cols="10"] {
-    transform: scale(0.80);
+    transform: scale(0.8);
     margin-left: -65px;
     margin-top: 10px;
     margin-bottom: 40px;
     position: relative;
 
-  .mathsynth .mathsynth-others {
-    min-height: 80px;
-    margin-bottom: 8px;
+    .mathsynth .mathsynth-others {
+      min-height: 80px;
+      margin-bottom: 8px;
+    }
+
+    .mathsynth .palette-controls {
+      width: 100%;
+      margin-top: 8px;
+      margin-left: -35px;
+    }
+
+    .mathsynth .palette {
+      max-height: 100px;
+    }
+
+    .mathsynth .palette .swatch {
+      width: 18px;
+      height: 18px;
+    }
+
+    .mathsynth .palette-title {
+      font-size: 0.75rem;
+    }
+
+    .mathsynth .selected-color {
+      font-size: 0.7rem;
+    }
+
+    .mathsynth .grid-info {
+      font-size: 0.7rem;
+    }
+  }
+  .mathsynth.game-shell {
+    display: flex;
+    flex-direction: column;
+    margin: 12px auto 24px;
+    padding: 16px 18px 20px;
+    width: calc(100% - 24px);
+    max-width: 1200px;
+    background: rgb(70, 67, 67);
+    border-radius: 14px;
+    box-shadow: 0 10px 35px rgba(235, 234, 235, 0.945);
+    border: 1px solid rgba(209, 202, 202, 0);
+    color: #ebf1f7;
+    box-sizing: border-box;
   }
 
-  .mathsynth .palette-controls {
+  .mathsynth .game-shell__header {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 4px;
     width: 100%;
-    margin-top: 8px;
-    margin-left: -35px;
   }
 
-  .mathsynth .palette {
-    max-height: 100px;
+  .mathsynth .game-shell__header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #6ef0ff;
   }
 
-  .mathsynth .palette .swatch {
-    width: 18px;
-    height: 18px;
+  .mathsynth .back-link {
+    color: #f8f5ff;
+    text-decoration: underline;
+    font-weight: 600;
   }
 
-  .mathsynth .palette-title {
-    font-size: 0.75rem;
+  .mathsynth .game-shell__controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
   }
 
-  .mathsynth .selected-color {
-    font-size: 0.7rem;
+  .mathsynth .game-shell__controls label {
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 600;
   }
 
-  .mathsynth .grid-info {
-    font-size: 0.7rem;
+  .mathsynth .game-shell__controls select,
+  .mathsynth .game-shell__controls button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 0;
+    background: #aba1b1;
+    color: #eef7ff;
   }
-}
-.mathsynth.game-shell {
-  display: flex;
-  flex-direction: column;
-  margin: 12px auto 24px;
-  padding: 16px 18px 20px;
-  width: calc(100% - 24px);
-  max-width: 1200px;
-  background: rgb(70, 67, 67);
-  border-radius: 14px;
-  box-shadow: 0 10px 35px rgba(235, 234, 235, 0.945);
-  border: 1px solid rgba(209, 202, 202, 0);
-  color: #ebf1f7;
-  box-sizing: border-box;
-}
 
-.mathsynth .game-shell__header {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 4px;
-  width: 100%;
-}
+  .mathsynth .game-shell__controls button {
+    background: #0fa5a5;
+    cursor: pointer;
+  }
 
-.mathsynth .game-shell__header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: #6ef0ff;
-}
+  .mathsynth .game-shell__controls button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 
-.mathsynth .back-link {
-  color: #f8f5ff;
-  text-decoration: underline;
-  font-weight: 600;
-}
+  .mathsynth .game-shell__body {
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(8, 6, 22, 0.2);
+    border-radius: 10px;
+    min-height: 420px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 16px;
+  }
 
-.mathsynth .game-shell__controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
+  .mathsynth .game-shell__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    flex: 1 1 280px;
+    min-width: 240px;
+  }
 
-.mathsynth .game-shell__controls label {
-  color: rgba(255, 255, 255, 0.75);
-  font-weight: 600;
-}
-
-.mathsynth .game-shell__controls select,
-.mathsynth .game-shell__controls button {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 0;
-  background: #aba1b1;
-  color: #eef7ff;
-}
-
-.mathsynth .game-shell__controls button {
-  background: #0fa5a5;
-  cursor: pointer;
-}
-
-.mathsynth .game-shell__controls button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.mathsynth .game-shell__body {
-  margin-top: 10px;
-  padding: 12px;
-  background: rgba(8, 6, 22, 0.2);
-  border-radius: 10px;
-  min-height: 420px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 16px;
-}
-
-.mathsynth .game-shell__panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: rgba(255, 255, 255, 0.9);
-  flex: 1 1 280px;
-  min-width: 240px;
-}
-
-.mathsynth .game-shell__board {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  flex: 1 1 320px;
-  min-width: 260px;
+  .mathsynth .game-shell__board {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex: 1 1 320px;
+    min-width: 260px;
+  }
 }

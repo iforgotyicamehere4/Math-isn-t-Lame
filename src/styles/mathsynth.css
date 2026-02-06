@@ -626,13 +626,18 @@
 
   .mathsynth .mathsynth-board[data-cols="8"] {
     transform: scale(0.85);
-    margin-bottom: -55px;
+    margin-left: -65px;
+    margin-top: 10px;
+    margin-bottom: 40px;
+    position: relative;
   }
 
   .mathsynth .mathsynth-board[data-cols="10"] {
-    transform: scale(0.4);
-    margin-bottom: -75px;
-  }
+    transform: scale(0.80);
+    margin-left: -65px;
+    margin-top: 10px;
+    margin-bottom: 40px;
+    position: relative;
 
   .mathsynth .mathsynth-others {
     min-height: 80px;

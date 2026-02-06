@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import '../styles/bennyworld.css';
 import useScriptOnce from '../hooks/useScriptOnce';
 
+const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
+
 export default function BennyWorld() {
   useScriptOnce('https://cdn.babylonjs.com/babylon.js', 'babylon');
-  useScriptOnce('/js/bennyworld-babylon.js', 'bennyworld-babylon');
-  useScriptOnce('/js/bennyworld.js', 'bennyworld');
+  // bennyworld.js already contains the Babylon 3D placeholder code
+  useScriptOnce(`${BASE_PATH}js/bennyworld.js`, 'bennyworld');
 
   useEffect(() => () => {
     if (window.__BennyWorldCleanup) window.__BennyWorldCleanup();

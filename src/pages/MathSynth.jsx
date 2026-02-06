@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import '../styles/mathsynth.css';
 import useScriptOnce from '../hooks/useScriptOnce';
 
+const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
+
 export default function MathSynth() {
-  const { loadScript, isLoaded } = useScriptOnce('/js/mathsynth.js', 'mathsynth');
+  const { loadScript, isLoaded } = useScriptOnce(`${BASE_PATH}js/mathsynth.js`, 'mathsynth');
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 

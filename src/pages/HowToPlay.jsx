@@ -3,13 +3,15 @@ import { Link } from 'react-router-dom';
 import '../styles/howtoplay.css';
 import useScriptOnce, { useScriptsOnce } from '../hooks/useScriptOnce';
 
+const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
+
 export default function HowToPlay() {
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const scripts = [
-    { src: '/js/howtoplay.js', key: 'howtoplay' },
-    { src: '/js/howto-benny.js', key: 'howto-benny' }
+    { src: `${BASE_PATH}js/howtoplay.js`, key: 'howtoplay' },
+    { src: `${BASE_PATH}js/howto-benny.js`, key: 'howto-benny' }
   ];
   useScriptsOnce(scripts);
 

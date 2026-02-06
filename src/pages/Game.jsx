@@ -4,6 +4,7 @@ import '../styles/game.css';
 
 // Import scripts using Vite's asset handling for proper bundling
 import mathScript from '../../public/js/math.js?url';
+import timerScript from '../../public/js/mathpup-timer.js?url';
 import gameScript from '../../public/js/game.js?url';
 
 export default function Game() {
@@ -47,7 +48,11 @@ export default function Game() {
     // Load scripts using Vite-resolved URLs
     loadScript(mathScript, 'mathjs', { async: false }).then(() => {
       if (cancelled) return null;
-      return loadScript(gameScript, 'mathpup', { type: 'module' });
+      // Load timer script first (non-module), then load game script (module)
+      return loadScript(timerScript, 'mathpup-timer', { async: false }).then(() => {
+        if (cancelled) return null;
+        return loadScript(gameScript, 'mathpup', { type: 'module' });
+      });
     });
 
     return () => {
@@ -60,10 +65,12 @@ export default function Game() {
           // Ignore
         }
       }
-      const mathScript = document.querySelector('script[data-script-key="mathjs"]');
-      if (mathScript && mathScript.parentNode) mathScript.parentNode.removeChild(mathScript);
-      const gameScript = document.querySelector('script[data-script-key="mathpup"]');
-      if (gameScript && gameScript.parentNode) gameScript.parentNode.removeChild(gameScript);
+      const mathScriptEl = document.querySelector('script[data-script-key="mathjs"]');
+      if (mathScriptEl && mathScriptEl.parentNode) mathScriptEl.parentNode.removeChild(mathScriptEl);
+      const timerScriptEl = document.querySelector('script[data-script-key="mathpup-timer"]');
+      if (timerScriptEl && timerScriptEl.parentNode) timerScriptEl.parentNode.removeChild(timerScriptEl);
+      const gameScriptEl = document.querySelector('script[data-script-key="mathpup"]');
+      if (gameScriptEl && gameScriptEl.parentNode) gameScriptEl.parentNode.removeChild(gameScriptEl);
       if (window.__MathPupCleanup) window.__MathPupCleanup();
     };
   }, []);

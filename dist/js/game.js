@@ -38,13 +38,8 @@ colors cost 2500 points each; unlocks persist for Math Pup only.
    - Division only when integer result
 */
 
-import {
-  configureTimer,
-  startRound as startQuestionTimer,
-  handleAnswer as handleQuestionTimerAnswer,
-  stopTimer as stopQuestionTimer,
-  getProblemTimeRemaining
-} from '/js/mathpup-timer.js';
+// Timer functions are loaded from mathpup-timer.js via window.mathPupTimer
+// Make sure the script is loaded before this code runs
 
 if (window.__MathPupCleanup) window.__MathPupCleanup();
 window.__MathPupCleanup = null;
@@ -592,11 +587,14 @@ window.__MathPupCleanup = null;
     mathanomical: 1500000
   };
   problemTimeRemaining = PROBLEM_TIME_MS;
-  configureTimer({
-    durationMs: PROBLEM_TIME_MS,
-    onTick: onQuestionTick,
-    onTimeout: onQuestionTimeout
-  });
+  // Safely configure timer - may not be available if scripts load out of order
+  if (window.mathPupTimer && typeof window.mathPupTimer.configureTimer === 'function') {
+    window.mathPupTimer.configureTimer({
+      durationMs: PROBLEM_TIME_MS,
+      onTick: onQuestionTick,
+      onTimeout: onQuestionTimeout
+    });
+  }
 
   function currentUser() {
     const user = localStorage.getItem('mathpop_current_user') || 'guest';
@@ -889,7 +887,10 @@ window.__MathPupCleanup = null;
   }
 
   function clearRoundTimers() {
-    stopQuestionTimer();
+    // Safely stop timer - may not be available if scripts load out of order
+    if (window.mathPupTimer && typeof window.mathPupTimer.stopTimer === 'function') {
+      window.mathPupTimer.stopTimer();
+    }
     problemStartAt = null;
     problemTimeRemaining = 0;
     problemSecondsLeft = 0;
@@ -1293,7 +1294,10 @@ window.__MathPupCleanup = null;
       problemTimeRemaining = problemSecondsLeft * 1000;
       updateTimerDisplay();
       roundActive = true;
-      startQuestionTimer(levelName);
+      // Safely start timer - may not be available if scripts load out of order
+      if (window.mathPupTimer && typeof window.mathPupTimer.startRound === 'function') {
+        window.mathPupTimer.startRound(levelName);
+      }
       typedBuffer = '';
       typedContainer.textContent = '';
       statusEl.textContent = 'Answer the problem!';
@@ -1310,7 +1314,10 @@ window.__MathPupCleanup = null;
     roundActive = false;
     clearRoundTimers();
     clearNextRoundTimeout();
-    handleQuestionTimerAnswer();
+    // Safely handle answer - may not be available if scripts load out of order
+    if (window.mathPupTimer && typeof window.mathPupTimer.handleAnswer === 'function') {
+      window.mathPupTimer.handleAnswer();
+    }
     updateTimerDisplay();
     if (!engine.currentProblem) {
       statusEl.textContent = 'No active problem. Press Start.';
@@ -1652,6 +1659,10 @@ window.__MathPupCleanup = null;
     clearNextRoundTimeout();
     resetJoystick();
     setMobileControlsActive(false);
+    // Reset timer module for fresh state on re-entry
+    if (window.mathPupTimer && typeof window.mathPupTimer.resetTimer === 'function') {
+      window.mathPupTimer.resetTimer();
+    }
   };
 })();
 /* eslint-disable no-unused-vars */

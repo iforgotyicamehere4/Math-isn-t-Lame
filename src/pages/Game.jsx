@@ -2,6 +2,10 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/game.css';
 
+// Import scripts using Vite's asset handling for proper bundling
+import mathScript from '../../public/js/math.js?url';
+import gameScript from '../../public/js/game.js?url';
+
 export default function Game() {
   if (typeof window !== 'undefined' && window.performance) {
     const Perf = window.Performance || window.performance.constructor;
@@ -40,9 +44,10 @@ export default function Game() {
       document.body.appendChild(script);
     });
 
-    loadScript('/js/math.js', 'mathjs', { async: false }).then(() => {
+    // Load scripts using Vite-resolved URLs
+    loadScript(mathScript, 'mathjs', { async: false }).then(() => {
       if (cancelled) return null;
-      return loadScript('/js/game.js', 'mathpup', { type: 'module' });
+      return loadScript(gameScript, 'mathpup', { type: 'module' });
     });
 
     return () => {

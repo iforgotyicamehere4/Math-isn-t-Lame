@@ -46,10 +46,18 @@ export default function BennyWorld() {
       </section>
 
       <div className="bw-controls" id="bwControls">
-        <button className="bw-move" id="bwLeft" type="button" aria-label="Move left">◀</button>
-        <button className="bw-move" id="bwJump" type="button" aria-label="Jump">Jump</button>
-        <button className="bw-move" id="bwRight" type="button" aria-label="Move right">▶</button>
-        <button className="bw-move" id="bwGlide" type="button" aria-label="Glide">Glide</button>
+        {/* Joystick for mobile - left side */}
+        <div className="bw-joystick-container" id="bwJoystickContainer">
+          <div className="bw-joystick" id="bwJoystick">
+            <div className="bw-joystick-knob" id="bwJoystickKnob" />
+          </div>
+        </div>
+        
+        {/* Action buttons - right side */}
+        <div className="bw-actions">
+          <button className="bw-move bw-action-btn" id="bwJump" type="button" aria-label="Jump">Jump</button>
+          <button className="bw-move bw-action-btn" id="bwGlide" type="button" aria-label="Glide">Glide</button>
+        </div>
       </div>
 
     </main>

@@ -23,6 +23,17 @@ window.__BennyWorldBabylonCleanup = null;
   const rightBtn = qs('#bwRight');
   const jumpBtn = qs('#bwJump');
   const glideBtn = qs('#bwGlide');
+  
+  // Joystick elements
+  const joystickContainer = qs('#bwJoystickContainer');
+  const joystick = qs('#bwJoystick');
+  const joystickKnob = qs('#bwJoystickKnob');
+  
+  // Joystick state
+  let joystickActive = false;
+  let joystickCenter = { x: 0, y: 0 };
+  let joystickVector = { x: 0, y: 0 };
+  const joystickRadius = 35; // Radius of joystick movement
 
   if (!root || !area) return;
 
@@ -179,6 +190,50 @@ window.__BennyWorldBabylonCleanup = null;
   const star = document.createElement('div');
   star.className = 'bw-star';
   star.textContent = '★';
+  
+// Black hole element
+  const blackHole = document.createElement('div');
+  blackHole.className = 'bw-blackhole';
+  blackHole.innerHTML = `
+    <div class="blackhole-core"></div>
+    <div class="blackhole-ring"></div>
+    <div class="blackhole-ring"></div>
+    <div class="blackhole-ring"></div>
+    <div class="event-horizon"></div>
+    <div class="blackhole-particles"></div>
+  `;
+  
+  // Add inline styles for immediate visibility
+  blackHole.style.cssText = `
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 140px;
+    height: 140px;
+    z-index: 2;
+    pointer-events: none;
+    display: block !important;
+    visibility: visible !important;
+  `;
+  
+  // Crumbling floor element
+  const crumblingFloor = document.createElement('div');
+  crumblingFloor.className = 'bw-crumbling-floor';
+  crumblingFloor.style.cssText = `
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+    overflow: visible;
+    display: block !important;
+    visibility: visible !important;
+  `;
+  
+  area.appendChild(blackHole);
+  area.appendChild(crumblingFloor);
 
   let bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
   let starPos = { x: 0, y: 0 };
@@ -193,6 +248,12 @@ window.__BennyWorldBabylonCleanup = null;
   let pendingSuperJump = false;
   const upPresses = [];
   const downPresses = [];
+  
+  // Black hole and crumbling floor state
+  let blackHoleActive = false;
+  let blackHoleTimer = 0;
+  let debrisInterval = null;
+  const blackHoleDelay = 5000; // 5 seconds after level starts
 
   function setMessage(text, holdMs = 1400) {
     if (!msgEl) return;
@@ -201,6 +262,88 @@ window.__BennyWorldBabylonCleanup = null;
     setTimeout(() => {
       if (msgEl.textContent === text) msgEl.textContent = '';
     }, holdMs);
+  }
+
+  function triggerBlackHoleDeath() {
+    // Reset black hole state
+    blackHoleActive = false;
+    blackHoleTimer = 0;
+    
+    // Remove warning and debris
+    const warning = qs('.bw-warning');
+    if (warning) warning.remove();
+    stopDebrisFall();
+    
+    // Visual effect - Benny gets sucked in
+    benny.style.transition = 'all 0.5s ease-in';
+    benny.style.transform = 'scale(0)';
+    benny.style.opacity = '0';
+    
+    setMessage('Sucked into the void!', 2000);
+    
+    setTimeout(() => {
+      // Reset Benny
+      benny.style.transition = '';
+      benny.style.transform = '';
+      benny.style.opacity = '';
+      
+      // Reset position
+      const rect = area.getBoundingClientRect();
+      const groundY = rect.height - 40;
+      bennyState = { x: 40, y: groundY - 36, vx: 0, vy: 0, onGround: true };
+      blackHoleTimer = 0;
+      
+      // Restart level
+      startLevel();
+    }, 1000);
+  }
+
+  function startDebrisFall() {
+    if (debrisInterval) return;
+    
+    debrisInterval = setInterval(() => {
+      if (!blackHoleActive) return;
+      
+      // Create falling debris
+      const rect = area.getBoundingClientRect();
+      const debris = document.createElement('div');
+      debris.className = 'bw-debris';
+      debris.style.left = `${Math.random() * rect.width}px`;
+      debris.style.top = '0px';
+      area.appendChild(debris);
+      
+      // Remove debris after animation
+      setTimeout(() => {
+        if (debris.parentNode) debris.parentNode.removeChild(debris);
+      }, 3000);
+    }, 500);
+    
+    // Create crack effects on the floor
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const crack = document.createElement('div');
+        crack.className = 'bw-crack';
+        crack.style.left = `${Math.random() * 80}%`;
+        crack.style.bottom = '0';
+        area.appendChild(crack);
+        
+        setTimeout(() => {
+          if (crack.parentNode) crack.parentNode.removeChild(crack);
+        }, 2000);
+      }, i * 300);
+    }
+  }
+
+  function stopDebrisFall() {
+    if (debrisInterval) {
+      clearInterval(debrisInterval);
+      debrisInterval = null;
+    }
+    
+    // Remove all existing debris
+    document.querySelectorAll('.bw-debris').forEach(el => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
   }
 
   function updateHud() {
@@ -284,6 +427,10 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function buildLevel() {
+    // Save black hole and crumbling floor references before clearing
+    const savedBlackHole = blackHole;
+    const savedCrumblingFloor = crumblingFloor;
+    
     area.innerHTML = '';
     platforms = [];
     obstacles.splice(0, obstacles.length);
@@ -365,8 +512,11 @@ window.__BennyWorldBabylonCleanup = null;
       addFallingNumber(x, 24, value);
     }
 
+    // Re-append Benny, star, and black hole elements
     area.appendChild(benny);
     area.appendChild(star);
+    area.appendChild(savedBlackHole);
+    area.appendChild(savedCrumblingFloor);
 
     const lastPath = safePath[safePath.length - 1];
     const starX = lastPath ? lastPath.x + lastPath.w / 2 : rect.width - 70;
@@ -379,10 +529,152 @@ window.__BennyWorldBabylonCleanup = null;
     benny.style.top = `${groundY - 36}px`;
   }
 
-  function applyPhysics() {
+function applyPhysics() {
     if (gameOver) return;
     const rect = area.getBoundingClientRect();
     const groundY = rect.height - 40;
+
+    // Automatic black hole timer - activates 5 seconds after level starts
+    if (!blackHoleActive) {
+      blackHoleTimer += 16.67; // Approximate frame time
+      
+      if (blackHoleTimer >= blackHoleDelay) {
+        blackHoleActive = true;
+        setMessage('The floor is crumbling! Run!', 2000);
+        crumblingFloor.classList.add('crumpling');
+        area.classList.add('shake');
+        startDebrisFall();
+      }
+    }
+    
+// Black hole pull effect - only when black hole is active
+    if (blackHoleActive) {
+      // Calculate how long black hole has been active
+      const activeTime = blackHoleTimer - blackHoleDelay;
+      
+      // Get difficulty scale (0.5 for easy, 0.75 for medium, 1.0 for mathanomical)
+      const difficultyScale = getDifficultyScale();
+      
+      // Level multiplier - higher levels have stronger black hole
+      // Level 0 = 1x, Level 50 = 1.5x, Level 99 = 2x
+      const levelMultiplier = 1 + (levelIndex / 100);
+      
+      // Combined multiplier
+      const totalMultiplier = difficultyScale * levelMultiplier;
+      
+      // Pull range - MUST cover entire level width!
+      // Level width grows with levelIndex, so pull range must too
+      const rect = area.getBoundingClientRect();
+      const levelWidth = rect.width * (8 + levelIndex * 2);
+      const basePullRange = levelWidth * totalMultiplier; // Cover entire level!
+      const pullRangeExpansion = 0; // No expansion needed if we cover everything
+      
+      // Pull strength - scales with level and difficulty
+      // Starts at 0.25, goes to 0.4, multiplied by level/difficulty
+      const pullStrength = (0.25 + (activeTime / 30000) * 0.15) * totalMultiplier;
+      
+      // Black hole center (left side of screen)
+      const blackHoleX = 70;
+      const blackHoleY = groundY;
+      
+      // Pull ALL platforms/desks toward the black hole continuously (iterate backwards)
+      for (let index = platforms.length - 1; index >= 0; index--) {
+        const p = platforms[index];
+        
+        // Only affect non-ground platforms
+        if (!p.el.classList.contains('ground')) {
+          const dx = blackHoleX - p.x;
+          const dy = blackHoleY - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          // Always pull if within range (which is now the entire level)
+          if (dist < basePullRange) {
+            // Pull factor increases as platform gets closer (exponential)
+            const pullFactor = Math.pow((basePullRange - dist) / basePullRange, 3);
+            
+            // Move platform toward black hole
+            p.x += (dx / dist) * pullStrength * 4 * pullFactor;
+            p.y += (dy / dist) * pullStrength * 1.5 * pullFactor;
+            
+            // Update position
+            p.el.style.left = `${p.x - cameraOffset}px`;
+            p.el.style.top = `${p.y}px`;
+            
+            // Shrink and remove when close to black hole
+            const shrinkThreshold = 120 * totalMultiplier;
+            if (dist < shrinkThreshold) {
+              const scale = Math.max(0, (dist / shrinkThreshold));
+              p.el.style.transform = `scale(${scale})`;
+              p.el.style.opacity = scale;
+              
+              // Remove when fully consumed
+              const consumeThreshold = 50 * totalMultiplier;
+              if (dist < consumeThreshold) {
+                p.el.remove();
+                platforms.splice(index, 1);
+              }
+            }
+          }
+        }
+      }
+      
+      // Pull obstacles too (iterate backwards)
+      for (let index = obstacles.length - 1; index >= 0; index--) {
+        const ob = obstacles[index];
+        
+        const dx = blackHoleX - ob.x;
+        const dy = blackHoleY - ob.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < basePullRange) {
+          const pullFactor = Math.pow((basePullRange - dist) / basePullRange, 3);
+          ob.x += (dx / dist) * pullStrength * 5 * pullFactor;
+          ob.y += (dy / dist) * pullStrength * 2 * pullFactor;
+          ob.el.style.left = `${ob.x - cameraOffset}px`;
+          ob.el.style.top = `${ob.y}px`;
+          
+          // Shrink and remove
+          const shrinkThreshold = 100 * totalMultiplier;
+          if (dist < shrinkThreshold) {
+            const scale = Math.max(0, (dist / shrinkThreshold));
+            ob.el.style.transform = `scale(${scale})`;
+            ob.el.style.opacity = scale;
+            
+            const consumeThreshold = 40 * totalMultiplier;
+            if (dist < consumeThreshold) {
+              ob.el.remove();
+              obstacles.splice(index, 1);
+            }
+          }
+        }
+      }
+      
+      // Check if Benny is near the black hole
+      const nearBlackHole = bennyState.x < 100 && bennyState.y > groundY - 80;
+      
+      if (nearBlackHole) {
+        // Pull Benny toward the black hole (stronger on higher levels)
+        const bennyPullStrength = (0.3 + (activeTime / 30000) * 0.2) * totalMultiplier;
+        bennyState.vy += bennyPullStrength * 0.5;
+        bennyState.vx -= bennyPullStrength * 0.2;
+        
+        // Warning indicator
+        if (!qs('.bw-warning')) {
+          const warning = document.createElement('div');
+          warning.className = 'bw-warning';
+          area.appendChild(warning);
+        }
+      } else {
+        const warning = qs('.bw-warning');
+        if (warning) warning.remove();
+      }
+    }
+    
+    // Check if Benny fell into the black hole
+    if (bennyState.x < 40 && bennyState.y > groundY - 60) {
+      triggerBlackHoleDeath();
+      return;
+    }
 
     if (pendingSuperJump && bennyState.onGround) {
       bennyState.vy = -(jumpPower * 2.5);
@@ -392,10 +684,19 @@ window.__BennyWorldBabylonCleanup = null;
       
     }
 
-    const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
+const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
+    
+    // Keyboard input
     if (keys.left) bennyState.vx = -speed;
     else if (keys.right) bennyState.vx = speed;
-    else bennyState.vx = 0;
+    else {
+      // Joystick input - only use if joystick is active and has horizontal input
+      if (joystickActive && Math.abs(joystickVector.x) > 0.1) {
+        bennyState.vx = joystickVector.x * speed;
+      } else {
+        bennyState.vx = 0;
+      }
+    }
 
     const wantsJump = keys.jump || (autoJump && bennyState.onGround);
     if (wantsJump && (bennyState.onGround || wallContact !== 0)) {
@@ -671,11 +972,86 @@ window.__BennyWorldBabylonCleanup = null;
     };
   }
 
-  const cleanupKeys = bindKeyEvents();
+const cleanupKeys = bindKeyEvents();
   const cleanupLeft = bindButton(leftBtn, 'left', true);
   const cleanupRight = bindButton(rightBtn, 'right', true);
   const cleanupJump = bindButton(jumpBtn, 'jump', true);
   const cleanupGlide = bindButton(glideBtn, 'glide', true);
+
+  // Joystick event handlers
+  function handleJoystickStart(clientX, clientY) {
+    if (!joystick) return;
+    const rect = joystick.getBoundingClientRect();
+    joystickCenter = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    };
+    joystickActive = true;
+    handleJoystickMove(clientX, clientY);
+  }
+
+  function handleJoystickMove(clientX, clientY) {
+    if (!joystickActive || !joystickKnob) return;
+    
+    const dx = clientX - joystickCenter.x;
+    const dy = clientY - joystickCenter.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const maxDist = joystickRadius;
+    const clampedDist = Math.min(dist, maxDist);
+    const ratio = maxDist > 0 ? clampedDist / maxDist : 0;
+    
+    // Calculate clamped position
+    const clampedX = (dx / dist) * clampedDist || 0;
+    const clampedY = (dy / dist) * clampedDist || 0;
+    
+    // Update knob visual position
+    joystickKnob.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+    
+    // Set joystick vector (-1 to 1 for each axis)
+    joystickVector = {
+      x: clampedX / maxDist,
+      y: clampedY / maxDist
+    };
+  }
+
+  function handleJoystickEnd() {
+    if (!joystickKnob) return;
+    joystickActive = false;
+    joystickVector = { x: 0, y: 0 };
+    joystickKnob.style.transform = 'translate(0, 0)';
+  }
+
+  // Touch events for joystick
+  if (joystick) {
+    joystick.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleJoystickStart(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    joystick.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleJoystickMove(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    joystick.addEventListener('touchend', handleJoystickEnd);
+    joystick.addEventListener('touchcancel', handleJoystickEnd);
+    
+    // Mouse events for testing on desktop
+    joystick.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      handleJoystickStart(e.clientX, e.clientY);
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (joystickActive) {
+        handleJoystickMove(e.clientX, e.clientY);
+      }
+    });
+    
+    document.addEventListener('mouseup', handleJoystickEnd);
+  }
 
   startLevel();
   rafId = requestAnimationFrame(tick);

@@ -179,6 +179,24 @@ window.__BennyWorldBabylonCleanup = null;
   const star = document.createElement('div');
   star.className = 'bw-star';
   star.textContent = '★';
+  
+  // Black hole element
+  const blackHole = document.createElement('div');
+  blackHole.className = 'bw-blackhole';
+  blackHole.innerHTML = `
+    <div class="blackhole-core"></div>
+    <div class="blackhole-ring"></div>
+    <div class="blackhole-ring"></div>
+    <div class="blackhole-ring"></div>
+    <div class="event-horizon"></div>
+  `;
+  
+  // Crumbling floor element
+  const crumblingFloor = document.createElement('div');
+  crumblingFloor.className = 'bw-crumbling-floor';
+  
+  area.appendChild(blackHole);
+  area.appendChild(crumblingFloor);
 
   let bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
   let starPos = { x: 0, y: 0 };
@@ -193,6 +211,12 @@ window.__BennyWorldBabylonCleanup = null;
   let pendingSuperJump = false;
   const upPresses = [];
   const downPresses = [];
+  
+  // Black hole and crumbling floor state
+  let blackHoleActive = false;
+  let blackHoleTimer = 0;
+  let debrisInterval = null;
+  const blackHoleDelay = 5000; // 5 seconds after level starts
 
   function setMessage(text, holdMs = 1400) {
     if (!msgEl) return;
@@ -201,6 +225,77 @@ window.__BennyWorldBabylonCleanup = null;
     setTimeout(() => {
       if (msgEl.textContent === text) msgEl.textContent = '';
     }, holdMs);
+  }
+
+  function triggerBlackHoleDeath() {
+    // Reset black hole state
+    blackHoleActive = false;
+    stationaryTime = 0;
+    isBeingPulled = false;
+    floorCrumbling = false;
+    crumblingFloor.classList.remove('crumpling');
+    area.classList.remove('shake');
+    
+    // Remove warning and debris
+    const warning = qs('.bw-warning');
+    if (warning) warning.remove();
+    stopDebrisFall();
+    
+    // Visual effect - Benny gets sucked in
+    benny.style.transition = 'all 0.5s ease-in';
+    benny.style.transform = 'scale(0)';
+    benny.style.opacity = '0';
+    
+    setMessage('Sucked into the void!', 2000);
+    
+    setTimeout(() => {
+      // Reset Benny
+      benny.style.transition = '';
+      benny.style.transform = '';
+      benny.style.opacity = '';
+      
+      // Reset position
+      const rect = area.getBoundingClientRect();
+      const groundY = rect.height - 40;
+      bennyState = { x: 40, y: groundY - 36, vx: 0, vy: 0, onGround: true };
+      lastMovementTime = performance.now();
+      
+      // Restart level
+      startLevel();
+    }, 1000);
+  }
+
+  function startDebrisFall() {
+    if (debrisInterval) return;
+    
+    debrisInterval = setInterval(() => {
+      if (!blackHoleActive || floorCrumbling) return;
+      
+      // Create falling debris
+      const rect = area.getBoundingClientRect();
+      const debris = document.createElement('div');
+      debris.className = 'bw-debris';
+      debris.style.left = `${Math.random() * rect.width}px`;
+      debris.style.top = '0px';
+      area.appendChild(debris);
+      
+      // Remove debris after animation
+      setTimeout(() => {
+        if (debris.parentNode) debris.parentNode.removeChild(debris);
+      }, 3000);
+    }, 500);
+  }
+
+  function stopDebrisFall() {
+    if (debrisInterval) {
+      clearInterval(debrisInterval);
+      debrisInterval = null;
+    }
+    
+    // Remove all existing debris
+    document.querySelectorAll('.bw-debris').forEach(el => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
   }
 
   function updateHud() {
@@ -383,6 +478,64 @@ window.__BennyWorldBabylonCleanup = null;
     if (gameOver) return;
     const rect = area.getBoundingClientRect();
     const groundY = rect.height - 40;
+
+    // Check if Benny is moving
+    const isMoving = keys.left || keys.right || keys.jump || bennyState.vx !== 0 || bennyState.vy !== 0;
+    
+    if (isMoving) {
+      lastMovementTime = performance.now();
+      stationaryTime = 0;
+      isBeingPulled = false;
+      floorCrumbling = false;
+      crumblingFloor.classList.remove('crumpling');
+      area.classList.remove('shake');
+    } else {
+      stationaryTime = performance.now() - lastMovementTime;
+    }
+    
+    // Automatic black hole timer - activates 5 seconds after level starts
+    if (!blackHoleActive) {
+      blackHoleTimer += 16.67; // Approximate frame time
+      
+      if (blackHoleTimer >= blackHoleDelay) {
+        blackHoleActive = true;
+        setMessage('The floor is crumbling! Run!', 2000);
+        crumblingFloor.classList.add('crumpling');
+        area.classList.add('shake');
+        startDebrisFall();
+      }
+    }
+    
+    // Black hole pull effect - only when black hole is active
+    if (blackHoleActive) {
+      // Check if Benny is near the black hole
+      const nearBlackHole = bennyState.x < 100 && bennyState.y > groundY - 80;
+      
+      if (nearBlackHole) {
+        isBeingPulled = true;
+        // Pull Benny toward the black hole
+        const pullStrength = 0.15;
+        bennyState.vy += pullStrength * 0.3;
+        bennyState.vx -= pullStrength * 0.1;
+        
+        // Warning indicator
+        if (!qs('.bw-warning')) {
+          const warning = document.createElement('div');
+          warning.className = 'bw-warning';
+          area.appendChild(warning);
+        }
+      } else {
+        isBeingPulled = false;
+        const warning = qs('.bw-warning');
+        if (warning) warning.remove();
+      }
+    }
+    
+    // Check if Benny fell into the black hole
+    if (bennyState.x < 40 && bennyState.y > groundY - 60) {
+      triggerBlackHoleDeath();
+      return;
+    }
 
     if (pendingSuperJump && bennyState.onGround) {
       bennyState.vy = -(jumpPower * 2.5);

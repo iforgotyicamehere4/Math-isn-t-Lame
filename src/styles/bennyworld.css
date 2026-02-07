@@ -1,4 +1,4 @@
-.benny-world {
+bi.benny-world {
   min-height: 100vh;
   padding: 8px 8px 130px;
   background: #5b5a80;
@@ -720,12 +720,65 @@
   right: 8px;
   bottom: 12px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   gap: 10px;
   z-index: 20;
   pointer-events: auto;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  padding: 0 8px;
+}
+
+.bw-joystick-container {
+  flex: 0 0 auto;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bw-joystick {
+  width: 80px;
+  height: 80px;
+  background: rgba(31, 41, 55, 0.85);
+  border-radius: 50%;
+  border: 3px solid rgba(226, 232, 240, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  position: relative;
+}
+
+.bw-joystick-knob {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  border-radius: 50%;
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  position: absolute;
+  transform: translate(0, 0);
+  transition: transform 0.05s ease-out;
+}
+
+.bw-actions {
+  display: flex;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.bw-action-btn {
+  /* 10% bigger than before - was min-width: 80px, now 88px */
+  min-width: 88px !important;
+  padding: 14px 18px !important;
+  font-size: 1.05rem !important;
+  border-radius: 14px !important;
 }
 
 .bw-move {
@@ -748,6 +801,20 @@
     position: static;
     justify-content: flex-start;
     margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .bw-joystick-container {
+    display: none !important;
+  }
+
+  .bw-actions {
+    display: none !important;
+  }
+
+  /* Show original buttons on desktop */
+  .bw-move {
+    display: inline-block;
   }
 }
 
@@ -771,6 +838,35 @@
   .bw-move {
     min-width: 80px;
     font-size: 0.95rem;
+  }
+
+  /* Joystick on mobile */
+  .bw-joystick-container {
+    display: flex !important;
+    width: 80px;
+    height: 80px;
+  }
+
+  .bw-joystick {
+    width: 70px;
+    height: 70px;
+  }
+
+  .bw-joystick-knob {
+    width: 35px;
+    height: 35px;
+  }
+
+  .bw-actions {
+    display: flex !important;
+  }
+
+  .bw-action-btn {
+    /* 10% bigger on mobile too */
+    min-width: 88px !important;
+    padding: 14px 18px !important;
+    font-size: 1.05rem !important;
+    border-radius: 14px !important;
   }
 }
 
@@ -838,4 +934,457 @@
     font-size: 0.8rem;
     border-radius: 10px;
   }
+}
+
+/* Black Hole */
+.bw-blackhole {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 140px;
+  height: 140px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.blackhole-core {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(
+    circle at 35% 35%,
+    #1a0a0a 0%,
+    #000000 30%,
+    #0d0015 50%,
+    #1a0a2e 70%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  box-shadow:
+    0 0 20px rgba(75, 0, 130, 0.9),
+    0 0 40px rgba(128, 0, 128, 0.7),
+    0 0 60px rgba(75, 0, 130, 0.5),
+    0 0 80px rgba(0, 0, 0, 1),
+    inset 0 0 30px rgba(0, 0, 0, 0.9);
+  animation: pulseBlackHole 2s ease-in-out infinite;
+}
+
+.blackhole-ring {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  width: 90px;
+  height: 90px;
+  border: 4px solid transparent;
+  border-radius: 50%;
+  animation: spinRing 3s linear infinite;
+}
+
+.blackhole-ring:nth-child(2) {
+  border-top-color: rgba(138, 43, 226, 1);
+  border-right-color: rgba(75, 0, 130, 0.8);
+  animation-duration: 2s;
+  animation-direction: reverse;
+}
+
+.blackhole-ring:nth-child(3) {
+  border-bottom-color: rgba(255, 0, 255, 0.9);
+  border-left-color: rgba(128, 0, 128, 0.7);
+  animation-duration: 4s;
+}
+
+.blackhole-ring:nth-child(4) {
+  border: 3px dashed rgba(0, 255, 255, 0.6);
+  animation-duration: 5s;
+  animation-direction: reverse;
+}
+
+.event-horizon {
+  position: absolute;
+  bottom: 25px;
+  left: 25px;
+  width: 70px;
+  height: 70px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 100, 0, 0.5) 0%,
+    rgba(255, 50, 0, 0.3) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  animation: glowPulse 1.5s ease-in-out infinite;
+}
+
+.blackhole-particles {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(
+      circle at 50% 80%,
+      rgba(138, 43, 226, 0.3) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 30% 70%,
+      rgba(75, 0, 130, 0.2) 0%,
+      transparent 40%
+    );
+  animation: particleGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseBlackHole {
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(75, 0, 130, 0.9),
+      0 0 40px rgba(128, 0, 128, 0.7),
+      0 0 60px rgba(75, 0, 130, 0.5),
+      0 0 80px rgba(0, 0, 0, 1),
+      inset 0 0 30px rgba(0, 0, 0, 0.9);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(75, 0, 130, 1),
+      0 0 60px rgba(128, 0, 128, 0.9),
+      0 0 90px rgba(75, 0, 130, 0.7),
+      0 0 120px rgba(0, 0, 0, 1),
+      inset 0 0 40px rgba(0, 0, 0, 0.95);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes spinRing {
+  from {
+    transform: rotate(0deg) scale(0.9);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  to {
+    transform: rotate(360deg) scale(0.9);
+  }
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes particleGlow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Crumbling Floor Effect */
+.bw-crumbling-floor {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+  overflow: visible;
+}
+
+.bw-crumbling-floor::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 60px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(139, 69, 19, 0.8) 0px,
+    rgba(139, 69, 19, 0.6) 48px,
+    rgba(101, 67, 33, 0.9) 50px
+  );
+  animation: crumbleEffect 8s linear infinite;
+}
+
+.bw-crumbling-floor::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 20px,
+      rgba(0, 0, 0, 0.3) 20px,
+      rgba(0, 0, 0, 0.5) 22px,
+      transparent 22px,
+      transparent 40px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 100, 0, 0.2) 0px,
+      rgba(255, 50, 0, 0.4) 30px,
+      transparent 30px
+    );
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.bw-crumbling-floor.crumbling::before {
+  animation: crumbleBreak 2s ease-in forwards;
+}
+
+.bw-crumbling-floor.crumbling::after {
+  opacity: 1;
+  animation: crumbleGlow 2s ease-in forwards;
+}
+
+.bw-crumbling-floor.crumbling {
+  animation: floorShake 0.1s linear infinite;
+}
+
+@keyframes crumbleEffect {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes crumbleBreak {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  20% {
+    opacity: 0.9;
+    transform: translateY(-2px) scaleY(0.98);
+  }
+  40% {
+    opacity: 0.7;
+    transform: translateY(-5px) scaleY(0.95);
+  }
+  60% {
+    opacity: 0.5;
+    transform: translateY(-10px) scaleY(0.88);
+  }
+  80% {
+    opacity: 0.3;
+    transform: translateY(-15px) scaleY(0.75);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-25px) scaleY(0.5);
+  }
+}
+
+@keyframes crumbleGlow {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes floorShake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+  75% {
+    transform: translateX(-1px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Falling debris particles */
+.bw-debris {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #8b4513, #654321);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 1;
+  animation: fallDebris 3s linear forwards;
+}
+
+@keyframes fallDebris {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(200px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Floor crack effects */
+.bw-crack {
+  position: absolute;
+  width: 40px;
+  height: 30px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bw-crack::before,
+.bw-crack::after {
+  content: "";
+  position: absolute;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+}
+
+.bw-crack::before {
+  width: 3px;
+  height: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: crackAppear 0.3s ease-out forwards;
+}
+
+.bw-crack::after {
+  width: 80%;
+  height: 2px;
+  bottom: 5px;
+  left: 10%;
+  background: rgba(0, 0, 0, 0.6);
+  animation: crackSpread 0.5s ease-out forwards;
+}
+
+@keyframes crackAppear {
+  0% {
+    height: 0;
+    opacity: 0;
+  }
+  100% {
+    height: 100%;
+    opacity: 1;
+  }
+}
+
+@keyframes crackSpread {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  100% {
+    width: 80%;
+    opacity: 1;
+  }
+}
+
+/* Screen shake when near black hole */
+.bw-area.shake {
+  animation: screenShake 0.5s ease-in-out;
+}
+
+@keyframes screenShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-3px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* Warning indicator when Benny is near edge */
+.bw-warning {
+  position: absolute;
+  bottom: 50px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, rgba(255, 0, 0, 0.5) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: warningPulse 0.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes warningPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* Platform being pulled into black hole */
+.bw-platform {
+  transition:
+    transform 0.1s ease-out,
+    opacity 0.1s ease-out;
+}
+
+.bw-platform.sucked-in {
+  animation: suckIntoBlackHole 1s ease-in forwards;
+}
+
+@keyframes suckIntoBlackHole {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.5) rotate(180deg);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(0) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Obstacle being sucked in */
+.bw-obstacle {
+  transition:
+    transform 0.1s ease-out,
+    opacity 0.1s ease-out;
 }

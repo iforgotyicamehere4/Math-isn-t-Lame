@@ -1440,6 +1440,12 @@ window.__MathPupStateReset = true;
   }
 
   keydownHandler = (e) => {
+    // Don't capture keys when typing in input fields
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      return; // Let input fields handle their own input
+    }
+    
     if (miniGameActive) {
       const key = normalizeKey(e);
       if (!key) return;

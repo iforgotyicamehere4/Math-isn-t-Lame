@@ -228,14 +228,29 @@
   background: rgba(10, 12, 28, 0.72);
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  display: grid;
-  grid-template-rows: 1fr auto;
-  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
   color: #e3edff;
   font-weight: 600;
   text-align: center;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.1s;
+}
+
+.ms-cell:hover:not(.blocked):not(.solved) {
+  background: rgba(10, 12, 28, 0.85);
+  transform: scale(1.02);
+}
+
+.ms-cell:active:not(.blocked):not(.solved) {
+  transform: scale(0.98);
 }
 
 .ms-cell.correct {
@@ -480,19 +495,20 @@
     width: 28px;
     height: 28px;
   }
-  @media screen and (max-width: 480px) {
-    .mathsynth .palette {
-      overflow-y: visible;
-      max-height: 180px;
-      align-items: center;
-      align-content: flex-start;
-      display: flex;
-      flex-wrap: wrap;
-      flex-direction: row;
-      gap: 8px;
-      margin: 0px 0 6px;
-      margin-bottom: 130px;
-    }
+}
+
+@media screen and (max-width: 480px) {
+  .mathsynth .palette {
+    overflow-y: visible;
+    max-height: 180px;
+    align-items: center;
+    align-content: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 8px;
+    margin: 0px 0 6px;
+    margin-bottom: 130px;
   }
 }
 .mathsynth .game-shell__body {
@@ -627,17 +643,17 @@
   }
 
   .mathsynth .mathsynth-board[data-cols="8"] {
-    transform: scale(0.85);
+    transform: scale(0.8);
     margin-left: -7px;
-    margin-top: -80px;
+    margin-top: 10px;
     margin-bottom: 40px;
     position: relative;
   }
 
   .mathsynth .mathsynth-board[data-cols="10"] {
     transform: scale(0.65);
-    margin-left: -7px;
-    margin-top: -80px;
+    margin-left: -14px;
+    margin-top: 10px;
     margin-bottom: 40px;
     position: relative;
   }
@@ -770,4 +786,222 @@
   align-items: flex-start;
   flex: 1 1 320px;
   min-width: 260px;
+}
+
+/* Answer Section - side panel like Math Pup */
+.answer-section {
+  background: rgba(10, 12, 28, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+}
+
+.answer-section .selected-problem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.answer-section .problem-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.answer-section .problem-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #6ef0ff;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.answer-section .answer-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.answer-section .answer-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+}
+
+.answer-section .answer-input:focus {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 2px rgba(111, 240, 255, 0.3);
+}
+
+.answer-section .answer-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.answer-section .answer-submit {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  background: #0fa5a5;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.answer-section .answer-submit:hover {
+  background: #12b8b8;
+}
+
+.answer-section .answer-submit:active {
+  background: #0d8c8c;
+}
+
+/* Mobile Answer Popup */
+.mobile-answer-popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 12, 28, 0.95);
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.mobile-answer-popup.active {
+  display: flex;
+}
+
+.mobile-answer-popup .popup-content {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+}
+
+.mobile-answer-popup .popup-instruction {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mobile-answer-popup .popup-problem {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #6ef0ff;
+  font-family: "Courier New", Courier, monospace;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+}
+
+.mobile-answer-popup .popup-input {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.mobile-answer-popup .popup-input:focus {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 2px rgba(111, 240, 255, 0.3);
+}
+
+.mobile-answer-popup .popup-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.mobile-answer-popup .popup-submit {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: #0fa5a5;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: background 0.2s;
+}
+
+.mobile-answer-popup .popup-submit:hover {
+  background: #12b8b8;
+}
+
+.mobile-answer-popup .popup-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-answer-popup .popup-quote {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  line-height: 1.5;
+}
+
+.mobile-answer-popup .popup-quote-author {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 8px;
+  font-style: normal;
+}
+
+/* Show mobile popup only on small screens */
+@media (max-width: 600px) {
+  .answer-section {
+    display: none !important;
+  }
+
+  .mobile-answer-popup {
+    display: none;
+  }
+
+  .mobile-answer-popup.active {
+    display: flex;
+  }
 }

@@ -17,6 +17,19 @@
   const colorInfo = document.getElementById('mathSynthColorInfo');
   const equationsEl = document.getElementById('mathSynthEquations');
   const othersHost = document.getElementById('mathSynthOthers');
+  
+  // Answer section elements
+  const answerSection = document.getElementById('mathSynthAnswerSection');
+  const problemValue = document.getElementById('mathSynthProblemValue');
+  const answerInput = document.getElementById('mathSynthAnswer');
+  const answerSubmit = document.getElementById('mathSynthSubmit');
+  
+  // Mobile popup elements
+  let mobilePopup = null;
+  let mobilePopupProblem = null;
+  let mobilePopupInput = null;
+  let mobilePopupSubmit = null;
+  let mobilePopupClose = null;
 
   if (!board || !startBtn) return;
 
@@ -91,6 +104,10 @@
   let total = 0;
   let running = false;
   let puzzle = [];
+  
+  // Selected cell tracking
+  let selectedCellIndex = null;
+  let selectedCellElement = null;
 
   let unlockedCount = clamp(parseInt(window.localStorage.getItem(unlockKey), 10) || 3, 1, schemes.length);
   let selectedIndex = clamp(parseInt(window.localStorage.getItem(colorKey), 10) || 0, 0, schemes.length - 1);
@@ -160,6 +177,7 @@
     timerEl.textContent = '0';
     promptEl.textContent = 'Press Start to begin.';
     feedbackEl.textContent = '';
+    hideAnswerSection();
     buildGrid();
   };
 
@@ -178,6 +196,136 @@
     });
   }
 
+  // Answer section event handlers
+  function handleAnswerSubmit() {
+    if (selectedCellIndex === null || !running) return;
+    const cell = board.children[selectedCellIndex];
+    if (cell) {
+      checkAnswer(cell, answerInput.value);
+    }
+  }
+  
+  answerSubmit.addEventListener('click', handleAnswerSubmit);
+  
+  answerInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleAnswerSubmit();
+    }
+  });
+
+  // Mobile popup functions
+  function createMobilePopup() {
+    if (mobilePopup) return;
+    
+    mobilePopup = document.createElement('div');
+    mobilePopup.className = 'mobile-answer-popup';
+    mobilePopup.innerHTML = `
+      <button class="popup-close">&times;</button>
+      <div class="popup-content">
+        <div class="popup-instruction">Solve each equation for x</div>
+        <div class="popup-problem"></div>
+        <input type="text" class="popup-input" inputmode="numeric" placeholder="Type answer" />
+        <button class="popup-submit">Submit</button>
+        <div class="popup-quote">
+          "What's the next right choice?"
+          <div class="popup-quote-author">- Mr. Boooiiii -</div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(mobilePopup);
+    
+    mobilePopupProblem = mobilePopup.querySelector('.popup-problem');
+    mobilePopupInput = mobilePopup.querySelector('.popup-input');
+    mobilePopupSubmit = mobilePopup.querySelector('.popup-submit');
+    mobilePopupClose = mobilePopup.querySelector('.popup-close');
+    
+    // Close button
+    mobilePopupClose.addEventListener('click', hideMobilePopup);
+    
+    // Submit button
+    mobilePopupSubmit.addEventListener('click', handleMobileSubmit);
+    
+    // Enter key in input
+    mobilePopupInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        handleMobileSubmit();
+      }
+    });
+    
+    // Click outside to close
+    mobilePopup.addEventListener('click', (event) => {
+      if (event.target === mobilePopup) {
+        hideMobilePopup();
+      }
+    });
+  }
+  
+  function showMobilePopup(cellIndex, cellData) {
+    if (!mobilePopup) createMobilePopup();
+    
+    selectedCellIndex = cellIndex;
+    selectedCellElement = cellIndex !== null ? board.children[cellIndex] : null;
+    
+    if (cellData) {
+      mobilePopupProblem.textContent = cellData.equation;
+      mobilePopupInput.value = '';
+      mobilePopup.classList.add('active');
+      setTimeout(() => mobilePopupInput.focus(), 100);
+    }
+  }
+  
+  function hideMobilePopup() {
+    if (!mobilePopup) return;
+    mobilePopup.classList.remove('active');
+    selectedCellIndex = null;
+    selectedCellElement = null;
+  }
+  
+  function handleMobileSubmit() {
+    if (selectedCellIndex === null || !running) return;
+    const cell = board.children[selectedCellIndex];
+    if (cell) {
+      const value = mobilePopupInput.value;
+      checkAnswer(cell, value);
+      hideMobilePopup();
+    }
+  }
+  
+  function isMobileScreen() {
+    return window.innerWidth <= 600;
+  }
+
+  function showAnswerSection(cellIndex, cellData) {
+    if (!answerSection || !problemValue || !answerInput) return;
+    
+    selectedCellIndex = cellIndex;
+    selectedCellElement = cellIndex !== null ? board.children[cellIndex] : null;
+    
+    if (cellData) {
+      if (isMobileScreen()) {
+        showMobilePopup(cellIndex, cellData);
+        return;
+      }
+      
+      problemValue.textContent = cellData.equation;
+      answerSection.style.display = 'block';
+      answerInput.value = '';
+      answerInput.focus();
+    } else {
+      hideAnswerSection();
+    }
+  }
+  
+  function hideAnswerSection() {
+    if (!answerSection) return;
+    answerSection.style.display = 'none';
+    selectedCellIndex = null;
+    selectedCellElement = null;
+  }
+
   function startGame() {
     stopTimer();
     running = true;
@@ -185,6 +333,7 @@
     solved = 0;
     scoreEl.textContent = '0';
     feedbackEl.textContent = '';
+    hideAnswerSection();
     const layout = getLevelLayout(levelSelect ? levelSelect.value : 'easy');
     rows = layout.rows;
     cols = layout.cols;
@@ -255,48 +404,27 @@
       eq.className = 'ms-equation';
       eq.textContent = data.equation;
 
-      const input = document.createElement('input');
-      input.className = 'ms-answer';
-      input.inputMode = 'numeric';
-      input.type = 'text';
-      input.maxLength = 4;
-      input.disabled = !running;
-
-      // Removed focus event to prevent outline/highlighting
-      // input.addEventListener('focus', () => {
-      //   promptEl.textContent = `Context: ${data.context}`;
-      //   feedbackEl.textContent = `Equation: ${data.equation}`;
-      // });
-
-      input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          checkAnswer(cell, input);
-        }
-      });
-
-      // Allow clicking directly on input to type, but don't auto-focus
-      input.addEventListener('click', (event) => {
-        event.stopPropagation();
-      });
-
       cell.appendChild(eq);
-      cell.appendChild(input);
+      
       const symbol = document.createElement('div');
       symbol.className = 'ms-symbol';
       cell.appendChild(symbol);
+      
+      // Click cell to select and show answer section
+      cell.addEventListener('click', () => {
+        if (!running || data.solved) return;
+        showAnswerSection(i, data);
+      });
+
       board.appendChild(cell);
     }
-
-    // Hide warm-up equations/clues
-    // renderClues(pool, level);
   }
 
-  function checkAnswer(cell, input) {
+  function checkAnswer(cell, answerValue) {
     const idx = Number(cell.dataset.index);
     const data = puzzle[idx];
     if (!data || data.solved || !running) return;
-    const value = Number(input.value);
+    const value = Number(answerValue);
     if (!Number.isFinite(value)) return;
 
     const stats = loadProfileStats();
@@ -312,14 +440,16 @@
       cell.classList.add('correct');
       cell.classList.add('solved');
       applySolvePattern(cell);
-      input.disabled = true;
-      input.value = `${data.answer}`;
       feedbackEl.textContent = 'Nice! Keep going.';
       unlockNextColor();
       stats.totalCorrect += 1;
       gameStats.correct += 1;
       stats.totalPoints += 1;
       gameStats.points += 1;
+      
+      // Hide answer section after correct answer
+      hideAnswerSection();
+      
       if (solved === total) {
         finishGame();
       }
@@ -341,6 +471,7 @@
     promptEl.textContent = `Puzzle complete with ${timeLeft}s left.`;
     updateBest(score, timeLeft);
     revealSymbols();
+    hideAnswerSection();
     const stats = loadProfileStats();
     const gameStats = ensureGameStats(stats, 'mathsynth');
     gameStats.bestScore = gameStats.bestScore === null ? score : Math.min(gameStats.bestScore, score);
@@ -771,6 +902,8 @@
   window.__MathSynthCleanup = () => {
     stopTimer();
     stopOthersSpawner();
+    hideAnswerSection();
+    hideMobilePopup();
     window.__MathSynthCleanup = null;
   };
 

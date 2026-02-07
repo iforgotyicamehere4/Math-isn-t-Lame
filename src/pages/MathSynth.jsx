@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/mathsynth.css';
 import useScriptOnce from '../hooks/useScriptOnce';
@@ -89,7 +89,7 @@ export default function MathSynth() {
             Reset
           </button>
           <div className="mathsynth-grid-note">
-            Grid: <span id="mathSynthPreview"></span> &nbsp; Easy: 7×6, Medium: 8×6, Mathanomical: 10×6
+            Grid: <span id="mathSynthPreview"></span> &nbsp; Easy: 7x6, Medium: 8x6, Mathanomical: 10x6
           </div>
         </div>
       </header>
@@ -105,6 +105,32 @@ export default function MathSynth() {
         <div className="side-panel game-shell__panel">
           <div className="prompt" id="mathSynthPrompt">Press Start to begin.</div>
           <div className="hint" id="mathSynthFeedback" />
+          
+          {/* Answer Section - shows when a cell is selected */}
+          <div className="answer-section" id="mathSynthAnswerSection" style={{ display: 'none' }}>
+            <div className="selected-problem" id="mathSynthSelectedProblem">
+              <span className="problem-label">Problem:</span>
+              <span className="problem-value" id="mathSynthProblemValue"></span>
+            </div>
+            <div className="answer-input-group">
+              <input 
+                type="text" 
+                id="mathSynthAnswer" 
+                className="answer-input" 
+                placeholder="x = ?" 
+                enterKeyHint="enter"
+                autoComplete="off"
+              />
+              <button 
+                type="button" 
+                id="mathSynthSubmit" 
+                className="answer-submit"
+              >
+                Answer
+              </button>
+            </div>
+          </div>
+          
           <div className="mathsynth-hint">
             Solve each equation for x. Correct answers lock the cell and give -1 point.
             The best score is the lowest number with the most time left. Oh yea watch out for
@@ -113,7 +139,7 @@ export default function MathSynth() {
           <div className="mathsynth-clues">
             <div className="mathsynth-label">Warm up problems</div>
             <div id="mathSynthEquations" className="mathsynth-equations" />
-            <div className="mathsynth-quote">just ask yourself, &quot;What&apos;s the next right choice?&quot;<br />
+            <div className="mathsynth-quote">just ask yourself, "What&apos;s the next right choice?"<br />
               If x = your best self, then I believe in you. -Mr. Boooiiii-
             </div>
           </div>
@@ -141,3 +167,4 @@ export default function MathSynth() {
     </main>
   );
 }
+

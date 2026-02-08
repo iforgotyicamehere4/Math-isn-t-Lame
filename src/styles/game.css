@@ -6,10 +6,11 @@
   padding: 16px 18px 20px;
   width: calc(100% - 24px);
   max-width: 1200px;
-  background: rgba(29, 139, 241, 0);
+  background: rgba(10, 60, 140, 0.35);
+  backdrop-filter: blur(10px);
   border-radius: 14px;
-  box-shadow: 0 10px 35px rgba(32, 6, 53, 0);
-  border: 1px solid rgba(224, 50, 50, 0.08);
+  box-shadow: 0 10px 35px rgba(32, 6, 53, 0.3);
+  border: 1px solid rgba(100, 180, 255, 0.2);
   color: #6a93bd;
   box-sizing: border-box;
 }
@@ -71,13 +72,15 @@
 .game-page--mathpup .game-shell__body {
   margin-top: 10px;
   padding: 12px;
-  background: rgba(238, 155, 30, 0.877);
+  background: rgba(10, 60, 140, 0.25);
+  backdrop-filter: blur(8px);
   border-radius: 10px;
   min-height: 420px;
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
   gap: 16px;
+  border: 1px solid rgba(100, 180, 255, 0.15);
 }
 
 .game-page--mathpup .game-shell__panel {
@@ -101,17 +104,20 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  background: rgba(6, 8, 22, 0.35);
+  background: rgba(10, 40, 100, 0.4);
+  backdrop-filter: blur(8px);
   border-radius: 14px;
   padding: 12px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(100, 180, 255, 0.2);
 }
 
 .game-page--mathpup .stats-card > div {
-  background: rgba(22, 10, 38, 0.65);
+  background: rgba(10, 60, 140, 0.5);
+  backdrop-filter: blur(6px);
   border-radius: 10px;
   padding: 10px 12px;
   font-weight: 700;
+  border: 1px solid rgba(100, 180, 255, 0.15);
 }
 
 .game-page--mathpup #score {
@@ -145,6 +151,11 @@
 
 .game-shell .game-info {
   text-align: left;
+  background: rgba(10, 40, 100, 0.35);
+  backdrop-filter: blur(8px);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(100, 180, 255, 0.15);
 }
 
 .game-page--mathpup .status-row {
@@ -168,8 +179,10 @@
   min-width: 52px;
   min-height: 52px;
   border-radius: 12px;
-  background: rgba(123, 104, 231, 0.45);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: rgba(10, 60, 140, 0.45);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgba(100, 180, 255, 0.2);
+  border: 1px solid rgba(100, 180, 255, 0.15);
 }
 
 .game-page--mathpup .mobile-controls {
@@ -1137,10 +1150,11 @@
 
   .game-page--mathpup .game-info {
     width: 100%;
-    background: rgba(78, 36, 111, 0.85);
+    background: rgba(10, 60, 140, 0.45);
+    backdrop-filter: blur(10px);
     border-radius: 12px;
     padding: 14px;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(100, 180, 255, 0.2);
   }
 
   .game-page--mathpup .game-shell__panel {
@@ -1187,16 +1201,18 @@
     flex: 1 1 auto;
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(18, 12, 38, 0.65);
+    border: 1px solid rgba(100, 180, 255, 0.3);
+    background: rgba(10, 60, 140, 0.5);
+    backdrop-filter: blur(8px);
     color: #eef7ff;
   }
 
   .game-page--mathpup .mobile-answer button {
     padding: 8px 12px;
     border-radius: 8px;
-    border: 0;
-    background: #0ea5a4;
+    border: 1px solid rgba(100, 180, 255, 0.2);
+    background: rgba(10, 60, 140, 0.6);
+    backdrop-filter: blur(8px);
     color: #fff;
     font-weight: 700;
   }

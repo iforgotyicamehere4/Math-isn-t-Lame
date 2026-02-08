@@ -5,10 +5,11 @@
   padding: 16px 18px 20px;
   width: calc(100% - 24px);
   max-width: 1200px;
-  background: rgba(130, 111, 139, 0.75);
+  background: rgba(10, 60, 140, 0.35);
+  backdrop-filter: blur(10px);
   border-radius: 14px;
-  box-shadow: 0 10px 35px rgba(28, 8, 44, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 35px rgba(32, 6, 53, 0.3);
+  border: 1px solid rgba(100, 180, 255, 0.2);
   color: #3d5874;
   box-sizing: border-box;
 }
@@ -27,7 +28,7 @@
 .game-page--capture .game-shell__header h1 {
   margin: 0;
   font-size: 1.5rem;
-  color: #d4b3bbc7;
+  color: #6ef0ff;
 }
 
 .game-page--capture .back-link {
@@ -38,7 +39,7 @@
 
 .game-page--capture .game-shell__controls {
   display: flex;
-  gap: 0px 12px;
+  gap: 12px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -50,16 +51,18 @@
 
 .game-page--capture .game-shell__controls select,
 .game-page--capture .game-shell__controls button {
-  padding: 8px 12px;
+  padding: 8px 16px;
   border-radius: 8px;
-  border: 0;
-  background: #3e1656;
-  color: rgba(226, 208, 208, 0.9);
+  border: 1px solid rgba(100, 180, 255, 0.2);
+  background: rgba(10, 60, 140, 0.5);
+  backdrop-filter: blur(8px);
+  color: #eef7ff;
+  cursor: pointer;
 }
 
 .game-page--capture .game-shell__controls button {
-  background: #27a0a0;
-  cursor: pointer;
+  background: rgba(10, 140, 100, 0.6);
+  backdrop-filter: blur(8px);
 }
 
 .game-page--capture .game-shell__controls button:disabled {
@@ -70,14 +73,16 @@
 .game-page--capture .game-shell__body {
   margin-top: 10px;
   padding: 12px;
-  background: rgba(68, 63, 110, 0);
+  background: rgba(10, 60, 140, 0.25);
+  backdrop-filter: blur(8px);
   border-radius: 10px;
   min-height: 420px;
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
-  gap: 0px;
+  gap: 16px;
   justify-content: center;
+  border: 1px solid rgba(100, 180, 255, 0.15);
 }
 
 .game-page--capture .game-shell__panel {
@@ -114,33 +119,79 @@
   text-align: left;
 }
 
-.game-shell #scoreDisplay,
-.game-shell #streakDisplay,
-.game-shell #targetFraction {
-  font-size: 1.05rem;
-  font-weight: 400;
+/* Stats grid for Capture - matching Math Pup style */
+.game-page--capture .game-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  background: rgba(10, 60, 140, 0.4);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid rgba(100, 180, 255, 0.2);
 }
 
-.game-shell .inputWrap {
-  margin-top: 10px;
+.game-page--capture #scoreDisplay {
+  grid-column: 1;
+  background: rgba(10, 60, 140, 0.5);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+  color: var(--color-accent);
+  text-align: center;
+}
+
+.game-page--capture #streakDisplay {
+  grid-column: 2;
+  background: rgba(10, 60, 140, 0.5);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+  color: #fbbf24;
+  text-align: center;
+}
+
+.game-page--capture #targetFraction {
+  grid-column: 1 / -1;
+  background: rgba(10, 60, 140, 0.5);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.game-page--capture #hint {
+  margin-top: 8px;
+  color: var(--text-secondary);
+}
+
+.game-page--capture .inputWrap {
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.game-shell .inputWrap label {
+.game-page--capture .inputWrap label {
   font-weight: 600;
-  color: rgba(189, 153, 153, 0.9);
+  color: var(--text-secondary);
 }
-.game-shell #fractionInput {
-  width: 140px;
-  padding: 8px 10px;
+.game-page--capture #fractionInput {
+  width: 100%;
+  padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(126, 31, 31, 0.678);
-  background: rgba(226, 208, 208, 0.9);
-  color: rgba(162, 36, 221, 0.9);
+  border: 1px solid rgba(100, 180, 255, 0.3);
+  background: rgba(10, 60, 140, 0.5);
+  backdrop-filter: blur(8px);
+  color: #eef7ff;
   font-size: 1rem;
   font-weight: 600;
+}
+
+.game-page--capture #status {
+  margin-top: 12px;
+  color: var(--text-secondary);
 }
 @media (max-width: 900px) {
   .game-page--capture.game-shell {

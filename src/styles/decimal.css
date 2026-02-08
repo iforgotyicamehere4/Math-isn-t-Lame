@@ -7,14 +7,8 @@
     Segoe UI,
     Roboto,
     Arial;
-  color: var(--ui-foreground);
-  background: linear-gradient(180deg, #5c1a7a 0%, #7a2a9a 45%, #8c36b5 100%);
-  --bg: #5c1a7a;
-  --panel: rgba(255, 255, 255, 0.08);
-  --accent: #00e0ff;
-  --muted: rgba(255, 255, 255, 0.72);
-  --button: #0ea5a4;
-  --danger: #ef4444;
+  color: #eef7ff;
+  background: linear-gradient(180deg, #020024 0%, #090979 50%, #00d4ff 100%);
   --ui-foreground: #eef7ff;
 }
 .decimal-page * {
@@ -24,10 +18,11 @@
   max-width: 1280px;
   margin: 12px auto 24px;
   padding: 16px 18px 20px;
-  background: rgba(241, 138, 42, 0.637);
+  background: rgba(10, 60, 140, 0.35);
+  backdrop-filter: blur(10px);
   border-radius: 14px;
-  box-shadow: 0 10px 35px rgba(28, 8, 44, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 35px rgba(32, 6, 53, 0.3);
+  border: 1px solid rgba(100, 180, 255, 0.2);
 }
 .decimal-page .game-shell__header {
   display: flex;
@@ -61,32 +56,32 @@
 .decimal-page .game-shell__controls button {
   padding: 8px 12px;
   border-radius: 8px;
-  border: 0;
-  background: #3e1656;
-  color: var(--ui-foreground);
-}
-.decimal-page .game-shell__controls button {
-  background: #0ea5a4;
+  border: 1px solid rgba(100, 180, 255, 0.2);
+  background: rgba(10, 60, 140, 0.5);
+  backdrop-filter: blur(8px);
+  color: #eef7ff;
   cursor: pointer;
 }
-.decimal-page .game-shell__controls button.small {
-  background: #3d2f56;
-  padding: 6px 8px;
+.decimal-page .game-shell__controls button {
+  background: rgba(10, 140, 100, 0.6);
+  backdrop-filter: blur(8px);
 }
 .decimal-page .game-shell__controls button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 .decimal-page .game-shell__body {
   margin-top: 10px;
   padding: 12px;
-  background: rgba(8, 6, 22, 0.2);
+  background: rgba(10, 60, 140, 0.25);
+  backdrop-filter: blur(8px);
   border-radius: 10px;
   min-height: 420px;
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
   gap: 16px;
+  border: 1px solid rgba(100, 180, 255, 0.15);
 }
 .decimal-page .game-shell__panel {
   display: flex;
@@ -196,28 +191,64 @@
   transform: translateY(-2px);
 }
 .decimal-page .status-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   margin-top: 10px;
-  align-items: center;
 }
 .decimal-page .status-row > div {
-  background: rgba(18, 12, 38, 0.65);
-  padding: 8px 12px;
-  border-radius: 8px;
+  background: rgba(10, 60, 140, 0.5);
+  backdrop-filter: blur(8px);
+  padding: 10px 12px;
+  border-radius: 10px;
   color: #e5f1ff;
-  font-weight: 600;
+  font-weight: 700;
+  border: 1px solid rgba(100, 180, 255, 0.2);
+  text-align: center;
+}
+.decimal-page #score {
+  color: var(--color-accent);
+}
+.decimal-page #timer {
+  color: var(--color-warning);
+}
+.decimal-page #streak {
+  color: #fbbf24;
+}
+.decimal-page #timer.timer-urgent {
+  color: var(--color-danger);
+  animation: timerPulse 0.8s ease-in-out infinite;
+}
+@keyframes timerPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 .decimal-page .problem-area {
   margin-top: 10px;
   padding: 12px;
-  background: rgba(8, 6, 22, 0.2);
+  background: rgba(10, 60, 140, 0.25);
+  backdrop-filter: blur(8px);
   border-radius: 10px;
   min-height: 420px;
   display: grid;
   grid-template-columns: minmax(260px, 0.8fr) minmax(420px, 1.2fr);
   gap: 16px;
+  border: 1px solid rgba(100, 180, 255, 0.15);
 }
+
+/* Prompt row - prompt and input side by side */
+.decimal-page .prompt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .decimal-page .prompt {
   font-size: 1.05rem;
   color: #eaf6ff;
@@ -246,9 +277,10 @@
   width: min(420px, 100%);
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: #2a0f3b;
-  color: #e9fbf6;
+  border: 1px solid rgba(100, 180, 255, 0.3);
+  background: rgba(10, 60, 140, 0.5);
+  backdrop-filter: blur(8px);
+  color: #eef7ff;
   font-size: 1rem;
 }
 .decimal-page .feedback {
@@ -595,6 +627,13 @@
 }
 
 @media (max-width: 480px) {
+  .app-header {
+    display: flex;
+    flex-direction: row-reverse;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    padding: 0 var(--spacing-xs) var(--spacing-md);
+  }
   .decimal-page .game-shell header {
     gap: 6px;
   }
@@ -615,6 +654,61 @@
 
   .decimal-page .status-row > div {
     flex: 1 1 100%;
-    font-size: 12px;
+    font-size: 8px;
   }
+  .game-stats .stat-badge {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    display: flex;
+    max-width: 30%;
+  }
+}
+
+/* High contrast mode - matches styles.css high-contrast rules */
+.high-contrast .decimal-page,
+.decimal-page.high-contrast {
+  background: #dd73dd !important;
+  color: #ffff00 !important;
+}
+
+.high-contrast .decimal-page .app,
+.high-contrast .decimal-page.app,
+.decimal-page.high-contrast .app,
+.decimal-page.high-contrast.app {
+  background: #590cd4 !important;
+  border: 2px solid #ff008cc5;
+}
+
+.high-contrast .decimal-page .prompt,
+.high-contrast .decimal-page .hint,
+.high-contrast .decimal-page .legend,
+.high-contrast .decimal-page .game-shell__header h1,
+.high-contrast .decimal-page .game-controls label,
+.high-contrast .decimal-page .grid-controls label,
+.high-contrast .decimal-page .palette-title,
+.high-contrast .decimal-page footer,
+.high-contrast .decimal-page .feedback,
+.high-contrast .decimal-page .status-row > div {
+  color: #ffff00 !important;
+}
+
+.high-contrast .decimal-page .status-row > div {
+  background: #590cd4 !important;
+  border-color: #ff008cc5;
+}
+
+.high-contrast .decimal-page .canvas-anchor canvas {
+  box-shadow: 0 0 0 3px #ff008cc5;
+}
+
+.high-contrast .decimal-page #score,
+.high-contrast .decimal-page #timer,
+.high-contrast .decimal-page #streak {
+  color: #ffff00 !important;
+}
+
+.high-contrast .decimal-page .typed input {
+  background: rgba(89, 12, 212, 0.5) !important;
+  border-color: #ff008cc5 !important;
+  color: #ffff00 !important;
 }

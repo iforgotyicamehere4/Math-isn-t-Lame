@@ -1,17 +1,72 @@
-/* Fixed and cleaned styles.css (moved from original styles, removed invalid nesting) */
+/* ===========================================
+   UNIFIED DESIGN SYSTEM
+   =========================================== */
 
 /* Import Fredoka One font from Google Fonts - bold, playful, perfect for educational games, commercially usable */
 @import url("https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap");
 
-/* Basic placeholder styles for Home page */
+/* ===========================================
+   CSS CUSTOM PROPERTIES (Design Tokens)
+   =========================================== */
+:root {
+  /* Typography */
+  --font-primary: "Fredoka One", "Fredoka One", Arial, Helvetica, sans-serif;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.5rem;
+  --font-size-xl: 2.5rem;
 
+  /* Brand Colors */
+  --color-primary: #433592;
+  --color-primary-dark: #2a1a6e;
+  --color-accent: #53f2ff;
+  --color-accent-warm: #e9a5de;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* Text Colors */
+  --text-primary: #eef7ff;
+  --text-secondary: rgba(255, 255, 255, 0.75);
+  --text-muted: rgba(255, 255, 255, 0.6);
+
+  /* Background Gradients */
+  --bg-gradient: linear-gradient(180deg, #020024 0%, #090979 50%, #00d4ff 100%);
+  --bg-gradient-card: rgba(0, 0, 0, 0.18);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 35px rgba(28, 8, 44, 0.6);
+
+  /* Transitions */
+  --transition-fast: 120ms ease;
+  --transition-normal: 300ms ease;
+}
+
+/* ===========================================
+   BASE STYLES
+   =========================================== */
 html,
 body {
   margin: 0;
   padding: 0;
-  font-family: "Fredoka One", Arial, Helvetica, sans-serif;
-  background: linear-gradient(180deg, #020024 0%, #090979 50%, #00d4ff 100%);
-  color: #9b5e03;
+  font-family: var(--font-primary);
+  background: var(--bg-gradient);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Cartoon dog bone scrollbar styling */
@@ -645,4 +700,314 @@ h1 {
 .about-section h2 {
   margin: 0 0 8px;
   color: #9fd7ff;
+}
+
+/* ===========================================
+   UNIFIED GAME SHELL COMPONENTS
+   =========================================== */
+
+/* Page wrapper for consistent layout */
+.app-page {
+  min-height: 100%;
+  margin: var(--spacing-md) auto var(--spacing-xl);
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl);
+  max-width: 1280px;
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+}
+
+/* Header bar for all pages */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-md);
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--color-accent);
+}
+
+/* Back link styling */
+.back-link {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  font-weight: 600;
+  transition: color var(--transition-fast);
+}
+
+.back-link:hover {
+  color: var(--color-accent);
+}
+
+/* Unified game controls */
+.game-controls {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.game-controls label {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* Unified button styles */
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: none;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn--primary {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.btn--primary:hover {
+  background: #0d9668;
+  transform: translateY(-2px);
+}
+
+.btn--secondary {
+  background: var(--color-primary);
+  color: var(--text-primary);
+}
+
+.btn--secondary:hover {
+  background: var(--color-primary-dark);
+}
+
+.btn--accent {
+  background: var(--color-accent);
+  color: #001;
+}
+
+.btn--accent:hover {
+  background: #3dd9e8;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Unified select styles */
+.select {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--color-primary);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.select:hover {
+  background: var(--color-primary-dark);
+}
+
+/* Unified stat badges */
+.game-stats {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  background: rgba(18, 12, 38, 0.65);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stat-badge--score {
+  color: var(--color-accent);
+}
+
+.stat-badge--timer {
+  color: var(--color-warning);
+}
+
+.stat-badge--timer.urgent {
+  color: var(--color-danger);
+  animation: timerPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Game body layout */
+.game-body {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: rgba(8, 6, 22, 0.2);
+  border-radius: var(--radius-lg);
+  min-height: 420px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--spacing-lg);
+}
+
+/* Game panel (info side) */
+.game-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  color: var(--text-primary);
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+
+/* Game board (canvas side) */
+.game-board {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1 1 320px;
+  min-width: 260px;
+}
+
+/* Canvas anchor for responsive canvas */
+.canvas-anchor {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.canvas-anchor canvas {
+  max-width: 100%;
+  height: auto;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md);
+}
+
+/* ===========================================
+   UNIFIED INPUTS
+   =========================================== */
+.input {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(42, 15, 59, 0.65);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  width: 100%;
+  box-sizing: border-box;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(83, 242, 255, 0.2);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ===========================================
+   MOBILE RESPONSIVE
+   =========================================== */
+@media (max-width: 900px) {
+  .app-page {
+    margin: var(--spacing-sm);
+    padding: var(--spacing-md);
+    padding-bottom: 140px;
+  }
+
+  .app-header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    padding: 0 var(--spacing-xs) var(--spacing-md);
+  }
+
+  .app-header h1 {
+    font-size: 1.25rem;
+    text-align: right;
+    flex: 1;
+  }
+
+  .back-link {
+    margin-right: auto;
+  }
+
+  .game-controls {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: var(--spacing-sm);
+  }
+
+  .game-body {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .game-panel,
+  .game-board {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .canvas-anchor canvas {
+    width: 100%;
+    height: auto;
+  }
+
+  .game-stats {
+    flex-wrap: wrap;
+  }
+
+  .stat-badge {
+    flex: 1 1 120px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .game-controls .btn,
+  .game-controls .select {
+    min-width: 80px;
+    font-size: 0.85rem;
+    padding: 6px 8px;
+  }
+
+  .game-stats .stat-badge {
+    flex: 1 1 100%;
+    font-size: 0.9rem;
+  }
 }

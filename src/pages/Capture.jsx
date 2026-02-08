@@ -51,56 +51,61 @@ export default function Capture() {
 
   if (error) {
     return (
-      <main className="game-shell game-page--capture error-page">
-        <header className="game-shell__header">
+      <main className="app-page error-page">
+        <header className="app-header">
           <Link to="/list" className="back-link" id="backBtn">Back</Link>
           <h1>Capture</h1>
         </header>
         <div className="error-message">
           <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Reload</button>
+          <button onClick={() => window.location.reload()} className="btn btn--primary">Reload</button>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="game-shell game-page--capture">
-      <header className="game-shell__header">
+    <main className="app-page game-page--capture">
+      <header className="app-header">
         <Link to="/list" className="back-link" id="backBtn">Back</Link>
         <h1>Capture</h1>
-        <div className="game-shell__controls controls">
+        <div className="game-controls">
           <label htmlFor="levelSelect">Difficulty:</label>
-          <select id="levelSelect" defaultValue="easy">
+          <select id="levelSelect" className="select" defaultValue="easy">
             <option value="easy">Easy (halves, thirds, quarters)</option>
             <option value="medium">Medium (denominators up to 9)</option>
             <option value="mathanomical">Mathanomical (mixed numbers)</option>
           </select>
-          <button id="startBtn">Start</button>
-          <button id="pauseBtn" disabled>Pause</button>
+          <button id="startBtn" className="btn btn--primary">Start</button>
+          <button id="pauseBtn" className="btn btn--secondary" disabled>Pause</button>
         </div>
       </header>
-      <section className="game-shell__body">
-        <section className="game-info game-shell__panel" aria-live="polite">
-          <div id="scoreDisplay">Score: 0</div>
-          <div id="streakDisplay">Streak: x0</div>
-          <div id="targetFraction">Find: —</div>
-          <div id="hint" style={{ marginTop: 6 }} />
 
-          <div className="inputWrap">
-            <label htmlFor="fractionInput">Type Answer:</label>
+      <section className="game-stats">
+        <div className="stat-badge stat-badge--score" id="scoreDisplay">Score: 0</div>
+        <div className="stat-badge" id="streakDisplay">Streak: x0</div>
+        <div className="stat-badge" id="targetFraction">Find: —</div>
+      </section>
+
+      <section className="game-body">
+        <section className="game-panel" aria-live="polite">
+          <p id="status">Press Start to begin.</p>
+          
+          <div className="hint" id="hint" style={{ marginTop: '12px' }} />
+
+          <div className="inputWrap" style={{ marginTop: '12px' }}>
+            <label htmlFor="fractionInput" style={{ marginBottom: '6px' }}>Type Answer:</label>
             <input
               type="text"
               id="fractionInput"
               placeholder="example: 3/6"
               autoComplete="off"
+              className="input"
             />
           </div>
-
-          <p id="status">Press Start to begin.</p>
         </section>
 
-        <div className="game-shell__board">
+        <div className="game-board">
           <div className="canvas-anchor">
             <canvas
               id="gameCanvas"

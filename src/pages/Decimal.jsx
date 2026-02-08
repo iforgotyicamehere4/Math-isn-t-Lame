@@ -4,6 +4,12 @@ import '../styles/decimal.css';
 import initDecimal from '../decimal/decimal.js';
 
 export default function Decimal() {
+  // Sync high contrast mode from localStorage on mount
+  useEffect(() => {
+    const highContrast = localStorage.getItem('highContrast') === 'true';
+    document.body.classList.toggle('high-contrast', highContrast);
+  }, []);
+
   useEffect(() => {
     initDecimal();
     return () => {
@@ -12,13 +18,13 @@ export default function Decimal() {
   }, []);
 
   return (
-    <main className="game-shell app decimal-page game-page--decimal">
-      <header className="game-shell__header">
+    <main className="app-page decimal-page">
+      <header className="app-header">
         <Link to="/list" className="back-link" id="backBtn">Back</Link>
         <h1>Deci-What?</h1>
-        <div className="game-shell__controls controls">
+        <div className="game-controls">
           <label htmlFor="level">Level</label>
-          <select id="level" defaultValue="easy20">
+          <select id="level" className="select" defaultValue="easy20">
             <option value="easy20">Easy .20 — words to number</option>
             <option value="easy25">Easy .25 — words to number</option>
             <option value="easy30">Easy .30 — words to number</option>
@@ -28,12 +34,14 @@ export default function Decimal() {
 
           <button
             id="start"
+            className="btn btn--primary"
             onClick={() => window.DecimalTetris?.startGame?.()}
           >
             Start
           </button>
           <button
             id="pause"
+            className="btn btn--secondary"
             disabled
             onClick={() => window.DecimalTetris?.togglePause?.()}
           >
@@ -41,7 +49,40 @@ export default function Decimal() {
           </button>
         </div>
       </header>
-      <section className="settings-row">
+
+      <section className="game-stats">
+        <div className="stat-badge stat-badge--score">Score: <span id="score">0</span></div>
+        <div className="stat-badge stat-badge--timer">Time: <span id="timer">0.0</span>s</div>
+        <div className="stat-badge">Streak: x<span id="streak">0</span></div>
+      </section>
+
+      <section className="game-body">
+        <section className="game-panel">
+          <div className="prompt-row">
+            <div className="prompt" id="prompt">Press Start to begin.</div>
+            <div className="typed">
+              <input
+                id="answerInput"
+                placeholder="Type answer"
+                className="input"
+              />
+            </div>
+          </div>
+          <div className="hint" id="hint" />
+          
+          <div className="feedback" id="feedback" style={{ marginTop: '12px' }} />
+
+          <div className="legend" style={{ marginTop: '12px' }}>
+            Click a full row to solve. Type the numeric value of the word + decimal shown.
+          </div>
+        </section>
+
+        <div className="game-board">
+          <div id="canvasAnchor" className="canvas-anchor" />
+        </div>
+      </section>
+
+      <section className="settings-row" style={{ marginTop: '16px' }}>
         <div className="grid-controls">
           <label>
             Columns
@@ -52,6 +93,8 @@ export default function Decimal() {
               max="24"
               step="1"
               defaultValue="15"
+              className="input"
+              style={{ width: '64px', marginLeft: '8px' }}
             />
           </label>
           <label>
@@ -63,6 +106,8 @@ export default function Decimal() {
               max="30"
               step="1"
               defaultValue="15"
+              className="input"
+              style={{ width: '64px', marginLeft: '8px' }}
             />
           </label>
           <label>
@@ -74,10 +119,11 @@ export default function Decimal() {
               max="48"
               step="1"
               defaultValue="28"
+              style={{ marginLeft: '8px', verticalAlign: 'middle' }}
             />
           </label>
-          <button id="applyGridBtn">Apply Grid</button>
-          <div className="grid-info">
+          <button id="applyGridBtn" className="btn btn--secondary">Apply Grid</button>
+          <div className="grid-info" style={{ marginLeft: '8px' }}>
             Grid: <span id="gridPreview">15×18 @28px</span>
           </div>
         </div>
@@ -94,38 +140,7 @@ export default function Decimal() {
         </div>
       </section>
 
-      <section className="status-row">
-        <div className="score">Score: <span id="score">0</span></div>
-        <div className="timer">Time: <span id="timer">0.0</span>s</div>
-        <div className="streak">Streak: x<span id="streak">0</span></div>
-      </section>
-
-      <section className="problem-area game-shell__body">
-        <div className="side-panel game-shell__panel">
-          <div className="game-controls">
-            <div className="typed">
-              <input
-                id="answerInput"
-                placeholder="Type numeric answer and press Enter"
-              />
-            </div>
-            <div className="feedback" id="feedback" />
-          </div>
-
-          <div className="prompt" id="prompt">Press Start to begin.</div>
-          <div className="hint" id="hint" />
-
-          <div className="legend">
-            Click a full row to solve. Type the numeric value of the
-            word + decimal shown.
-          </div>
-        </div>
-
-        <div className="board-panel game-shell__board">
-          <div id="canvasAnchor" className="canvas-anchor" />
-        </div>
-      </section>
-      <footer>
+      <footer style={{ marginTop: '16px' }}>
         <small>
           Designed for learning decimal reading and operations. Block color is selectable.
         </small>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 /**
@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
  * - Contrast toggle persisted to localStorage
  * - Modal auth that persists profiles to localStorage
  * - Displays current user and high score
+ * - Uses main app navigation
  */
 export default function Home() {
   const wordRef = useRef(null);
@@ -128,16 +129,17 @@ export default function Home() {
 
   return (
     <div className="background">
-    <nav>
-      <div className="logo">
-        <span className="desk-logo">
-          <span className="back" />
-          <span className="seat" />
-          <span className="leg-left" />
-          <span className="leg-right" />
-          <span className="desk" />
-        </span>
-      </div>
+      {/* Logo and Navigation */}
+      <nav>
+        <div className="logo">
+          <span className="desk-logo">
+            <span className="back" />
+            <span className="seat" />
+            <span className="leg-left" />
+            <span className="leg-right" />
+            <span className="desk" />
+          </span>
+        </div>
 
         <div id="userArea" className="user-area" style={{ marginLeft: 12 }}>
           <span id="usernameDisplay" style={{ display: currentUser ? 'inline' : 'none' }}>{currentUser}</span>
@@ -150,28 +152,28 @@ export default function Home() {
           <li><Link to="/about">About</Link></li>
           {currentUser && <li><Link to="/profile">Profile</Link></li>}
         </ul>
-    </nav>
+      </nav>
 
-    <button
-      className="home-benny"
-      type="button"
-      aria-pressed={highContrast ? 'true' : 'false'}
-      title="Toggle high contrast"
-      onClick={() => setHighContrast((v) => !v)}
-    >
-      <span className="benny-base">
-        <span className="benny-shape">
-          <span className="back" />
-          <span className="leg-left" />
-          <span className="leg-right" />
-          <span className="head" />
+      {/* Benny mascot with contrast toggle */}
+      <button
+        className="home-benny"
+        type="button"
+        aria-pressed={highContrast ? 'true' : 'false'}
+        title="Toggle high contrast"
+        onClick={() => setHighContrast((v) => !v)}
+      >
+        <span className="benny-base">
+          <span className="benny-shape">
+            <span className="back" />
+            <span className="leg-left" />
+            <span className="leg-right" />
+            <span className="head" />
+          </span>
         </span>
-      </span>
-    </button>
+      </button>
 
       <header>
         <div className="hero-card">
-         
           <p className="tagline">Math isn&apos;t lame — it&apos;s an adventure!</p>
           <p className="description">
             "Bark Bark" "My homework is gone...... I didn't eat it...... Can you help me?" 
@@ -191,7 +193,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* classroom grid (kept simple) */}
+      {/* classroom grid */}
     <section
       ref={wordRef}
       className="classroom classroom-word"
@@ -199,7 +201,7 @@ export default function Home() {
     >
       {(() => {
         const letters = {
-          M: ['101','111','101','101','101'],
+          M: ['111','010','111','101','111'],
           A: ['010','101','111','101','101'],
           T: ['111','010','010','010','010'],
           H: ['101','101','111','101','101'],
@@ -214,6 +216,7 @@ export default function Home() {
           const out = Array.from({ length: rows }, () => '');
           chars.forEach((ch, idx) => {
             const pattern = letters[ch];
+            if (!pattern) return; // Skip undefined letters
             for (let r = 0; r < rows; r++) out[r] += pattern[r];
             if (idx < chars.length - 1) {
               for (let r = 0; r < rows; r++) out[r] += letterGap;

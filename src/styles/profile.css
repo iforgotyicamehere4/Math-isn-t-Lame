@@ -337,6 +337,7 @@
   }
   .profile-mobile-grid .profile-box {
     width: 100%;
+    min-height: 100px;
     aspect-ratio: 2 / 1;
     min-width: 0;
     background: rgba(10, 16, 32, 0.6);

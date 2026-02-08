@@ -621,9 +621,6 @@
     align-items: flex-start;
     align-content: center;
   }
-  .decimal-page .game-controls {
-    width: 30%;
-  }
 }
 
 @media (max-width: 480px) {

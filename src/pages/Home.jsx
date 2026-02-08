@@ -319,10 +319,11 @@ export default function Home() {
             <label>Password<input id="suPassword" type="password" required value={suPassword} onChange={(e) => setSuPassword(e.target.value)} /></label>
             <label className="disclaimer"><input id="dataAccept" type="checkbox" checked={dataAccept} onChange={(e) => setDataAccept(e.target.checked)} /> I accept the <strong>disclaimer</strong> below</label>
             <div className="disclaimer-box">
-              By signing up you agree that we may sell emails and data to fund the
-              website and game development. An ad-free experience is available for
-              $15/year.
-            </div>
+              By signing up you agree that Math isn't Lame. <br />
+              ✔ No ads or tracking
+<br/>✔ Stored locally on your device
+<br/>✔ Clear data anytime
+<br/>✔ Email optional</div>.
             <div className="auth-actions">
               <button type="button" id="doSignUp" onClick={handleSignup}>Create Profile/Sign in</button>
               <button type="button" id="doSignIn" onClick={handleSignin} style={{ marginLeft: 8 }}>Sign In</button>

@@ -201,8 +201,8 @@ export default function Home() {
     >
       {(() => {
         const letters = {
-          M: ['111','010','111','101','111'],
-          A: ['010','101','111','101','101'],
+          M: ['10001','11011','10101','10001','10001'],
+          A: ['111','101','111','101','101'],
           T: ['111','010','010','010','010'],
           H: ['101','101','111','101','101'],
           I: ['1','1','1','1','1'],
@@ -224,26 +224,39 @@ export default function Home() {
           });
           return out;
         };
+        const viewport = typeof window !== 'undefined' ? window.innerWidth : 1024;
         const math = buildWord(['M','A','T','H']);
         const isWord = buildWord(['I','S']);
         const lit = buildWord(['L','I','T']);
-        const merged = math.map((row, idx) => `${row}${wordGap}${isWord[idx]}${wordGap}${lit[idx]}`);
+        const isMobileLayout = viewport <= 520;
+        const merged = isMobileLayout
+          ? [
+              ...math,
+              ...Array.from({ length: 1 }, () => ''.padEnd(math[0].length, '0')),
+              ...isWord,
+              ...Array.from({ length: 1 }, () => ''.padEnd(math[0].length, '0')),
+              ...lit
+            ]
+          : math.map((row, idx) => `${row}${wordGap}${isWord[idx]}${wordGap}${lit[idx]}`);
         const targets = [];
         merged.forEach((row, r) => {
           row.split('').forEach((cell, c) => {
-            if (cell === '1') targets.push({ r, c });
+            if (cell !== '0') targets.push({ r, c, rotated: cell === '2' });
           });
         });
-        const cellSize = 26;
+        let cellSize = 26;
+        if (viewport <= 360) cellSize = 16;
+        else if (viewport <= 420) cellSize = 18;
+        else if (viewport <= 520) cellSize = 22;
         const scatterWidth = merged[0].length * cellSize;
-        const scatterHeight = rows * cellSize;
+        const scatterHeight = merged.length * cellSize;
         return (
           <div
             className="chair-field"
             style={{
               '--cell': `${cellSize}px`,
               width: `${merged[0].length * cellSize}px`,
-              height: `${rows * cellSize}px`
+              height: `${merged.length * cellSize}px`
             }}
           >
             {targets.map((t) => {
@@ -252,7 +265,7 @@ export default function Home() {
               return (
                 <div
                   key={`${t.r}-${t.c}`}
-                  className="chair"
+                  className={`chair${t.rotated ? ' desk-rotated' : ''}`}
                   style={{
                     '--start-x': `${startX}px`,
                     '--start-y': `${startY}px`,
@@ -268,6 +281,23 @@ export default function Home() {
                 </div>
               );
             })}
+            <div className="single-desk" aria-hidden="true">
+              <div className="back" />
+              <div className="seat" />
+              <div className="leg-left" />
+              <div className="leg-right" />
+              <div className="desk" />
+            </div>
+            <div className="benny-eat" aria-hidden="true">
+              <span className="benny-base">
+                <span className="benny-shape">
+                  <span className="back" />
+                  <span className="leg-left" />
+                  <span className="leg-right" />
+                  <span className="head" />
+                </span>
+              </span>
+            </div>
           </div>
         );
       })()}

@@ -379,6 +379,170 @@ h1 {
 .classroom-word.animate .chair {
   transform: translate(var(--end-x), var(--end-y));
 }
+.classroom-word.animate .chair-field {
+  animation: collapseWord 9000ms ease-in-out 30000ms forwards;
+}
+.classroom-word.animate .chair {
+  animation: chairsShrink 9000ms ease-in-out 30000ms forwards;
+}
+
+.single-desk {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--cell, 26px);
+  height: var(--cell, 26px);
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0;
+  pointer-events: none;
+}
+.classroom-word.animate .single-desk {
+  animation: deskReveal 1400ms ease-out 34500ms forwards;
+}
+
+.single-desk .back,
+.single-desk .seat,
+.single-desk .leg-left,
+.single-desk .leg-right,
+.single-desk .desk {
+  position: absolute;
+}
+.single-desk .back {
+  left: 16%;
+  top: 6%;
+  width: 68%;
+  height: 46%;
+  background: #e6680e;
+  border-radius: 4px;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.2);
+}
+.single-desk .seat {
+  left: 12%;
+  top: 50%;
+  width: 76%;
+  height: 20%;
+  background: #fffdfd;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+}
+.single-desk .leg-left {
+  bottom: -10%;
+  left: 15%;
+  width: 9%;
+  height: 34%;
+  background: #d4d2bfc5;
+  border-radius: 3px;
+  transform: rotate(-22deg);
+}
+.single-desk .leg-right {
+  bottom: -10%;
+  right: 15%;
+  width: 9%;
+  height: 34%;
+  background: #d4d2bfc5;
+  border-radius: 3px;
+  transform: rotate(-12deg);
+}
+.single-desk .desk {
+  right: -10%;
+  top: 22%;
+  width: 42%;
+  height: 26%;
+  background: #a77905;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transform: rotate(-6deg);
+}
+
+.classroom-word.animate .single-desk::after {
+  content: '';
+}
+
+.classroom-word .benny-eat {
+  position: absolute;
+  left: 50%;
+  top: 70%;
+  width: calc(var(--cell, 26px) * 2.5);
+  height: calc(var(--cell, 26px) * 2.5);
+  transform: translate(120px, 140px) scale(0.2);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.classroom-word.animate .benny-eat {
+  animation:
+    bennyEnter 3500ms ease-in-out 36000ms forwards,
+    bennyNibble 1100ms ease-in-out 40200ms 3;
+}
+.benny-eat .benny-base {
+  width: 100%;
+  height: 100%;
+}
+.benny-eat .benny-shape {
+  transform-origin: 50% 100%;
+}
+
+@keyframes collapseWord {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  60% {
+    transform: translate(-120px, 0) scale(0.6);
+  }
+  100% {
+    transform: translate(0, 0) scale(0.03);
+  }
+}
+
+@keyframes chairsShrink {
+  0% {
+    transform: translate(var(--end-x), var(--end-y)) scale(1);
+  }
+  60% {
+    transform: translate(calc(var(--end-x) - 120px), var(--end-y)) scale(0.6);
+  }
+  100% {
+    transform: translate(var(--end-x), var(--end-y)) scale(0.03);
+  }
+}
+
+@keyframes deskReveal {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes bennyEnter {
+  0% {
+    opacity: 0;
+    transform: translate(120px, 140px) scale(0.2);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-20px, 0) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-10px, -10px) scale(1.05);
+  }
+}
+
+@keyframes bennyNibble {
+  0% {
+    transform: translate(-10px, -10px) scale(1.05);
+  }
+  50% {
+    transform: translate(-6px, -4px) scale(0.98) rotate(-6deg);
+  }
+  100% {
+    transform: translate(-10px, -10px) scale(1.05);
+  }
+}
 
 /* use percentage sizes so parts scale with the .chair container */
 .chair .back {
@@ -431,6 +595,9 @@ h1 {
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   transform: rotate(-6deg);
+}
+.chair.desk-rotated .desk {
+  transform: rotate(84deg);
 }
 
 @media (max-width: 768px) {

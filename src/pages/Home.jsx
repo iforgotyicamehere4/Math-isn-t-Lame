@@ -175,9 +175,7 @@ export default function Home() {
       <header>
         <div className="hero-card">
           <p className="tagline">Math isn&apos;t lame — it&apos;s an adventure!</p>
-          <p className="description">
-            "Bark Bark" "My homework is gone...... I didn't eat it...... Can you help me?" 
-          </p>
+          
 
           <div className="hero-actions" id="heroActions">
             <button className="start-btn" id="createProfile" onClick={() => setShowModal(true)}>Sign Up / Sign In</button>

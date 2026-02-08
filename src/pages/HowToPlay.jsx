@@ -1,19 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/howtoplay.css';
-import useScriptOnce, { useScriptsOnce } from '../hooks/useScriptOnce';
-
-const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
 export default function HowToPlay() {
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
-
-  const scripts = [
-    { src: `${BASE_PATH}js/howtoplay.js`, key: 'howtoplay' },
-    { src: `${BASE_PATH}js/howto-benny.js`, key: 'howto-benny' }
-  ];
-  useScriptsOnce(scripts);
 
   useEffect(() => {
     let mounted = true;
@@ -44,7 +35,27 @@ export default function HowToPlay() {
   }, []);
 
   useEffect(() => {
+    let rafId = null;
+    let opened = false;
+    const tick = () => {
+      const door = document.querySelector('.exit-door');
+      const bennyHead = document.querySelector('.howto-benny .head');
+      if (!door || !bennyHead) return;
+      const doorRect = door.getBoundingClientRect();
+      const headRect = bennyHead.getBoundingClientRect();
+      if (!opened && headRect.right >= doorRect.left - 4 && headRect.left < doorRect.right) {
+        door.classList.add('is-open');
+        opened = true;
+      }
+      if (opened && headRect.left > doorRect.right + 4) {
+        door.classList.add('is-close');
+        return;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       if (window.__HowToPlayCleanup) {
         console.log('[HowToPlay] Running cleanup');
         window.__HowToPlayCleanup();
@@ -74,67 +85,70 @@ export default function HowToPlay() {
             Play fair, avoid calculators, and have fun learning. This world is
             about steady progress, not rushing the answer.
           </p>
-          <button id="throwBallBtn" className="throw-btn" type="button">
-            Throw Benny&apos;s Ball
-          </button>
         </div>
       </header>
 
       <main className="campfire-scene" aria-label="Campfire scene">
         <section className="campfire-stage" aria-label="Campfire characters">
-          <div className="campfire">
-            <canvas id="fireCanvas" width="420" height="260" />
-          </div>
-
-          <div className="booiiii" aria-label="Mr. Boooiiii">
-            <div className="hat">
-              <div className="hat-brim" />
-              <span className="dot" />
-             
-              <div className="hat-top" />
-            </div>
-            <div className="head">
-              <span className="eye" />
-              <span className="eye" />
-              <span className="mouth" />
-            </div>
-            <div className="collar">
-              <span className="collar-left" />
-              <span className="collar-right" />
-            </div>
-            <div className="torso">
-              <span className="torso-left" />
-              <span className="torso-right" />
-            </div>
-            <div className="arms">
-              <span className="arm left" />
-              <span className="arm right" />
-              <span className="hand left" />
-              <span className="hand right" />
-            </div>
-            <div className="lap-top">
-              <span className="laptop-back" />
-              <span className="laptop-seat" />
-            </div>
-            <div className="radius" />
-            <span className="radius one" />
-            <span className="radius two" />
-           
-            <div className="legs">
-              <span className="leg left" />
-              <span className="leg right" />
-              <span className="foot left" />
-              <span className="foot right" />
+          <div className="exit-door" aria-hidden="true">
+            <div className="door-frame" />
+            <div className="door-panel" />
+            <div className="door-knob" />
+            <div className="door-blackhole" aria-hidden="true">
+              <div className="blackhole-core" />
+              <div className="blackhole-ring" />
+              <div className="blackhole-ring" />
+              <div className="blackhole-ring" />
+              <div className="blackhole-particles" />
             </div>
           </div>
+          <div className="booiiii-duo" aria-label="Mr. Boooiiii walking Benny">
+            <div className="leash" aria-hidden="true" />
+            <div className="booiiii" aria-label="Mr. Boooiiii">
+              <div className="hat">
+                <div className="hat-brim" />
+                <span className="dot" />
+                <div className="hat-top" />
+              </div>
+              <div className="head">
+                <span className="eye" />
+                <span className="eye" />
+                <span className="mouth" />
+              </div>
+              <div className="collar">
+                <span className="collar-left" />
+                <span className="collar-right" />
+              </div>
+              <div className="torso">
+                <span className="torso-left" />
+                <span className="torso-right" />
+              </div>
+              <div className="arms">
+                <span className="arm left" />
+                <span className="arm right" />
+                <span className="hand left" />
+                <span className="hand right" />
+              </div>
+              <div className="lap-top">
+                <span className="laptop-back" />
+                <span className="laptop-seat" />
+              </div>
+              <div className="legs">
+                <span className="leg left" />
+                <span className="leg right" />
+                <span className="foot left" />
+                <span className="foot right" />
+              </div>
+            </div>
 
-          <div className="howto-benny" aria-label="Benny">
-            <div className="benny-base">
-              <div className="benny-shape">
-                <div className="back" />
-                <div className="leg-left" />
-                <div className="leg-right" />
-                <div className="head" />
+            <div className="howto-benny" aria-label="Benny">
+              <div className="benny-base">
+                <div className="benny-shape">
+                  <div className="back" />
+                  <div className="leg-left" />
+                  <div className="leg-right" />
+                  <div className="head" />
+                </div>
               </div>
             </div>
           </div>
@@ -143,9 +157,11 @@ export default function HowToPlay() {
         <section className="instructions" aria-label="Quick tips">
           <h2>Quick Tips</h2>
           <ol>
-            <li>Math Pup: click the correct zombie or type the answer.</li>
-            <li>Capture: solve the fraction prompt and pop the right bubble.</li>
-            <li>Deci-What?: fill a row and solve it to clear.</li>
+            <li>Math Pup: Answer math Problems to unlock fun mini game and other unlockable features</li>
+            <li>Capture: solve the fraction prompt and pop the right bubble. Pop enough bubbles and unlock a fun mini game.</li>
+            <li>Deci-What?: Identify spelled out numbers with decimals. type in numeric value. Complete puzzle to unlock fun mini game </li>
+            <li>Ma+h 5yn+h3: Solve algebra problems to unlock mini game.</li>
+            <li>Benny World: Make progress in games listed above to unlock fun platformer game. </li>
           </ol>
           <Link id="backLink" to="/" className="back-link">Back Home</Link>
         </section>

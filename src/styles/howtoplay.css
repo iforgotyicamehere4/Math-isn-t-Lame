@@ -617,49 +617,6 @@ nav {
   display: flex;
   justify-content: center;
 }
-.throw-btn {
-  margin-top: 10px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: none;
-  background: #7dd3fc;
-  color: #0b1220;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.benny-ball {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 30% 30%,
-    #fff6a6,
-    #ff8c2b 60%,
-    #e65a1f 100%
-  );
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
-  z-index: 16;
-  animation: tossBall 1.6s ease-in-out forwards;
-}
-
-@keyframes tossBall {
-  0% {
-    transform: translate(0, 0) scale(0.8);
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  60% {
-    transform: translate(160px, -120px) scale(1);
-  }
-  100% {
-    transform: translate(260px, -20px) scale(0.9);
-    opacity: 0;
-  }
-}
 .chair-ring {
   display: none;
 }
@@ -679,30 +636,185 @@ nav {
   place-items: center;
   overflow: hidden;
 }
-.campfire {
+.exit-door {
   position: absolute;
-  left: 50%;
-  bottom: 4%;
-  transform: translateX(-50%);
-  width: 380px;
-  height: 260px;
-  z-index: 8;
+  right: 6%;
+  bottom: 12%;
+  width: 140px;
+  height: 220px;
+  z-index: 9;
+  filter: drop-shadow(0 18px 24px rgba(2, 10, 20, 0.55));
+  transform: scale(1);
+  opacity: 1;
 }
-#fireCanvas {
+.exit-door .door-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(140deg, #28324d 0%, #111628 100%);
+  box-shadow: inset 0 0 0 2px rgba(200, 220, 255, 0.12);
+}
+.exit-door .door-panel {
+  position: absolute;
+  inset: 10px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #6a5df6 0%, #343a77 55%, #121833 100%);
+  box-shadow: inset 0 2px 6px rgba(255,255,255,0.12);
+  transform-origin: left center;
+  transform: rotateY(0deg);
+}
+.exit-door .door-blackhole {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: scale(0.2);
+  animation: none;
+  pointer-events: none;
+}
+
+.exit-door.is-open .door-panel {
+  animation: doorOpen 3s ease forwards;
+}
+
+.exit-door.is-close .door-panel {
+  animation: doorClose 10s ease forwards 8s;
+}
+
+.exit-door.is-close .door-blackhole {
+  animation: doorBlackHole 10s linear forwards 18s;
+}
+
+.exit-door.is-close {
+  animation: doorSwallow 10s linear forwards 18s;
+}
+.exit-door .door-blackhole .blackhole-core {
+  width: 84px;
+  height: 84px;
+  background: radial-gradient(
+    circle at 35% 35%,
+    #1a0a0a 0%,
+    #000000 30%,
+    #0d0015 50%,
+    #1a0a2e 70%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  box-shadow:
+    0 0 16px rgba(75, 0, 130, 0.9),
+    0 0 30px rgba(128, 0, 128, 0.7),
+    0 0 44px rgba(75, 0, 130, 0.5),
+    0 0 64px rgba(0, 0, 0, 1),
+    inset 0 0 26px rgba(0, 0, 0, 0.9);
+  animation: pulseBlackHole 2s ease-in-out infinite;
+}
+.exit-door .door-blackhole .blackhole-ring {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  animation: spinRing 3s linear infinite;
+}
+.exit-door .door-blackhole .blackhole-ring:nth-child(2) {
+  border-top-color: rgba(138, 43, 226, 1);
+  border-right-color: rgba(75, 0, 130, 0.8);
+  animation-duration: 2s;
+  animation-direction: reverse;
+}
+.exit-door .door-blackhole .blackhole-ring:nth-child(3) {
+  border-bottom-color: rgba(255, 0, 255, 0.9);
+  border-left-color: rgba(128, 0, 128, 0.7);
+  animation-duration: 4s;
+}
+.exit-door .door-blackhole .blackhole-ring:nth-child(4) {
+  border: 2px dashed rgba(0, 255, 255, 0.6);
+  animation-duration: 5s;
+  animation-direction: reverse;
+}
+.exit-door .door-blackhole .blackhole-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 50% 80%, rgba(138, 43, 226, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 30% 70%, rgba(75, 0, 130, 0.2) 0%, transparent 40%);
+  animation: particleGlow 2s ease-in-out infinite;
+}
+.exit-door .door-knob {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffe8a3 0%, #d1a24b 70%);
+  box-shadow: 0 0 8px rgba(255, 213, 120, 0.5);
+}
+
+.exit-door.is-open .door-knob,
+.exit-door.is-close .door-knob {
+  opacity: 0;
+}
+.booiiii-duo {
+  --duo-scale: 1;
   position: absolute;
   left: 50%;
-  bottom: 6%;
-  width: 380px;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(var(--duo-scale));
+  transform-origin: center;
+  width: 320px;
   height: 260px;
-  transform: translateX(-50%);
   z-index: 12;
-  filter: drop-shadow(0 24px 40px rgba(255, 140, 0, 0.4));
+  pointer-events: none;
+  animation: duoWalkToDoor 40s linear forwards;
+}
+
+.booiiii-duo .booiiii {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  animation: booiiiiStep 1.4s ease-in-out infinite;
+}
+
+.booiiii-duo .howto-benny {
+  position: absolute;
+  left: 170px;
+  bottom: 6px;
+  top: auto;
+  right: auto;
+  width: 56px;
+  height: 56px;
+  animation: bennyStep 1.2s ease-in-out infinite;
+}
+
+.booiiii-duo .howto-benny .benny-base {
+  width: 56px;
+  height: 56px;
+}
+
+.booiiii-duo .benny-shape {
+  transform: scale(0.9);
+  transform-origin: bottom center;
+}
+
+.booiiii-duo .leash {
+  position: absolute;
+  left: 120px;
+  bottom: 64px;
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.2), rgba(190,220,255,0.8));
+  box-shadow: 0 0 6px rgba(160, 210, 255, 0.6);
+  transform: rotate(8deg);
 }
 .instructions {
   position: fixed;
-  right: 6%;
-  top: 40%;
-  width: min(320px, 32vw);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, 36vw);
   background: rgba(12, 28, 80, 0.72);
   padding: 16px;
   border-radius: 14px;
@@ -732,6 +844,9 @@ nav {
   height: 260px;
   z-index: 10;
   image-rendering: pixelated;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 18px 24px rgba(5, 12, 24, 0.6));
+  animation: booiiiiFloat 4.8s ease-in-out infinite;
 }
 .booiiii .dot {
   rotate: calc(90deg);
@@ -753,9 +868,10 @@ nav {
   left: 79px;
   width: 28px;
   height: 66px;
-  background: #181b2e;
+  background: linear-gradient(140deg, #2b3154 0%, #14182a 55%, #0b0e18 100%);
   image-rendering: pixelated;
   z-index: 14;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.45);
 }
 .booiiii .hat-brim {
   transform: translate(-40px, 0) rotate(-40deg) translate(10px, 0);
@@ -768,7 +884,7 @@ nav {
   top: -12px;
   right: -22px;
 
-  background: #171718;
+  background: linear-gradient(140deg, #2a2a2c 0%, #111114 100%);
   position: relative;
 }
 .booiiii .head {
@@ -777,15 +893,21 @@ nav {
   left: 60px;
   width: 70px;
   height: 70px;
-  background: #c49a6c;
+  background: radial-gradient(circle at 35% 30%, #e3c6a3 0%, #c49a6c 45%, #8d6338 100%);
   border-radius: 50%;
+  box-shadow:
+    inset 0 3px 6px rgba(255,255,255,0.25),
+    inset 0 -6px 10px rgba(0,0,0,0.35),
+    0 10px 16px rgba(0,0,0,0.35);
+  transform: translateZ(12px);
 }
 .booiiii .head .eye {
   position: absolute;
   width: 10px;
   height: 10px;
-  background: #4d5a12be;
+  background: radial-gradient(circle at 30% 30%, #9fb646 0%, #3a460c 65%, #1b2108 100%);
   top: 26px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
 }
 .booiiii .head .eye:first-of-type {
   left: 18px;
@@ -797,7 +919,7 @@ nav {
   position: absolute;
   width: 20px;
   height: 10px;
-  border: 4px solid #101010;
+  border: 4px solid #121212;
   border-color: transparent transparent #fc060680 transparent;
   border-radius: 0 0 12px 12px;
   left: 25px;
@@ -812,7 +934,13 @@ nav {
   left: 52px;
   width: 86px;
   height: 86px;
-  background: #ddd6ce;
+  background: linear-gradient(160deg, #f1ece4 0%, #d6cfc6 50%, #a7a19a 100%);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 2px 6px rgba(255,255,255,0.35),
+    inset 0 -6px 10px rgba(0,0,0,0.25),
+    0 12px 18px rgba(0,0,0,0.25);
+  transform: translateZ(6px);
 }
 .booiiii .torso::after {
   content: "";
@@ -821,7 +949,7 @@ nav {
   right: 8px;
   top: 36px;
   height: 14px;
-  background: #2a221c;
+  background: linear-gradient(120deg, #3b2f26 0%, #1a1511 100%);
 }
 .booiiii .torso::before {
   content: "";
@@ -830,7 +958,7 @@ nav {
   left: 36px;
   width: 14px;
   height: 14px;
-  background: #b0b5c9;
+  background: linear-gradient(135deg, #d1d7ea 0%, #8f97b0 100%);
   transform: rotate(45deg);
 }
 .booiiii .torso-left,
@@ -848,7 +976,8 @@ nav {
   position: absolute;
   width: 25px;
   height: 15px;
-  background: #c49a6c;
+  background: linear-gradient(160deg, #e3c6a3 0%, #b78655 70%, #7a4c22 100%);
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.3);
 }
 .booiiii .arm.left {
   left: -20px;
@@ -857,37 +986,14 @@ nav {
 .booiiii .arm.right {
   right: 0;
 }
-.booiiii .radius {
-  position: absolute;
-  width: 80px;
-  height: 30px;
-
-  border-radius: 50%;
-  opacity: 0.7;
-}
-.booiiii .radius.one {
-  left: 5px;
-  top: 110px;
-  transform: rotate(-22deg);
-  box-shadow: 0 0 12px rgba(229, 232, 236, 0.45);
-  background: #03305a;
-}
-.booiiii .radius.two {
-  width: 40px;
-  height: 25px;
-  right: 25px;
-  bottom: 130px;
-  transform: rotate(18deg);
-  box-shadow: 0 0 12px rgba(229, 232, 236, 0.45);
-  background: #03305a;
-}
 .booiiii .hand {
   position: absolute;
   width: 20px;
   height: 20px;
-  background: #c49a6c;
+  background: radial-gradient(circle at 35% 30%, #e9cfad 0%, #c49a6c 55%, #8d6338 100%);
   border-radius: 50%;
   top: 12px;
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.35);
 }
 .booiiii .hand.left {
   left: -30px;
@@ -908,7 +1014,8 @@ nav {
   position: absolute;
   width: 20px;
   height: 48px;
-  background: #4b4b4b;
+  background: linear-gradient(160deg, #6a6a6a 0%, #3c3c3c 100%);
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.35);
 }
 .booiiii .leg.left {
   left: 0;
@@ -920,9 +1027,107 @@ nav {
   position: absolute;
   width: 36px;
   height: 16px;
-  background: #101010;
+  background: linear-gradient(160deg, #1e1e1e 0%, #0a0a0a 100%);
   bottom: 0;
   border-radius: 10px;
+  box-shadow: inset 0 2px 2px rgba(255,255,255,0.08);
+}
+
+@keyframes booiiiiFloat {
+  0%, 100% { transform: translateY(0) rotate(-0.5deg); }
+  50% { transform: translateY(-6px) rotate(0.6deg); }
+}
+
+@keyframes duoWalkToDoor {
+  0% {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(var(--duo-scale));
+  }
+  70% {
+    left: 68%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(var(--duo-scale));
+    opacity: 1;
+  }
+  85% {
+    left: 72%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(calc(var(--duo-scale) * 0.85));
+    opacity: 1;
+  }
+  100% {
+    left: 76%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(calc(var(--duo-scale) * 0.15));
+    opacity: 0;
+  }
+}
+
+@keyframes doorOpen {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(-90deg); }
+}
+
+@keyframes doorClose {
+  0% { transform: rotateY(-90deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+@keyframes doorBlackHole {
+  0% { opacity: 0; transform: scale(0.2); }
+  20% { opacity: 1; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+@keyframes doorSwallow {
+  0% { transform: scale(1); opacity: 1; }
+  70% { transform: scale(0.3); opacity: 0.35; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+@keyframes pulseBlackHole {
+  0%,
+  100% {
+    box-shadow:
+      0 0 16px rgba(75, 0, 130, 0.9),
+      0 0 30px rgba(128, 0, 128, 0.7),
+      0 0 44px rgba(75, 0, 130, 0.5),
+      0 0 64px rgba(0, 0, 0, 1),
+      inset 0 0 26px rgba(0, 0, 0, 0.9);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 22px rgba(75, 0, 130, 1),
+      0 0 44px rgba(128, 0, 128, 0.9),
+      0 0 66px rgba(75, 0, 130, 0.7),
+      0 0 90px rgba(0, 0, 0, 1),
+      inset 0 0 32px rgba(0, 0, 0, 0.95);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes spinRing {
+  from { transform: rotate(0deg) scale(0.9); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  to { transform: rotate(360deg) scale(0.9); }
+}
+
+@keyframes particleGlow {
+  0%,
+  100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes booiiiiStep {
+  0%, 100% { transform: translateY(0) rotate(-0.3deg); }
+  50% { transform: translateY(-3px) rotate(0.3deg); }
+}
+
+@keyframes bennyStep {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-2px) rotate(1deg); }
 }
 .booiiii .foot.left {
   left: -16px;
@@ -938,19 +1143,24 @@ nav {
   height: 64px;
   z-index: 11;
   animation: bennyRoam 16s ease-in-out infinite;
+  filter: drop-shadow(0 14px 18px rgba(2, 12, 24, 0.55));
 }
 .howto-benny .benny-base {
   width: 64px;
   height: 64px;
-  background: transparent 100%;
+  background: linear-gradient(160deg, rgba(12, 24, 48, 0.5), rgba(4, 10, 24, 0.85));
   border-radius: 10px;
   display: grid;
   place-items: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -8px 12px rgba(0,0,0,0.45);
 }
 .howto-benny .benny-shape {
   position: relative;
   width: 44px;
   height: 44px;
+  animation: bennyIdle 2.6s ease-in-out infinite;
 }
 .howto-benny .back {
   position: absolute;
@@ -958,8 +1168,11 @@ nav {
   top: 50%;
   width: 76%;
   height: 20%;
-  background: #7dd3fc;
+  background: linear-gradient(120deg, #b7e8ff 0%, #6bbbf6 55%, #2f6a9b 100%);
   border-radius: 4px;
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,0.6),
+    inset 0 -2px 4px rgba(0,0,0,0.35);
 }
 .howto-benny .leg-left,
 .howto-benny .leg-right {
@@ -967,16 +1180,19 @@ nav {
   bottom: -10%;
   width: 9%;
   height: 34%;
-  background: #d4d2bfc5;
+  background: linear-gradient(180deg, rgba(233,231,219,0.9), rgba(154,150,133,0.9));
   border-radius: 3px;
+  box-shadow: inset 0 -2px 2px rgba(0,0,0,0.35);
 }
 .howto-benny .leg-left {
   left: 15%;
   transform: rotate(-22deg);
+  animation: bennyLeg 1.6s ease-in-out infinite;
 }
 .howto-benny .leg-right {
   right: 15%;
   transform: rotate(-12deg);
+  animation: bennyLeg 1.6s ease-in-out infinite reverse;
 }
 .howto-benny .head {
   position: absolute;
@@ -984,9 +1200,56 @@ nav {
   top: 22%;
   width: 42%;
   height: 26%;
-  background: #7dd3fc;
+  background: linear-gradient(130deg, #d1f2ff 0%, #7cc8ff 60%, #2a6eaa 100%);
   border-radius: 4px;
   transform: rotate(-6deg);
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,0.7),
+    inset 0 -2px 4px rgba(0,0,0,0.3);
+  animation: bennyHead 2.6s ease-in-out infinite;
+}
+
+.howto-benny .head::before {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  right: 8px;
+  top: 2px;
+  border-radius: 50%;
+  background: #0a1824;
+  box-shadow: 0 0 4px rgba(10, 24, 36, 0.4);
+}
+
+.howto-benny .head::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 5px;
+  right: 6px;
+  top: 14px;
+  background: #ff6b8a;
+  border-radius: 0 0 6px 6px;
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.25);
+}
+
+.howto-benny .benny-shape::before {
+  content: none;
+}
+
+@keyframes bennyIdle {
+  0%, 100% { transform: translateY(0) rotate(-1deg) scale(1); }
+  50% { transform: translateY(-2px) rotate(1deg) scale(1.01); }
+}
+
+@keyframes bennyHead {
+  0%, 100% { transform: rotate(-6deg) translateY(0); }
+  50% { transform: rotate(-3deg) translateY(-1px); }
+}
+
+@keyframes bennyLeg {
+  0%, 100% { transform: rotate(-22deg) translateY(0); }
+  50% { transform: rotate(-18deg) translateY(1px); }
 }
 @keyframes bennyRoam {
   0% {
@@ -1009,13 +1272,19 @@ nav {
   }
 }
 @media (max-width: 900px) {
-  #fireCanvas {
-    width: 320px;
-    height: 220px;
+  .booiiii-duo {
+    --duo-scale: 0.62;
+    left: 50%;
+    top: 50%;
+  }
+  .exit-door {
+    right: 4%;
+    bottom: 14%;
+    width: 110px;
+    height: 180px;
   }
   .instructions {
-    right: 4%;
-    width: min(300px, 44vw);
+    width: min(320px, 70vw);
   }
 }
 @media (max-width: 520px) {
@@ -1035,11 +1304,6 @@ nav {
     font-size: 0.75rem;
     margin: 0;
   }
-  .throw-btn {
-    margin-top: 6px;
-    padding: 6px 8px;
-    font-size: 0.7rem;
-  }
 
   /* Reduce campfire scene height */
   .campfire-scene {
@@ -1051,52 +1315,37 @@ nav {
 
   /* Scale campfire stage down */
   .campfire-stage {
-    width: 94vw;
-    height: 300px;
+    position: fixed;
+    top: 48%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 86vw;
+    height: 220px;
     border-radius: 16px;
   }
 
-  /* Scale fire canvas significantly */
-  #fireCanvas {
-    width: 200px;
-    height: 130px;
-    bottom: 2%;
+  /* Scale Mr. Boooiiii + Benny together */
+  .booiiii-duo {
+    --duo-scale: 0.5;
+    left: 50%;
+    top: 50%;
   }
-  .campfire {
-    width: 200px;
-    height: 130px;
-    bottom: 2%;
-  }
-
-  /* Scale Mr. Boooiiii down proportionally */
-  .booiiii {
-    width: 190px;
-    height: 260px;
-    left: 8%;
+  .exit-door {
+    right: 4%;
     bottom: 10%;
-    transform: scale(0.5);
-    transform-origin: bottom left;
-  }
-
-  /* Scale Benny down */
-  .howto-benny {
-    width: 80px;
-    height: 100px;
-    right: 8%;
-    bottom: 10%;
-  }
-  .howto-benny .benny-base {
-    width: 100%;
-    height: 100%;
-    transform: scale(0.6);
-    transform-origin: bottom center;
+    width: 90px;
+    height: 150px;
   }
 
   /* Instructions card - move to bottom and reduce */
   .instructions {
-    position: static;
-    width: 92%;
-    margin: 8px auto;
+    position: fixed;
+    left: 50%;
+    bottom: 6%;
+    top: auto;
+    transform: translateX(-50%);
+    width: 90%;
+    margin: 0;
     padding: 10px;
     border-radius: 10px;
     font-size: 0.75rem;
@@ -1129,11 +1378,6 @@ nav {
     font-size: 0.65rem;
     line-height: 1.3;
   }
-  .throw-btn {
-    margin-top: 4px;
-    padding: 4px 6px;
-    font-size: 0.65rem;
-  }
 
   .campfire-scene {
     height: calc(100vh - 80px);
@@ -1145,20 +1389,18 @@ nav {
     height: 240px;
   }
 
-  #fireCanvas {
-    width: 160px;
-    height: 100px;
-  }
   .campfire {
-    width: 160px;
+    margin-left: 55px;
+    width: 100px;
     height: 100px;
   }
 
   .booiiii {
+    margin-bottom: -25px;
     width: 190px;
     height: 260px;
     left: 4%;
-    transform: scale(0.35);
+    transform: scale(0.78);
     transform-origin: bottom left;
   }
 

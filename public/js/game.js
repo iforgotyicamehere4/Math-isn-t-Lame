@@ -1063,20 +1063,32 @@ window.__MathPupStateReset = true;
     const zW = 64;
     const zH = 90;
     const count = getMiniZombieCount(levelName);
+    const now = performance.now();
     for (let i = 0; i < count; i++) {
       const el = document.createElement('div');
-      el.className = 'zombie';
+      el.className = 'zombie mini-zombie';
       el.textContent = '';
+      el.innerHTML = '<div class="mini-zombie__core"></div><div class="mini-zombie__shield"></div><div class="mini-zombie__plate"></div>';
       const x = randInt(bounds.minX, bounds.maxX - zW);
       const y = randInt(bounds.minY, bounds.maxY - zH);
       el.style.left = `${x}px`;
       el.style.top = `${y}px`;
       gameArea.appendChild(el);
+      const shieldOnMs = randInt(850, 1400);
+      const shieldOffMs = randInt(700, 1200);
+      const armor = Math.random() < 0.55 ? 1 : 0;
+      if (armor > 0) el.classList.add('armored');
+      el.classList.add('shielded');
       miniZombies.push({
         el,
         x,
         y,
-        speed: 0.3 + Math.random() * 0.3
+        speed: 0.3 + Math.random() * 0.3,
+        shieldActive: true,
+        shieldOnMs,
+        shieldOffMs,
+        nextShieldToggle: now + shieldOnMs,
+        armor
       });
     }
   }
@@ -1201,7 +1213,13 @@ window.__MathPupStateReset = true;
       benny.style.top = `${bennyState.y}px`;
     }
 
+    const now = performance.now();
     miniZombies.forEach((z) => {
+      if (now >= z.nextShieldToggle) {
+        z.shieldActive = !z.shieldActive;
+        z.nextShieldToggle = now + (z.shieldActive ? z.shieldOnMs : z.shieldOffMs);
+        z.el.classList.toggle('shielded', z.shieldActive);
+      }
       const dx = z.x - bennyState.x;
       const dy = z.y - bennyState.y;
       const dist = Math.max(1, Math.hypot(dx, dy));
@@ -1228,6 +1246,23 @@ window.__MathPupStateReset = true;
         const withinX = s.x >= z.x && s.x <= z.x + zW;
         const withinY = s.y >= z.y && s.y <= z.y + zH;
         if (withinX && withinY) {
+          if (z.shieldActive) {
+            s.vx = -s.vx * 0.9;
+            s.vy = -s.vy * 0.9;
+            s.repels = (s.repels || 0) + 1;
+            s.el.classList.add('repelled');
+            statusEl.textContent = 'Shielded! Wait for the glow to drop.';
+            hit = true;
+            break;
+          }
+          if (z.armor > 0) {
+            z.armor -= 1;
+            z.el.classList.add('armor-hit');
+            setTimeout(() => z.el.classList.remove('armor-hit'), 180);
+            if (z.armor <= 0) z.el.classList.remove('armored');
+            hit = true;
+            break;
+          }
           z.el.remove();
           miniZombies.splice(i, 1);
           hit = true;
@@ -1236,6 +1271,10 @@ window.__MathPupStateReset = true;
       }
       const inBounds = s.x >= bounds.minX - 20 && s.x <= bounds.maxX + 20
         && s.y >= bounds.minY - 20 && s.y <= bounds.maxY + 20;
+      if (hit && s.repels >= 1) {
+        s.el.remove();
+        return;
+      }
       if (!hit && inBounds) {
         remainingShots.push(s);
       } else {
@@ -1265,7 +1304,7 @@ window.__MathPupStateReset = true;
     clearRoundTimers();
     clearLevelTimer();
     if (timerEl) timerEl.classList.remove('timer-urgent');
-    statusEl.textContent = 'Bonus round! Benny vs zombies.';
+    statusEl.textContent = 'Bonus round! Out-smart the zombies — wait for shields to drop.';
     clearMiniGame();
     ensureBenny();
     undockBenny();

@@ -95,17 +95,18 @@ function buildHundredthsPhrase(value, style = 'word-and-digit') {
   const n = Math.max(0, Math.min(99, value));
   const tens = Math.floor(n / 10);
   const ones = n % 10;
+  const tensWord = intToWords(n).toLowerCase().replace(/[\s-]+/g, '');
   if (style === 'digits') return `${n}hundredths`;
   if (style === 'word') {
     const word = intToWords(n).toLowerCase().replace(/[\s-]+/g, '');
     return `${word}hundredths`;
   }
   if (style === 'word-digit') {
-    if (ones === 0) return `${SMALL[tens]}hundredths`;
+    if (ones === 0) return `${tensWord}hundredths`;
     return `${SMALL[tens]}${ones}hundredths`;
   }
   if (n >= 10) {
-    if (ones === 0) return `${SMALL[tens]}hundredths`;
+    if (ones === 0) return `${tensWord}hundredths`;
     return `${SMALL[tens]}and${ones}hundredths`;
   }
   const word = intToWords(n).toLowerCase().replace(/[\s-]+/g, '');
@@ -117,6 +118,7 @@ function buildThousandthsPhrase(value, style = 'word-and-digit') {
   if (style === 'digits') return `${n}thousandths`;
   const word = intToWords(n).toLowerCase().replace(/[\s-]+/g, '');
   if (style === 'word') return `${word}thousandths`;
+  const tensWord = intToWords(Math.floor(n / 10) * 10).toLowerCase().replace(/[\s-]+/g, '');
   const hundreds = Math.floor(n / 100);
   const tens = Math.floor((n % 100) / 10);
   const ones = n % 10;
@@ -127,15 +129,15 @@ function buildThousandthsPhrase(value, style = 'word-and-digit') {
     return `${core}thousandths`;
   }
   if (style === 'word-digit' && n >= 10) {
-    if (ones === 0) return `${SMALL[tens]}thousandths`;
+    if (ones === 0) return `${tensWord}thousandths`;
     return `${SMALL[tens]}${ones}thousandths`;
   }
   if (style === 'digit-word' && n >= 10) {
-    if (ones === 0) return `${tens}${SMALL[tens]}thousandths`;
+    if (ones === 0) return `${tensWord}thousandths`;
     return `${tens}${SMALL[ones]}thousandths`;
   }
   if (n >= 10) {
-    if (ones === 0) return `${SMALL[tens]}thousandths`;
+    if (ones === 0) return `${tensWord}thousandths`;
     return `${SMALL[tens]}and${ones}thousandths`;
   }
   return `${word}thousandths`;
@@ -145,6 +147,15 @@ function parseThousandthsMixed(part) {
   if (!part) return null;
   const cleaned = part.toLowerCase().replace(/thousandths?$/, '');
   if (!cleaned) return null;
+  const digitWord = cleaned.match(/^(\d)([a-z\-]+)$/);
+  if (digitWord) {
+    const tensDigit = parseInt(digitWord[1], 10);
+    const onesWord = digitWord[2];
+    const onesVal = parseSmallNumberWords(onesWord);
+    if (isFinite(tensDigit) && onesVal !== null && onesVal >= 0 && onesVal < 10) {
+      return tensDigit * 10 + onesVal;
+    }
+  }
   const digits = cleaned.replace(/[^0-9]/g, '');
   const letters = cleaned.replace(/[^a-z\-]/g, '').replace(/and/g, '');
   if (digits && letters) {
@@ -189,6 +200,15 @@ function parseWordDigitWord(cleaned) {
 function parseMixedWholePart(part) {
   if (!part) return null;
   const cleaned = part.toLowerCase();
+  const digitWord = cleaned.match(/^(\d)([a-z\-]+)$/);
+  if (digitWord) {
+    const tensDigit = parseInt(digitWord[1], 10);
+    const onesWord = digitWord[2];
+    const onesVal = parseSmallNumberWords(onesWord);
+    if (isFinite(tensDigit) && onesVal !== null && onesVal >= 0 && onesVal < 10) {
+      return tensDigit * 10 + onesVal;
+    }
+  }
   const digits = cleaned.replace(/[^0-9]/g, '');
   const letters = cleaned.replace(/[^a-z\-]/g, '').replace(/and/g, '');
   const wordVal = letters ? parseSmallNumberWords(letters) : null;

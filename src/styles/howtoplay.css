@@ -13,9 +13,8 @@
   font-weight: 700;
 }
 
-html,
-body {
-  height: 100%;
+.howto-page {
+  min-height: 100vh;
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
   color: var(--text);
@@ -28,11 +27,11 @@ body {
     #d3b58b 60%,
     #cba86f 100%
   );
-  overflow: hidden; /* <- prevent scrolling */
+  overflow: hidden; /* prevent scrolling on HowToPlay only */
 }
 
 /* subtle animated mirage shimmer */
-body::before {
+.howto-page::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -352,7 +351,7 @@ body::before {
 }
 
 /* show overlay when night-theme active */
-body.night-theme #nightOverlay {
+.night-theme .howto-page #nightOverlay {
   display: block;
 }
 
@@ -507,7 +506,7 @@ body.night-theme #nightOverlay {
 }
 
 /* Night-theme body-wide adjustments */
-body.night-theme {
+.night-theme .howto-page {
   /* dark night gradient */
   background: radial-gradient(
     1200px 600px at 16% 18%,
@@ -520,19 +519,19 @@ body.night-theme {
 }
 
 /* Bring nav slightly darker on night */
-body.night-theme nav {
+.night-theme .howto-page nav {
   background: rgba(2, 6, 20, 0.45);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
-body.night-theme .logo {
+.night-theme .howto-page .logo {
   color: #f3f6ff;
 }
-body.night-theme .nav a {
+.night-theme .howto-page .nav a {
   color: #9fc6ff;
 }
 
 /* adjust calculator pile to be slightly silhouetted at night */
-body.night-theme .calculator-pile .calc {
+.night-theme .howto-page .calculator-pile .calc {
   filter: saturate(0.6) brightness(0.8);
   box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.6),
@@ -540,12 +539,12 @@ body.night-theme .calculator-pile .calc {
 }
 
 /* lighter tagline contrast at night */
-body.night-theme .tagline {
+.night-theme .howto-page .tagline {
   color: #bcd9ff;
 }
 
 /* keep instructions card readable on night */
-body.night-theme .instructions-card {
+.night-theme .howto-page .instructions-card {
   background: linear-gradient(
     180deg,
     rgba(10, 16, 26, 0.72),
@@ -576,7 +575,7 @@ body.night-theme .instructions-card {
 /* high-contrast (kept for compatibility) */
 .high-contrast,
 .high-contrast html,
-.high-contrast body {
+.high-contrast .howto-page {
   background: #e6bfbf !important;
   color: #ffff00 !important;
 }
@@ -594,26 +593,26 @@ body.night-theme .instructions-card {
   color: #4e4242;
 }
 /* === Campfire scene overrides for Mr. Boooiiii + Benny === */
-body {
+.howto-page {
   background: linear-gradient(180deg, #020024 0%, #090979 50%, #00d4ff 100%);
   color: #e6f4ff;
 }
-.tagline {
+.howto-page .tagline {
   color: #b7eaff;
 }
-nav {
+.howto-page nav {
   background: rgba(6, 10, 20, 0.75);
   color: #cfe8ff;
 }
-.logo {
+.howto-page .logo {
   color: #cfe8ff;
 }
 
-.hero-card.small {
+.howto-page .hero-card.small {
   padding: 16px;
   background: rgba(5, 12, 40, 0.5);
 }
-.howto-header {
+.howto-page .howto-header {
   display: flex;
   justify-content: center;
 }

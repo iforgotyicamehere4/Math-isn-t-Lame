@@ -77,7 +77,7 @@ export default function HowToPlay() {
   }
 
   return (
-    <div className="background">
+    <div className="background howto-page">
       <header className="howto-header">
         <div className="hero-card small">
           <h1>Few Rules from the dev</h1>

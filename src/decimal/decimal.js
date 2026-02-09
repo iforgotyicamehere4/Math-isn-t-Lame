@@ -680,13 +680,19 @@ export default function initDecimal() {
     const canAdd = operatorsAllowed.includes('+') || operatorsAllowed.includes('-');
     const canMul = operatorsAllowed.includes('*') || operatorsAllowed.includes('/');
     while (padded.length < targetLen) {
-      if (canAdd && padded.length + 2 <= targetLen) {
-        padded += '+0';
-      } else if (canMul && padded.length + 2 <= targetLen) {
-        padded += '*1';
-      } else {
-        padded += '0';
+      const remaining = targetLen - padded.length;
+      if (canAdd && remaining >= 2) {
+        const op = Math.random() < 0.5 ? '+' : '-';
+        const digit = String(randInt(1, 9));
+        padded += op + digit;
+        continue;
       }
+      if (canMul && remaining >= 2) {
+        const op = Math.random() < 0.5 ? '*' : '/';
+        padded += op + '1';
+        continue;
+      }
+      padded += String(randInt(1, 9));
     }
     return padded.slice(0, targetLen);
   }
@@ -1365,13 +1371,15 @@ export default function initDecimal() {
     if (level === 'easy') {
       if (cleaned.includes('&')) {
         const [whole, frac] = cleaned.split('&');
-        return `Hint: "${whole}" is the whole number and "${frac}" are hundredths.`;
+        const unit = /thousandth/.test(frac) ? 'thousandths' : 'hundredths';
+        return `Hint: "${whole}" is the whole number and "${frac}" are ${unit}.`;
       }
       const parts = cleaned.split('.');
       const wordPart = parts[0] ? parts[0].replace(/-/g, ' ') : '';
       const fracPart = parts[1] || '';
       if (wordPart && fracPart) {
-        return `Hint: word part "${wordPart}" and decimal digits ".${fracPart}".`;
+        const unit = fracPart.length === 3 ? 'thousandths' : 'hundredths';
+        return `Hint: word part "${wordPart}" and decimal digits ".${fracPart}" (${unit}).`;
       }
       return 'Hint: convert the word to a number, then append the decimal digits shown.';
     }

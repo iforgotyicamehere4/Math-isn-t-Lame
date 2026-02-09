@@ -111,6 +111,13 @@ let miniEndAt = 0;
 let miniLastSpawnAt = 0;
 let miniBennyEl = null;
 let miniClearBonusCooldownUntil = 0;
+let miniJoystick = null;
+let miniStick = null;
+let miniShootBtn = null;
+let miniJoystickActive = false;
+let miniJoystickVector = { x: 0, y: 0 };
+let miniJoystickCenter = { x: 0, y: 0 };
+const miniJoystickRadius = 28;
 
 function currentUser() {
   return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -741,6 +748,7 @@ function startMiniGame() {
   setStatus("Mini game! Help Benny tag the circles for 25 seconds.");
   if (inputEl) inputEl.disabled = true;
   syncCanvasSize();
+  document.body.classList.add('capture-mini-active');
 
   const level = currentLevel();
   const count = getMiniCircleCount(level);
@@ -748,6 +756,7 @@ function startMiniGame() {
   miniCircles = Array.from({ length: count }, () => spawnMiniCircle(speed));
   miniShots = [];
   ensureMiniBenny();
+  ensureMiniControls();
   bennyState = {
     x: Math.max(60, (canvas ? canvas.width : 800) / 2),
     y: Math.max(60, (canvas ? canvas.height : 600) - 120),
@@ -767,6 +776,9 @@ function finishMiniGame() {
   miniShots = [];
   bennyState = null;
   if (miniBennyEl) miniBennyEl.style.display = "none";
+  if (miniJoystick) miniJoystick.style.display = "none";
+  if (miniShootBtn) miniShootBtn.style.display = "none";
+  document.body.classList.remove('capture-mini-active');
   setTimeout(startRound, 800);
 }
 
@@ -802,6 +814,10 @@ function updateMiniGame(deltaSec) {
   if (keysDown.has('d') || keysDown.has('D')) dx += 1;
   if (keysDown.has('w') || keysDown.has('W')) dy -= 1;
   if (keysDown.has('s') || keysDown.has('S')) dy += 1;
+  if (miniJoystickActive) {
+    dx = miniJoystickVector.x;
+    dy = miniJoystickVector.y;
+  }
   const mag = Math.hypot(dx, dy) || 1;
   bennyState.x += (dx / mag) * bennyState.speed * deltaSec;
   bennyState.y += (dy / mag) * bennyState.speed * deltaSec;
@@ -962,6 +978,73 @@ function applyMiniBennyColor() {
   } else {
     back.style.background = color.primary;
     head.style.background = color.primary;
+  }
+}
+
+function ensureMiniControls() {
+  if (!canvas) return;
+  const anchor = canvas.parentElement;
+  if (!anchor) return;
+  if (!miniJoystick) {
+    miniJoystick = document.createElement('div');
+    miniJoystick.className = 'capture-mini-joystick';
+    miniJoystick.innerHTML = '<div class="capture-mini-stick"></div>';
+    anchor.appendChild(miniJoystick);
+    miniStick = miniJoystick.querySelector('.capture-mini-stick');
+  }
+  if (!miniShootBtn) {
+    miniShootBtn = document.createElement('button');
+    miniShootBtn.type = 'button';
+    miniShootBtn.className = 'capture-mini-shoot';
+    miniShootBtn.textContent = 'Shoot';
+    anchor.appendChild(miniShootBtn);
+    miniShootBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      fireMiniShots();
+    }, { passive: false });
+    miniShootBtn.addEventListener('click', () => fireMiniShots());
+  }
+  const isMobile = window.matchMedia('(max-width: 900px)').matches;
+  miniJoystick.style.display = isMobile && miniGameActive ? 'flex' : 'none';
+  miniShootBtn.style.display = isMobile && miniGameActive ? 'block' : 'none';
+
+  const resetMiniJoystick = () => {
+    miniJoystickActive = false;
+    miniJoystickVector = { x: 0, y: 0 };
+    if (miniStick) miniStick.style.transform = 'translate(-50%, -50%)';
+  };
+  const handleMiniJoystickMove = (clientX, clientY) => {
+    const dx = clientX - miniJoystickCenter.x;
+    const dy = clientY - miniJoystickCenter.y;
+    const dist = Math.hypot(dx, dy);
+    const ratio = dist > 0 ? Math.min(1, miniJoystickRadius / dist) : 0;
+    const clampedX = dx * ratio;
+    const clampedY = dy * ratio;
+    miniJoystickVector = {
+      x: clampedX / miniJoystickRadius,
+      y: clampedY / miniJoystickRadius
+    };
+    if (miniStick) {
+      miniStick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+    }
+  };
+  if (miniJoystick) {
+    miniJoystick.ontouchstart = (e) => {
+      const touch = e.touches[0];
+      const rect = miniJoystick.getBoundingClientRect();
+      miniJoystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      miniJoystickActive = true;
+      handleMiniJoystickMove(touch.clientX, touch.clientY);
+      e.preventDefault();
+    };
+    miniJoystick.ontouchmove = (e) => {
+      if (!miniJoystickActive) return;
+      const touch = e.touches[0];
+      handleMiniJoystickMove(touch.clientX, touch.clientY);
+      e.preventDefault();
+    };
+    miniJoystick.ontouchend = resetMiniJoystick;
+    miniJoystick.ontouchcancel = resetMiniJoystick;
   }
 }
 

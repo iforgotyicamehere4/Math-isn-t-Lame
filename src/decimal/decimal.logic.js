@@ -164,8 +164,13 @@ function parseThousandthsMixed(part) {
     if (wordVal !== null) {
       if (digits.length === 2 && wordVal < 10) return wordVal * 100 + numDigits;
       if (digits.length === 1 && wordVal < 10) return wordVal * 10 + numDigits;
+      if (digits.length === 1 && wordVal >= 20 && wordVal % 10 === 0) {
+        return wordVal + numDigits;
+      }
       return parseInt(`${numDigits}${wordVal}`, 10);
     }
+    const wordDigitWord = parseWordDigitWord(cleaned);
+    if (wordDigitWord !== null) return wordDigitWord;
   }
   if (digits) return parseInt(digits, 10);
   return parseSmallNumberWords(letters);

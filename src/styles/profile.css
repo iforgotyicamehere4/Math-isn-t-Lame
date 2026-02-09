@@ -328,7 +328,8 @@
 @media (max-width: 720px) {
   .profile-page {
     padding: 16px;
-    padding-bottom: 120px;
+    padding-bottom: 260px;
+    overflow: visible;
   }
   .profile-metrics,
   .profile-lower,
@@ -343,6 +344,7 @@
     align-items: stretch;
     max-width: 420px;
     margin: 0 auto;
+    padding-bottom: 40px;
   }
   .profile-mobile-grid .profile-box {
     width: 100%;

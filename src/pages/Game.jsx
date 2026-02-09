@@ -175,35 +175,9 @@ export default function Game() {
           Benny, Go Potty!
         </button>
       </div>
-      <div className="number-keyboard" id="numberKeyboard" aria-label="Number keyboard for answers">
-        <div className="keyboard-display">
-          <input
-            id="keyboardDisplay"
-            type="text"
-            readOnly
-            placeholder="0"
-            className="keyboard-input"
-          />
-        </div>
-        <div className="keyboard-grid">
-          <button className="key-num" data-key="7" type="button">7</button>
-          <button className="key-num" data-key="8" type="button">8</button>
-          <button className="key-num" data-key="9" type="button">9</button>
-          <button className="key-op" data-key="/" type="button">÷</button>
-          <button className="key-num" data-key="4" type="button">4</button>
-          <button className="key-num" data-key="5" type="button">5</button>
-          <button className="key-num" data-key="6" type="button">6</button>
-          <button className="key-op" data-key="*" type="button">×</button>
-          <button className="key-num" data-key="1" type="button">1</button>
-          <button className="key-num" data-key="2" type="button">2</button>
-          <button className="key-num" data-key="3" type="button">3</button>
-          <button className="key-op" data-key="-" type="button">−</button>
-          <button className="key-num zero" data-key="0" type="button">0</button>
-          <button className="key-op" data-key="+" type="button">+</button>
-          <button className="key-delete" id="keyDelete" type="button">DEL</button>
-          <button className="key-submit" id="keySubmit" type="button">Enter</button>
-        </div>
-      </div>
+      
+      
+      
     </main>
   );
 }

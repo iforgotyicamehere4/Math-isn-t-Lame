@@ -99,11 +99,26 @@ export default function MathSynth() {
         <div className="score">Score: <span id="mathSynthScore">0</span></div>
         <div className="timer">Time left: <span id="mathSynthTimer">0</span>s</div>
         <div className="streak">Best: <span id="mathSynthBest">--</span></div>
+        <div className="press-start">Press Start</div>
+        <div className="palette-controls">
+          <div className="palette-title">Board colors</div>
+          <div id="mathSynthPalette" className="palette" role="list" />
+          <div className="selected-color">
+            Selected:
+            <span id="mathSynthColorPreview" className="color-swatch" />
+          </div>
+          <div className="grid-info">
+            Colors unlocked: <span id="mathSynthColorInfo">0</span>/50
+          </div>
+          <div className="palette-instructions">
+            Solve for x. Correct locks the cell (-1). Best = lowest score + time left. Watch the Others.
+          </div>
+        </div>
       </section>
 
       <section className="problem-area game-shell__body">
         <div className="side-panel game-shell__panel">
-          <div className="prompt" id="mathSynthPrompt">Press Start to begin.</div>
+          <div className="prompt" id="mathSynthPrompt" />
           <div className="hint" id="mathSynthFeedback" />
           
           {/* Answer Section - shows when a cell is selected */}
@@ -131,40 +146,13 @@ export default function MathSynth() {
             </div>
           </div>
           
-          <div className="mathsynth-hint">
-            Solve each equation for x. Correct answers lock the cell and give -1 point.
-            The best score is the lowest number with the most time left. Oh yea watch out for
-            the others (Mr. Boooiiii&apos;s bill collectors)!
-          </div>
-          <div className="mathsynth-clues">
-            <div className="mathsynth-label">Warm up problems</div>
-            <div id="mathSynthEquations" className="mathsynth-equations" />
-            <div className="mathsynth-quote">just ask yourself, "What&apos;s the next right choice?"<br />
-              If x = your best self, then I believe in you. -Mr. Boooiiii-
-            </div>
-          </div>
         </div>
 
         <div className="board-panel game-shell__board">
           <div id="mathSynthOthers" className="mathsynth-others" aria-live="polite" />
           <div id="mathSynthBoard" className="mathsynth-board" />
-          <div className="palette-controls">
-            <div className="palette-title">Board colors</div>
-            <div id="mathSynthPalette" className="palette" role="list" />
-            <div className="selected-color">
-              Selected:
-              <span id="mathSynthColorPreview" className="color-swatch" />
-            </div>
-            <div className="grid-info">
-              Colors unlocked: <span id="mathSynthColorInfo">0</span>/50
-            </div>
-          </div>
         </div>
       </section>
-      <footer>
-        <small>MathSynth blends algebra with a crossword-style grid.</small>
-      </footer>
     </main>
   );
 }
-

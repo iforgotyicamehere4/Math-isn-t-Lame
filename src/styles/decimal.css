@@ -403,6 +403,30 @@
   background: linear-gradient(135deg, #fde68a, #f59e0b);
 }
 
+.decimal-mini-benny .benny-head::before {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  right: 3px;
+  top: 2px;
+  border-radius: 50%;
+  background: #0a1824;
+  box-shadow: 0 0 3px rgba(10, 24, 36, 0.4);
+}
+
+.decimal-mini-benny .benny-head::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 4px;
+  right: 2px;
+  top: 7px;
+  background: #ff6b8a;
+  border-radius: 0 0 5px 5px;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
 .decimal-mini-benny .benny-leg {
   position: absolute;
   bottom: 6px;

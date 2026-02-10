@@ -104,6 +104,35 @@
   let total = 0;
   let running = false;
   let puzzle = [];
+  let solvedEquations = [];
+
+  // Arena mode (post-level FPS)
+  let arenaActive = false;
+  let arenaEl = null;
+  let arenaControlsEl = null;
+  let arenaJoystick = null;
+  let arenaStick = null;
+  let arenaShootBtn = null;
+  let arenaJoystickActive = false;
+  let arenaJoystickVector = { x: 0, y: 0 };
+  let arenaJoystickCenter = { x: 0, y: 0 };
+  const arenaJoystickRadius = 30;
+  const arenaKeys = new Set();
+  let arenaLastAim = { x: 1, y: 0 };
+  let bennyEl = null;
+  const bennyState = { x: 0, y: 0 };
+  let bennyShots = [];
+  let enemyShots = [];
+  let enemies = [];
+  let enemyQueue = [];
+  let waveIndex = 0;
+  let nextWaveAt = 0;
+  let arenaAnimId = null;
+  let arenaLastTick = 0;
+  let squadCenter = { x: 0, y: 0 };
+  let squadVel = { x: 0, y: 0 };
+  let coverRects = [];
+  let coverRefreshAt = 0;
   
   // Selected cell tracking
   let selectedCellIndex = null;
@@ -170,6 +199,7 @@
   const resetGame = () => {
     stopTimer();
     running = false;
+    stopArena();
     score = 0;
     solved = 0;
     timeLeft = 0;
@@ -328,6 +358,7 @@
 
   function startGame() {
     stopTimer();
+    stopArena();
     running = true;
     score = 0;
     solved = 0;
@@ -373,6 +404,7 @@
     puzzle = [];
     solved = 0;
     total = 0;
+    solvedEquations = [];
     board.innerHTML = '';
     board.dataset.cols = `${cols}`;
     board.dataset.level = level;
@@ -435,6 +467,7 @@
     if (value === data.answer) {
       data.solved = true;
       solved += 1;
+      solvedEquations.push(data);
       score -= 1;
       scoreEl.textContent = `${score}`;
       cell.classList.add('correct');
@@ -477,6 +510,592 @@
     gameStats.bestScore = gameStats.bestScore === null ? score : Math.min(gameStats.bestScore, score);
     gameStats.bestTime = Math.max(gameStats.bestTime || 0, timeLeft);
     saveProfileStats(stats);
+    startArena();
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (!arenaActive) return;
+    const key = e.key;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(key)) {
+      arenaKeys.add(key);
+      e.preventDefault();
+    }
+    if (key === ' ') {
+      arenaShoot();
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    if (!arenaActive) return;
+    const key = e.key;
+    arenaKeys.delete(key);
+    e.preventDefault();
+  });
+
+  function getArenaTargetCount(level) {
+    if (level === 'easy') return 42;
+    if (level === 'medium') return 48;
+    return 54;
+  }
+
+  function getTierState() {
+    const user = currentUser();
+    const raw = localStorage.getItem(`mathpop_profile_stats_${user}`);
+    if (!raw) return { activeTier: 1, tierUnlocks: [1] };
+    try {
+      const parsed = JSON.parse(raw);
+      const unlocks = Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : [];
+      return {
+        activeTier: Number(parsed.activeTier) || 1,
+        tierUnlocks: [1, ...unlocks]
+      };
+    } catch {
+      return { activeTier: 1, tierUnlocks: [1] };
+    }
+  }
+
+  function isTierUnlocked(tierId, tierUnlocks) {
+    return tierUnlocks.includes(tierId);
+  }
+
+  function ensureArenaElements() {
+    if (arenaEl) return;
+    arenaEl = document.createElement('div');
+    arenaEl.id = 'mathSynthArena';
+    arenaEl.className = 'mathsynth-arena';
+    arenaEl.innerHTML = `
+      <div class="mathsynth-arena__hint">Math escaped the board!</div>
+    `;
+    document.body.appendChild(arenaEl);
+
+    const aimFromPoint = (clientX, clientY) => {
+      const dx = clientX - bennyState.x;
+      const dy = clientY - bennyState.y;
+      const len = Math.hypot(dx, dy) || 1;
+      arenaLastAim = { x: dx / len, y: dy / len };
+    };
+    arenaEl.addEventListener('pointermove', (e) => {
+      if (!arenaActive) return;
+      aimFromPoint(e.clientX, e.clientY);
+    });
+    arenaEl.addEventListener('pointerdown', (e) => {
+      if (!arenaActive) return;
+      aimFromPoint(e.clientX, e.clientY);
+    });
+    arenaEl.addEventListener('touchstart', (e) => {
+      if (!arenaActive) return;
+      const touch = e.touches[0];
+      aimFromPoint(touch.clientX, touch.clientY);
+    }, { passive: true });
+    arenaEl.addEventListener('touchmove', (e) => {
+      if (!arenaActive) return;
+      const touch = e.touches[0];
+      aimFromPoint(touch.clientX, touch.clientY);
+    }, { passive: true });
+
+    bennyEl = document.createElement('div');
+    bennyEl.className = 'ms-benny';
+    bennyEl.innerHTML = '<div class="ms-benny__body"></div><div class="ms-benny__face"></div>';
+    arenaEl.appendChild(bennyEl);
+
+    arenaControlsEl = document.createElement('div');
+    arenaControlsEl.className = 'mathsynth-arena-controls';
+    arenaControlsEl.innerHTML = `
+      <div class="ms-joystick" id="msArenaJoystick">
+        <div class="ms-stick" id="msArenaStick"></div>
+      </div>
+      <button class="ms-shoot" id="msArenaShoot" type="button">Play</button>
+    `;
+    arenaEl.appendChild(arenaControlsEl);
+    arenaJoystick = arenaControlsEl.querySelector('#msArenaJoystick');
+    arenaStick = arenaControlsEl.querySelector('#msArenaStick');
+    arenaShootBtn = arenaControlsEl.querySelector('#msArenaShoot');
+
+    if (arenaJoystick) {
+      arenaJoystick.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        const rect = arenaJoystick.getBoundingClientRect();
+        arenaJoystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        arenaJoystickActive = true;
+        handleArenaJoystickMove(touch.clientX, touch.clientY);
+        e.preventDefault();
+      }, { passive: false });
+      arenaJoystick.addEventListener('touchmove', (e) => {
+        if (!arenaJoystickActive) return;
+        const touch = e.touches[0];
+        handleArenaJoystickMove(touch.clientX, touch.clientY);
+        e.preventDefault();
+      }, { passive: false });
+      arenaJoystick.addEventListener('touchend', resetArenaJoystick);
+      arenaJoystick.addEventListener('touchcancel', resetArenaJoystick);
+    }
+
+    if (arenaShootBtn) {
+      const shootAction = (e) => {
+        if (e) e.preventDefault();
+        arenaShoot();
+      };
+      arenaShootBtn.addEventListener('touchstart', shootAction, { passive: false });
+      arenaShootBtn.addEventListener('pointerdown', shootAction);
+      arenaShootBtn.addEventListener('click', shootAction);
+    }
+  }
+
+  function handleArenaJoystickMove(clientX, clientY) {
+    const dx = clientX - arenaJoystickCenter.x;
+    const dy = clientY - arenaJoystickCenter.y;
+    const dist = Math.hypot(dx, dy);
+    const ratio = dist > 0 ? Math.min(1, arenaJoystickRadius / dist) : 0;
+    const clampedX = dx * ratio;
+    const clampedY = dy * ratio;
+    arenaJoystickVector = {
+      x: clampedX / arenaJoystickRadius,
+      y: clampedY / arenaJoystickRadius
+    };
+    if (arenaStick) {
+      arenaStick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+    }
+  }
+
+  function resetArenaJoystick() {
+    arenaJoystickActive = false;
+    arenaJoystickVector = { x: 0, y: 0 };
+    if (arenaStick) arenaStick.style.transform = 'translate(-50%, -50%)';
+  }
+
+  function refreshCoverRects() {
+    if (!arenaActive) return;
+    const covers = document.querySelectorAll(
+      '.mathsynth .game-shell__header, .mathsynth .status-row, .mathsynth .palette-controls, .mathsynth .palette, .mathsynth .side-panel, .mathsynth .board-panel, .mathsynth .mathsynth-board, .mathsynth .mathsynth-board-name'
+    );
+    coverRects = Array.from(covers).map((el) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        cx: rect.left + rect.width / 2,
+        cy: rect.top + rect.height / 2
+      };
+    });
+  }
+
+  function startArena() {
+    const level = levelSelect ? levelSelect.value : 'easy';
+    if (!solvedEquations.length) return;
+    stopArena();
+    ensureArenaElements();
+    arenaActive = true;
+    arenaEl.classList.add('active');
+    applyColor(selectedIndex);
+    const targetCount = getArenaTargetCount(level);
+    const equations = solvedEquations.slice();
+    enemyQueue = [];
+    for (let i = 0; i < targetCount; i += 1) {
+      enemyQueue.push(equations[i % equations.length]);
+    }
+    waveIndex = 0;
+    nextWaveAt = performance.now();
+    enemies = [];
+    bennyShots = [];
+    enemyShots = [];
+    squadCenter = { x: window.innerWidth * 0.5, y: 80 };
+    squadVel = { x: 0, y: 0.06 };
+    refreshCoverRects();
+    coverRefreshAt = performance.now() + 1500;
+    positionBenny();
+    if (arenaAnimId) cancelAnimationFrame(arenaAnimId);
+    arenaAnimId = requestAnimationFrame(arenaLoop);
+  }
+
+  function stopArena() {
+    arenaActive = false;
+    if (arenaAnimId) cancelAnimationFrame(arenaAnimId);
+    arenaAnimId = null;
+    arenaLastTick = 0;
+    enemies.forEach(e => e.el.remove());
+    bennyShots.forEach(s => s.el.remove());
+    enemyShots.forEach(s => s.el.remove());
+    enemies = [];
+    bennyShots = [];
+    enemyShots = [];
+    if (arenaEl) arenaEl.classList.remove('active');
+    resetArenaJoystick();
+    arenaKeys.clear();
+  }
+
+  function positionBenny() {
+    if (!bennyEl) return;
+    const rect = board.getBoundingClientRect();
+    const startX = rect.left + 16;
+    const startY = rect.bottom - 60;
+    bennyState.x = startX;
+    bennyState.y = startY;
+    bennyEl.style.left = `${bennyState.x}px`;
+    bennyEl.style.top = `${bennyState.y}px`;
+  }
+
+  function spawnWave() {
+    const now = performance.now();
+    if (waveIndex >= enemyQueue.length) return;
+    if (now < nextWaveAt) return;
+    const batch = enemyQueue.slice(waveIndex, waveIndex + 5);
+    waveIndex += batch.length;
+    nextWaveAt = now + 1400;
+    const width = window.innerWidth;
+    batch.forEach((item) => {
+      const enemyEl = document.createElement('div');
+      enemyEl.className = 'ms-enemy';
+      enemyEl.innerHTML = `
+        <div class="ms-enemy__eq">${item.equation}</div>
+        <div class="ms-enemy__hp"><span></span></div>
+      `;
+      arenaEl.appendChild(enemyEl);
+      const x = Math.random() * (width - 120);
+      const y = -120 - Math.random() * 80;
+      const cover = coverRects.length ? coverRects[Math.floor(Math.random() * coverRects.length)] : null;
+      const offset = {
+        x: (Math.random() - 0.5) * 160,
+        y: (Math.random() - 0.5) * 120
+      };
+      enemies.push({
+        el: enemyEl,
+        x,
+        y,
+        w: 120,
+        h: 60,
+        health: 4,
+        state: 'advance',
+        cover,
+        peekOffset: 0,
+        retreatAt: 0,
+        shootAt: 0,
+        offset
+      });
+      enemyEl.style.left = `${x}px`;
+      enemyEl.style.top = `${y}px`;
+    });
+  }
+
+  function arenaShoot() {
+    if (!arenaActive) return;
+    const { activeTier, tierUnlocks } = getTierState();
+    const tier = activeTier;
+    const unlocked = (id) => isTierUnlocked(id, tierUnlocks);
+    const isBoomerang = tier === 2 && unlocked(2);
+    const isTargetLock = tier === 3 && unlocked(3);
+    const isWizard = tier === 5 && unlocked(5);
+    const aim = arenaLastAim;
+    const spread = isBoomerang ? 0.18 : 0.25;
+    const angles = [
+      Math.atan2(aim.y, aim.x) - spread,
+      Math.atan2(aim.y, aim.x) + spread
+    ];
+    const wizardColors = ['#8b5cf6', '#facc15', '#fb923c', '#f472b6'];
+    const shotChar = isBoomerang ? '>' : (isWizard ? 'π' : (isTargetLock ? '→' : '−'));
+    const pickTarget = (x, y) => {
+      let chosen = null;
+      let nearest = Infinity;
+      enemies.forEach((e) => {
+        const dx = e.x - x;
+        const dy = e.y - y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < nearest) {
+          nearest = dist;
+          chosen = e;
+        }
+      });
+      return chosen;
+    };
+    angles.forEach((angle, idx) => {
+      const el = document.createElement('div');
+      el.className = 'ms-shot';
+      el.textContent = shotChar;
+      if (isWizard) {
+        const color = wizardColors[Math.floor(Math.random() * wizardColors.length)];
+        el.style.color = color;
+        el.style.textShadow = `0 0 8px ${color}`;
+      }
+      arenaEl.appendChild(el);
+      const vx = Math.cos(angle) * 5.4;
+      const vy = Math.sin(angle) * 5.4;
+      const shot = {
+        el,
+        x: bennyState.x + 22,
+        y: bennyState.y + 18 + (idx === 0 ? -4 : 4),
+        vx,
+        vy,
+        homing: isTargetLock,
+        target: isTargetLock ? pickTarget(bennyState.x, bennyState.y) : null,
+        boomerang: isBoomerang,
+        lifeMs: 0,
+        returnAfterMs: 480,
+        returning: false,
+        repelled: 0
+      };
+      bennyShots.push(shot);
+      el.style.left = `${shot.x}px`;
+      el.style.top = `${shot.y}px`;
+    });
+  }
+
+  function spawnEnemyShot(enemy) {
+    const symbols = ['+', '-', '*', '/', '=', 'x', '%', '^', 'π', '>', '<'];
+    const el = document.createElement('div');
+    el.className = 'ms-shot enemy';
+    el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    arenaEl.appendChild(el);
+    const dx = bennyState.x - enemy.x;
+    const dy = bennyState.y - enemy.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    enemyShots.push({
+      el,
+      x: enemy.x + 40,
+      y: enemy.y + 20,
+      vx: (dx / dist) * 3.2,
+      vy: (dy / dist) * 3.2,
+      repelled: 0
+    });
+  }
+
+  function updateBenny(delta) {
+    const speed = 0.22 * delta;
+    const moveX = (arenaKeys.has('ArrowRight') || arenaKeys.has('d') ? 1 : 0)
+      - (arenaKeys.has('ArrowLeft') || arenaKeys.has('a') ? 1 : 0);
+    const moveY = (arenaKeys.has('ArrowDown') || arenaKeys.has('s') ? 1 : 0)
+      - (arenaKeys.has('ArrowUp') || arenaKeys.has('w') ? 1 : 0);
+    let dx = moveX;
+    let dy = moveY;
+    if (arenaJoystickActive) {
+      dx = arenaJoystickVector.x;
+      dy = arenaJoystickVector.y;
+    }
+    if (dx || dy) {
+      const len = Math.hypot(dx, dy) || 1;
+      arenaLastAim = { x: dx / len, y: dy / len };
+    }
+    if (bennyEl && bennyEl.classList.contains('hit')) {
+      dx *= 0.35;
+      dy *= 0.35;
+    }
+    bennyState.x += dx * speed;
+    bennyState.y += dy * speed;
+    bennyState.x = clamp(bennyState.x, 8, window.innerWidth - 40);
+    bennyState.y = clamp(bennyState.y, 80, window.innerHeight - 60);
+    bennyEl.style.left = `${bennyState.x}px`;
+    bennyEl.style.top = `${bennyState.y}px`;
+  }
+
+  function applyCoverRepel(shot) {
+    for (let i = 0; i < coverRects.length; i += 1) {
+      const c = coverRects[i];
+      if (shot.x >= c.left && shot.x <= c.right && shot.y >= c.top && shot.y <= c.bottom) {
+        shot.vx = -shot.vx * 0.8;
+        shot.vy = -shot.vy * 0.8;
+        shot.repelled = (shot.repelled || 0) + 1;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function updateShots(delta) {
+    const step = delta / 16;
+    bennyShots = bennyShots.filter((s) => {
+      s.lifeMs += delta;
+      if (s.boomerang && s.lifeMs >= s.returnAfterMs) s.returning = true;
+      if (s.homing && s.target) {
+        const dx = s.target.x - s.x;
+        const dy = s.target.y - s.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        s.vx += (dx / dist) * 0.12 * step;
+        s.vy += (dy / dist) * 0.12 * step;
+      }
+      if (s.boomerang && s.returning) {
+        const dx = bennyState.x - s.x;
+        const dy = bennyState.y - s.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        s.vx += (dx / dist) * 0.18 * step;
+        s.vy += (dy / dist) * 0.18 * step;
+      }
+      s.x += s.vx * step;
+      s.y += s.vy * step;
+      applyCoverRepel(s);
+      const maxX = window.innerWidth - 6;
+      const maxY = window.innerHeight - 6;
+      s.bounces = s.bounces || 0;
+      if (s.x <= 0 || s.x >= maxX) {
+        s.vx = -s.vx;
+        s.x = clamp(s.x, 2, maxX - 2);
+        s.bounces += 1;
+      }
+      if (s.y <= 0 || s.y >= maxY) {
+        s.vy = -s.vy;
+        s.y = clamp(s.y, 2, maxY - 2);
+        s.bounces += 1;
+      }
+      s.el.style.left = `${s.x}px`;
+      s.el.style.top = `${s.y}px`;
+      if (s.repelled > 1 || s.bounces > 6) {
+        s.el.remove();
+        return false;
+      }
+      return true;
+    });
+
+    enemyShots = enemyShots.filter((s) => {
+      s.x += s.vx * step;
+      s.y += s.vy * step;
+      applyCoverRepel(s);
+      const maxX = window.innerWidth - 6;
+      const maxY = window.innerHeight - 6;
+      s.bounces = s.bounces || 0;
+      if (s.x <= 0 || s.x >= maxX) {
+        s.vx = -s.vx;
+        s.x = clamp(s.x, 2, maxX - 2);
+        s.bounces += 1;
+      }
+      if (s.y <= 0 || s.y >= maxY) {
+        s.vy = -s.vy;
+        s.y = clamp(s.y, 2, maxY - 2);
+        s.bounces += 1;
+      }
+      s.el.style.left = `${s.x}px`;
+      s.el.style.top = `${s.y}px`;
+      if (s.repelled > 1 || s.bounces > 6) {
+        s.el.remove();
+        return false;
+      }
+      const hitBenny = s.x >= bennyState.x && s.x <= bennyState.x + 36
+        && s.y >= bennyState.y && s.y <= bennyState.y + 36;
+      if (hitBenny && bennyEl) {
+        bennyEl.classList.add('hit');
+        setTimeout(() => bennyEl.classList.remove('hit'), 180);
+        s.el.remove();
+        return false;
+      }
+      return true;
+    });
+  }
+
+  function updateEnemies(delta) {
+    const level = levelSelect ? levelSelect.value : 'easy';
+    const baseSpeed = level === 'easy' ? 0.12 : (level === 'medium' ? 0.16 : 0.22);
+    const speed = baseSpeed * delta;
+    const driftTargetX = bennyState.x;
+    const driftTargetY = bennyState.y * 0.2;
+    const dxDrift = driftTargetX - squadCenter.x;
+    const dyDrift = driftTargetY - squadCenter.y;
+    const distDrift = Math.hypot(dxDrift, dyDrift) || 1;
+    squadVel.x += (dxDrift / distDrift) * 0.002 * delta;
+    squadVel.y += (dyDrift / distDrift) * 0.002 * delta;
+    squadVel.x *= 0.98;
+    squadVel.y *= 0.98;
+    squadCenter.x += squadVel.x * delta;
+    squadCenter.y += squadVel.y * delta;
+    enemies.forEach((enemy) => {
+      if (enemy.offset) {
+        enemy.x += squadVel.x * delta * 0.6;
+        enemy.y += squadVel.y * delta * 0.6;
+      }
+      if (enemy.state === 'advance') {
+        const target = enemy.cover ? { x: enemy.cover.cx, y: enemy.cover.top - 18 } : { x: bennyState.x, y: bennyState.y };
+        const dx = target.x - enemy.x;
+        const dy = target.y - enemy.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        enemy.x += (dx / dist) * speed;
+        enemy.y += (dy / dist) * speed;
+        if (dist < 40) {
+          enemy.state = 'cover';
+          enemy.peekOffset = 0;
+          const peekDelay = level === 'easy' ? 900 : 450;
+          enemy.shootAt = performance.now() + peekDelay + Math.random() * 600;
+        }
+      } else if (enemy.state === 'cover') {
+        if (performance.now() >= enemy.shootAt) {
+          enemy.state = 'peek';
+        }
+      } else if (enemy.state === 'peek') {
+        const peekMax = level === 'easy' ? 36 : 22;
+        const peekStep = level === 'easy' ? 0.5 : 0.8;
+        enemy.peekOffset = Math.min(peekMax, enemy.peekOffset + speed * peekStep);
+        const dx = bennyState.x - enemy.x;
+        const dy = bennyState.y - enemy.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        enemy.x += (dx / dist) * 0.3;
+        enemy.y += (dy / dist) * 0.3;
+        if (enemy.peekOffset >= peekMax - 2) {
+          spawnEnemyShot(enemy);
+          enemy.state = 'retreat';
+          enemy.retreatAt = performance.now() + (level === 'easy' ? 700 : 420);
+        }
+      } else if (enemy.state === 'retreat') {
+        const target = enemy.cover ? { x: enemy.cover.cx, y: enemy.cover.top - 18 } : { x: enemy.x, y: enemy.y };
+        const dx = target.x - enemy.x;
+        const dy = target.y - enemy.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        enemy.x += (dx / dist) * speed * 1.2;
+        enemy.y += (dy / dist) * speed * 1.2;
+        if (performance.now() >= enemy.retreatAt) {
+          enemy.state = 'cover';
+          const peekDelay = level === 'easy' ? 900 : 500;
+          enemy.shootAt = performance.now() + peekDelay + Math.random() * 900;
+        }
+      }
+      enemy.el.style.left = `${enemy.x}px`;
+      enemy.el.style.top = `${enemy.y}px`;
+    });
+  }
+
+  function checkArenaHits() {
+    bennyShots.forEach((s) => {
+      enemies.forEach((e) => {
+        const withinX = s.x >= e.x && s.x <= e.x + e.w;
+        const withinY = s.y >= e.y && s.y <= e.y + e.h;
+        if (withinX && withinY) {
+          e.health -= 1;
+          const hp = e.el.querySelector('.ms-enemy__hp span');
+          if (hp) hp.style.width = `${(e.health / 4) * 100}%`;
+          e.state = 'retreat';
+          e.retreatAt = performance.now() + 700;
+          s.el.remove();
+          s.repelled = 99;
+          if (e.health <= 0) {
+            e.el.classList.add('down');
+          }
+        }
+      });
+    });
+    enemies = enemies.filter((e) => {
+      if (e.health <= 0) {
+        e.el.remove();
+        return false;
+      }
+      return true;
+    });
+  }
+
+  function arenaLoop(ts) {
+    if (!arenaActive) return;
+    if (!arenaLastTick) arenaLastTick = ts;
+    const delta = Math.min(40, ts - arenaLastTick);
+    arenaLastTick = ts;
+    if (ts >= coverRefreshAt) {
+      refreshCoverRects();
+      coverRefreshAt = ts + 1600;
+    }
+    spawnWave();
+    updateBenny(delta);
+    updateShots(delta);
+    updateEnemies(delta);
+    checkArenaHits();
+    if (waveIndex >= enemyQueue.length && enemies.length === 0) {
+      stopArena();
+      promptEl.textContent = 'Arena cleared! Press Start for a new puzzle.';
+      return;
+    }
+    arenaAnimId = requestAnimationFrame(arenaLoop);
   }
 
   function updateBest(newScore, newTime) {
@@ -856,6 +1475,10 @@
     const scheme = schemes[index] || schemes[0];
     board.style.setProperty('--ms-accent', scheme.primary);
     board.style.setProperty('--ms-accent-2', scheme.secondary);
+    if (arenaEl) {
+      arenaEl.style.setProperty('--ms-accent', scheme.primary);
+      arenaEl.style.setProperty('--ms-accent-2', scheme.secondary);
+    }
     if (colorPreview) {
       colorPreview.style.background = `linear-gradient(135deg, ${scheme.primary}, ${scheme.secondary})`;
     }

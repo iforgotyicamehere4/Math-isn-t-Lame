@@ -161,7 +161,7 @@ export default function HowToPlay() {
             <li>Capture: solve the fraction prompt and pop the right bubble. Pop enough bubbles and unlock a fun mini game.</li>
             <li>Deci-What?: Identify spelled out numbers with decimals. type in numeric value. Complete puzzle to unlock fun mini game </li>
             <li>Ma+h 5yn+h3: Solve algebra problems to unlock mini game.</li>
-            <li>Benny World: Make progress in games listed above to unlock fun platformer game. </li>
+            <li>Benny Dash: Make progress in games listed above to unlock fun platformer game. </li>
           </ol>
           <Link id="backLink" to="/" className="back-link">Back Home</Link>
         </section>

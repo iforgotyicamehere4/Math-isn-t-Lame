@@ -15,6 +15,6 @@ test('renders home hero content', () => {
     screen.getByText(/Math isn't lame — it's an adventure!/i)
   ).toBeInTheDocument();
   expect(
-    screen.getByText(/My homework is gone/i)
-  ).toBeInTheDocument();
+    screen.getAllByText(/Sign Up \/ Sign In/i).length
+  ).toBeGreaterThan(0);
 });

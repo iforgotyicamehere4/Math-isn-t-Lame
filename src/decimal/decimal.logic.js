@@ -34,6 +34,15 @@ function parseSmallNumberWords(wordStr) {
   if (!wordStr) return null;
   const w = wordStr.trim().toLowerCase();
   for (let i = 0; i < SMALL.length; i++) if (SMALL[i] === w) return i;
+  for (let t = 2; t < TENS.length; t++) {
+    const tensWord = TENS[t];
+    if (w === tensWord) return t * 10;
+    if (w.startsWith(tensWord)) {
+      const rest = w.slice(tensWord.length);
+      const unit = SMALL.indexOf(rest);
+      if (unit > 0 && unit < 10) return t * 10 + unit;
+    }
+  }
   if (w.includes('-')) {
     const parts = w.split('-');
     if (parts.length === 2) {

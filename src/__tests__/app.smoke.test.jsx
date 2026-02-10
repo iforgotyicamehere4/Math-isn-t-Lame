@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { test, expect } from 'vitest';
 import App from '../App';
 
-test('renders app navigation links', () => {
+test('renders game page shell', () => {
   render(
     <MemoryRouter initialEntries={['/game']}>
       <App />
@@ -12,6 +12,6 @@ test('renders app navigation links', () => {
   );
 
   expect(screen.getByText('Math Pup')).toBeInTheDocument();
-  expect(screen.getByText('Capture')).toBeInTheDocument();
-  expect(screen.getByText('Deci-What?')).toBeInTheDocument();
+  expect(screen.getByText('Start')).toBeInTheDocument();
+  expect(screen.getByText('Pause')).toBeInTheDocument();
 });

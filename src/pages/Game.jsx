@@ -56,7 +56,7 @@ export default function Game() {
     loadScript(mathScript, 'mathjs', { async: false }).then(() => {
       if (cancelled) return null;
       // Load timer script first (non-module), then load game script (module)
-      return loadScript(timerScript, 'mathpup-timer', { async: false }).then(() => {
+      return loadScript(timerScript, 'mathpup-timer', { async: false, type: 'module' }).then(() => {
         if (cancelled) return null;
         return loadScript(gameScript, 'mathpup', { type: 'module' });
       });
@@ -153,6 +153,14 @@ export default function Game() {
           </p>
           <div id="bennyUnlockInfo" style={{ marginTop: 8 }} />
           <div id="bennyPalette" className="benny-palette" />
+          <div className="mobile-controls" id="mobileControls" aria-hidden="true">
+            <div className="joystick" id="mobileJoystick">
+              <div className="stick" id="mobileStick" />
+            </div>
+            <button className="shoot-btn" id="mobileShoot" type="button">
+              Benny, Go Play!
+            </button>
+          </div>
         </section>
 
         <div className="game-shell__board">
@@ -167,14 +175,6 @@ export default function Game() {
           </div>
         </div>
       </section>
-      <div className="mobile-controls" id="mobileControls" aria-hidden="true">
-        <div className="joystick" id="mobileJoystick">
-          <div className="stick" id="mobileStick" />
-        </div>
-        <button className="shoot-btn" id="mobileShoot" type="button">
-          Benny, Go Potty!
-        </button>
-      </div>
       
       
       

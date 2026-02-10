@@ -62,12 +62,12 @@ const MEDIUM_LEVELS = ['Medium', 'Medium26', 'Medium60', 'Medium100'];
 
 const BENNY_TIERS = [
   { id: 1, name: 'Starter Pup', power: 'Subtraction eyes', points: 0, streak: 0 },
-  { id: 2, name: 'Greater Signs', power: 'Greater-than blast', points: 3000, streak: 3, requires: EASY_LEVELS },
+  { id: 2, name: 'Greater Signs', power: 'Greater-than blast', points: 3000, streak: 0, requires: ['Easy25'] },
   { id: 3, name: 'Arrow Blaster', power: 'Arrow keys + space', points: 6000, streak: 5, requires: MEDIUM_LEVELS },
-  { id: 4, name: 'Lightsaber Pup', power: 'Lightsaber cut', points: 12000, streak: 6 },
-  { id: 5, name: 'Viral Driver', power: 'Viral driver clip', points: 24000, streak: 8 },
+  { id: 4, name: 'Playful Benny', power: 'Benny jumps on target', points: 12000, streak: 6 },
+  { id: 5, name: 'Your a Wizard, Benny', power: 'Pi wand blast', points: 24000, streak: 8 },
   { id: 6, name: 'Nuclear Gauge', power: 'Gamma / neutron beam', points: 36000, streak: 10 },
-  { id: 7, name: 'Doctor Spray', power: 'Disinfectant spray', points: 48000, streak: 12 },
+  { id: 7, name: 'Nurse Benny', power: 'Crash cart charge', points: 48000, streak: 12 },
   { id: 8, name: 'Dogko RKO', power: 'Dogko finisher', points: 60000, streak: 14 },
   { id: 9, name: 'Mythic Pup', power: 'Mythic finisher', points: 80000, streak: 16 },
   { id: 10, name: 'Mathtality', power: 'All zombies cleared', points: 100000, streak: 18 }
@@ -83,6 +83,8 @@ function loadProfileStats(user) {
       totalAttempted: 0,
       pupStreakRecord: 0,
       levelsCompleted: [],
+      tierUnlocks: [],
+      activeTier: 1,
       games: {}
     };
   }
@@ -94,6 +96,8 @@ function loadProfileStats(user) {
       totalAttempted: Number(parsed.totalAttempted) || 0,
       pupStreakRecord: Number(parsed.pupStreakRecord) || 0,
       levelsCompleted: Array.isArray(parsed.levelsCompleted) ? parsed.levelsCompleted : [],
+      tierUnlocks: Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : [],
+      activeTier: Number(parsed.activeTier) || 1,
       games: parsed.games && typeof parsed.games === 'object' ? parsed.games : {}
     };
   } catch {
@@ -103,6 +107,8 @@ function loadProfileStats(user) {
       totalAttempted: 0,
       pupStreakRecord: 0,
       levelsCompleted: [],
+      tierUnlocks: [],
+      activeTier: 1,
       games: {}
     };
   }
@@ -189,6 +195,18 @@ export default function Profile() {
     return tierUnlocks.includes(tier.id);
   };
   const currentTier = [...BENNY_TIERS].reverse().find(tierUnlocked) || BENNY_TIERS[0];
+
+  const renderTierPower = (tier) => {
+    if (tier.id === 3) {
+      return (
+        <p className="tier-power tier-power-arrow">
+          <span className="tier-power-label">{tier.power}</span>
+          <span className="arrow-glyph" aria-label="Arrow blaster">=:~&gt;</span>
+        </p>
+      );
+    }
+    return <p className="tier-power">{tier.power}</p>;
+  };
   
   const canPurchaseTier = (tier) => {
     if (tierUnlocked(tier)) return false;
@@ -209,6 +227,34 @@ export default function Profile() {
       totalPoints: Math.max(0, remaining),
       tierUnlocks: [...tierUnlocks, tier.id]
     };
+    const msg = 'Congragulations Mr or Ms. Big Spendah';
+    if (typeof window !== 'undefined' && typeof window.showUnifyMessage === 'function') {
+      window.showUnifyMessage({ text: msg, topic: 'tiers' });
+    } else {
+      window.alert(msg);
+    }
+    if (typeof window !== 'undefined' && typeof window.showUnifyConfirm === 'function') {
+      window.showUnifyConfirm({
+        text: `Use ${tier.name} power now?`,
+        topic: 'tiers',
+        yesLabel: 'Use it',
+        noLabel: 'Later',
+        onYes: () => {
+          const fresh = loadProfileStats(currentUser);
+          const updated = {
+            ...fresh,
+            activeTier: tier.id
+          };
+          localStorage.setItem(`mathpop_profile_stats_${currentUser}`, JSON.stringify(updated));
+          setRefresh((v) => v + 1);
+        }
+      });
+    } else {
+      const useNow = window.confirm(`Use ${tier.name} power now?`);
+      if (useNow) {
+        next.activeTier = tier.id;
+      }
+    }
     localStorage.setItem(`mathpop_profile_stats_${currentUser}`, JSON.stringify(next));
     setRefresh((v) => v + 1);
   };
@@ -452,6 +498,7 @@ export default function Profile() {
             <div className="tier-track">
               {BENNY_TIERS.map((tier) => {
                 const unlocked = tierUnlocked(tier);
+                const canBuy = canPurchaseTier(tier);
                 return (
                   <div
                     key={tier.id}
@@ -459,6 +506,15 @@ export default function Profile() {
                   >
                     <h3>Tier {tier.id}</h3>
                     <p className="tier-name">{tier.name}</p>
+                    {renderTierPower(tier)}
+                    {!unlocked && !canBuy && (
+                      <p className="tier-locked-badge">Locked</p>
+                    )}
+                    {!unlocked && canBuy && (
+                      <button type="button" className="tier-buy" onClick={() => purchaseTier(tier)}>
+                        Buy
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -542,9 +598,9 @@ export default function Profile() {
                 >
                   <h3>Tier {tier.id}</h3>
                   <p className="tier-name">{tier.name}</p>
-                  <p className="tier-power">{tier.power}</p>
+                  {renderTierPower(tier)}
                   <p className="tier-req">Points: {tier.points}</p>
-                  <p className="tier-req">Pup streak: {tier.streak}</p>
+                  {tier.streak > 0 && <p className="tier-req">Pup streak: {tier.streak}</p>}
                   {tier.requires && tier.requires.length > 0 && (
                     <p className="tier-req tier-requires" aria-label="Level requirements">
                       Requires: {tier.requires.join(', ')}
@@ -561,7 +617,7 @@ export default function Profile() {
                       <span className="ff-impact" />
                     </div>
                   )}
-                  {canPurchaseTier(tier) && (
+                  {!unlocked && canPurchaseTier(tier) && (
                     <button type="button" className="tier-buy" onClick={() => purchaseTier(tier)}>
                       Unlock {tier.name}
                     </button>

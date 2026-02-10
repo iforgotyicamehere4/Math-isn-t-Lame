@@ -17,7 +17,7 @@ export default function List() {
           <li><Link to="/capture">Capture The Fraction</Link></li>
           <li><Link to="/decimal">Deci-What?</Link></li>
           <li><Link to="/mathsynth">Ma+h5Yn+h3 (MathSynth)</Link></li>
-          <li><Link to="/bennyworld">Benny World (Zone 1)</Link></li>
+          <li><Link to="/bennyworld">Benny Dash (Zone 1)</Link></li>
         </ul>
       </main>
     </div>

@@ -19,7 +19,7 @@ export default function BennyWorld() {
     <main className="benny-world" id="bennyWorldRoot">
       <header className="bw-header">
         <Link className="back-link" to="/list">Back</Link>
-        <h1>Benny World</h1>
+        <h1>Benny Dash</h1>
         <div className="bw-level" id="bwLevelLabel">Level 1</div>
       </header>
 
@@ -38,7 +38,7 @@ export default function BennyWorld() {
       </section>
 
       <section className="bw-stage">
-        <div id="bennyWorldArea" className="bw-area" aria-label="Benny World playfield">
+        <div id="bennyWorldArea" className="bw-area" aria-label="Benny Dash playfield">
           <canvas id="bwBabylon" className="bw-babylon" aria-hidden="true" />
         </div>
         <div id="bwGameOver" className="bw-gameover" aria-live="polite" />

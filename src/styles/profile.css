@@ -159,13 +159,14 @@
 
 .tier-card {
   flex: 0 0 210px;
+  min-height: 120px;
   padding: 12px;
   border-radius: 14px;
   background: rgba(10, 16, 32, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   scroll-snap-align: start;
 }
 
@@ -196,6 +197,42 @@
   margin: 0;
   color: #e4f1ff;
   font-size: 0.95rem;
+}
+
+.tier-power-arrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tier-power-label {
+  font-weight: 600;
+}
+
+.arrow-glyph {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #0b1222;
+  background: linear-gradient(90deg, #8be9ff, #ffe38a);
+  box-shadow: 0 0 10px rgba(139, 233, 255, 0.35);
+}
+
+.tier-locked-badge {
+  margin: 2px 0 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  align-self: flex-start;
+  color: #ffd17b;
+  background: rgba(255, 122, 0, 0.2);
+  border: 1px solid rgba(255, 209, 123, 0.4);
 }
 
 .tier-req {
@@ -391,6 +428,27 @@
   .profile-mobile-grid .tier-track {
     overflow-x: auto;
     width: 100%;
+  }
+  .profile-mobile-grid .tier-track {
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .profile-mobile-grid .tier-card {
+    flex: 0 0 180px;
+    padding: 10px;
+  }
+  .profile-mobile-grid .tier-card h3 {
+    font-size: 0.9rem;
+  }
+  .profile-mobile-grid .tier-name {
+    font-size: 0.85rem;
+  }
+  .profile-mobile-grid .tier-power {
+    font-size: 0.8rem;
+  }
+  .profile-mobile-grid .tier-locked-badge {
+    font-size: 0.7rem;
+    padding: 3px 6px;
   }
   .profile-mobile-grid .benny-colors-box,
   .profile-mobile-grid .benny-powers-box {

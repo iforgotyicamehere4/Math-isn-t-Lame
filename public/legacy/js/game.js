@@ -19,7 +19,7 @@ colors cost 2500 points each; unlocks persist for Math Pup only.
    the second tier is unlocked after complleting all easy levels. the third tier is unlocked after completing all medium levels.  
    the fourth to tenth tiers are unlocked by earning more points and maintaining longer pup streaks. User profile must have 12k points to unlock all benny tiers.
    to unlock the 4th tier. 
-   4 tier benny has a lightsaber in his mouth and cuts zombies in half. arrow pad and space bar
+   4 tier benny has a plasma rod in his mouth and cuts zombies in half. arrow pad and space bar
    5th tier is a viral video of a dog driving with a person in the passenger seat.  24k points to unlock
    6th tier is  benny wears a hard hat and uses a nuclear guage that shoots gamma rays and fast neutrons in the form of a wifi signal
    to make the zombies fall asleep. arrow pad and space bar requires 36k points to unlock.

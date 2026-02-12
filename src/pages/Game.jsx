@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/game.css';
+import { JUKEBOX_SONGS } from '../data/jukeboxSongs';
 
 // Import scripts using Vite's asset handling for proper bundling
 import mathScript from '../../public/js/math.js?url';
@@ -19,6 +20,9 @@ export default function Game() {
   }
   useEffect(() => {
     let cancelled = false;
+    // Make Vite base URL available to the legacy game script loaded from /public.
+    window.__MathPopBaseUrl = import.meta.env.BASE_URL || '/';
+    window.__MathPopJukeboxSongs = JUKEBOX_SONGS;
     
     // Request landscape orientation lock for mobile devices
     if (window.screen && window.screen.orientation) {
@@ -95,6 +99,7 @@ export default function Game() {
       
       // Clear any MathPup global references
       window.MathPup = null;
+      window.__MathPopJukeboxSongs = null;
     };
   }, []);
 
@@ -118,6 +123,10 @@ export default function Game() {
           </select>
           <button id="startBtn">Start</button>
           <button id="pauseBtn" disabled>Pause</button>
+          <label htmlFor="musicToggle" className="music-toggle">
+            <input id="musicToggle" type="checkbox" defaultChecked />
+            Music
+          </label>
         </div>
       </header>
       <section className="game-shell__body">
@@ -175,9 +184,7 @@ export default function Game() {
           </div>
         </div>
       </section>
-      
-      
-      
+      <div id="musicNowPlaying" className="music-now-playing" aria-live="polite" />
     </main>
   );
 }

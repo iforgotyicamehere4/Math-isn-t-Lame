@@ -48,13 +48,24 @@ export default function Home() {
   // Profile helpers
   function saveProfile(profile) {
     if (!profile || !profile.username) return;
-    localStorage.setItem('mathpop_profile_' + profile.username, JSON.stringify(profile));
-    setCurrentUser(profile.username);
+    try {
+      localStorage.setItem('mathpop_profile_' + profile.username, JSON.stringify(profile));
+      setCurrentUser(profile.username);
+      return true;
+    } catch {
+      alert('Unable to save profile on this device right now.');
+      return false;
+    }
   }
   function loadProfileFor(username) {
     if (!username) return null;
     const s = localStorage.getItem('mathpop_profile_' + username);
-    return s ? JSON.parse(s) : null;
+    if (!s) return null;
+    try {
+      return JSON.parse(s);
+    } catch {
+      return null;
+    }
   }
   function setCurrentUser(username) {
     if (username) {
@@ -98,8 +109,12 @@ export default function Home() {
       alert('You must accept the disclaimer');
       return;
     }
-    const profile = { username: suUsername.trim(), email: suEmail.trim(), created: Performance.now() };
-    saveProfile(profile);
+    const created = typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now();
+    const profile = { username: suUsername.trim(), email: suEmail.trim(), created };
+    const saved = saveProfile(profile);
+    if (!saved) return;
     localStorage.setItem('mathpop_highscore_' + profile.username, localStorage.getItem('mathpop_highscore_' + profile.username) || '0');
     saveEmailToList(profile.email);
     setShowModal(false);
@@ -113,7 +128,9 @@ export default function Home() {
       return;
     }
     const stored = loadProfileFor(suUsername.trim());
-    if (!stored || stored.email !== suEmail.trim()) { alert('No matching profile found'); return; }
+    const inputEmail = suEmail.trim().toLowerCase();
+    const storedEmail = String(stored?.email || '').trim().toLowerCase();
+    if (!stored || storedEmail !== inputEmail) { alert('No matching profile found'); return; }
     setCurrentUser(suUsername.trim());
     setShowModal(false);
     alert('Signed in — starting game');

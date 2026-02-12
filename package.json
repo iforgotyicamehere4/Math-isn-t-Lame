@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
+    "jukebox:refresh": "node scripts/refresh-jukebox-songs.mjs",
     "deploy": "npm run build && npx gh-pages -d dist",
     "test": "vitest run",
     "test:watch": "vitest",

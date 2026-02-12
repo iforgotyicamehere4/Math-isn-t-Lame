@@ -101,6 +101,46 @@ bi.benny-world {
   font-size: 0.75rem;
 }
 
+.bw-music-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.bw-music-toggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.bw-music-popup {
+  position: fixed;
+  right: 16px;
+  top: 84px;
+  z-index: 1200;
+  max-width: min(86vw, 320px);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 240, 255, 0.45);
+  background: rgba(10, 18, 38, 0.92);
+  color: #dff7ff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.bw-music-popup.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .bw-stage {
   position: relative;
   border-radius: 12px;
@@ -891,6 +931,13 @@ bi.benny-world {
     padding: 14px 18px !important;
     font-size: 1.05rem !important;
     border-radius: 14px !important;
+  }
+
+  .bw-music-popup {
+    right: 10px;
+    top: 72px;
+    font-size: 0.9rem;
+    padding: 9px 10px;
   }
 }
 

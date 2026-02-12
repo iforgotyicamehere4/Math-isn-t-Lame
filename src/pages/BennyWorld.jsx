@@ -2,10 +2,18 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/bennyworld.css';
 import useScriptOnce from '../hooks/useScriptOnce';
+import useGameMusic from '../hooks/useGameMusic';
 
 const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
 export default function BennyWorld() {
+  useGameMusic({
+    toggleId: 'bwMusicToggle',
+    popupId: 'bwNowPlaying',
+    statusId: 'bwStatus',
+    interactionSelectors: ['#bennyWorldArea', '#bwJump', '#bwGlide']
+  });
+
   useScriptOnce('https://cdn.babylonjs.com/babylon.js', 'babylon');
   // bennyworld.js already contains the Babylon 3D placeholder code
   useScriptOnce(`${BASE_PATH}js/bennyworld.js`, 'bennyworld');
@@ -35,6 +43,10 @@ export default function BennyWorld() {
             <option value="mathanomical">Mathanomical</option>
           </select>
         </label>
+        <label className="bw-music-toggle" htmlFor="bwMusicToggle">
+          <input id="bwMusicToggle" type="checkbox" defaultChecked />
+          Music
+        </label>
       </section>
 
       <section className="bw-stage">
@@ -59,6 +71,7 @@ export default function BennyWorld() {
           <button className="bw-move bw-action-btn" id="bwGlide" type="button" aria-label="Glide">Glide</button>
         </div>
       </div>
+      <div id="bwNowPlaying" className="bw-music-popup" aria-live="polite" />
 
     </main>
   );

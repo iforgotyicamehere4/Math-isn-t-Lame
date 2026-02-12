@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/profile.css';
+import { JUKEBOX_SONGS } from '../data/jukeboxSongs';
 
 const BENNY_COLORS = [
   { id: 'solid-01', name: 'Sky', type: 'solid', primary: '#7dd3fc' },
@@ -73,6 +74,29 @@ const BENNY_TIERS = [
   { id: 10, name: 'Mathtality', power: 'All zombies cleared', points: 100000, streak: 18 }
 ];
 
+function buildDefaultJukeboxState() {
+  return JUKEBOX_SONGS.reduce((acc, song) => {
+    acc[song.id] = false;
+    return acc;
+  }, {});
+}
+
+function loadJukeboxState(user) {
+  const defaults = buildDefaultJukeboxState();
+  if (!user) return defaults;
+  const raw = localStorage.getItem(`mathpop_jukebox_${user}`);
+  if (!raw) return defaults;
+  try {
+    const parsed = JSON.parse(raw);
+    return JUKEBOX_SONGS.reduce((acc, song) => {
+      acc[song.id] = Boolean(parsed?.[song.id]);
+      return acc;
+    }, {});
+  } catch {
+    return defaults;
+  }
+}
+
 function loadProfileStats(user) {
   if (!user) return null;
   const raw = localStorage.getItem(`mathpop_profile_stats_${user}`);
@@ -136,6 +160,7 @@ function getColorFill(color) {
 export default function Profile() {
   const [refresh, setRefresh] = useState(0);
   const currentUser = useMemo(() => localStorage.getItem('mathpop_current_user'), []);
+  const [jukeboxState, setJukeboxState] = useState(() => loadJukeboxState(currentUser));
   const profile = useMemo(() => {
     if (!currentUser) return null;
     const raw = localStorage.getItem(`mathpop_profile_${currentUser}`);
@@ -348,6 +373,41 @@ export default function Profile() {
     const correct = statsForGame.correct || 0;
     return attempted ? Math.round((correct / attempted) * 100) : 0;
   };
+  const toggleSong = (songId) => {
+    if (!currentUser) return;
+    setJukeboxState((prev) => {
+      const next = {
+        ...prev,
+        [songId]: !prev[songId]
+      };
+      localStorage.setItem(`mathpop_jukebox_${currentUser}`, JSON.stringify(next));
+      return next;
+    });
+  };
+  const renderJukebox = () => (
+    <>
+      <p className="profile-subtitle">Tap a song to switch it On or Off.</p>
+      <div className="jukebox-list">
+        {JUKEBOX_SONGS.map((song) => {
+          const enabled = Boolean(jukeboxState[song.id]);
+          return (
+            <button
+              key={song.id}
+              type="button"
+              className={`jukebox-song${enabled ? ' on' : ''}`}
+              onClick={() => toggleSong(song.id)}
+              aria-pressed={enabled}
+              title={`${song.label} (${song.originalFilename})`}
+            >
+              <span>{song.label}</span>
+              <span className="jukebox-status">{enabled ? 'On' : 'Off'}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="jukebox-filename">Files: <code>/public/audio/jukebox/*.mp3</code></p>
+    </>
+  );
 
   return (
     <main className="profile-page">
@@ -523,6 +583,12 @@ export default function Profile() {
             <p className="profile-subtitle">Only Math Pup</p>
           )}
         </div>
+        <div className="profile-box jukebox-box">
+          <div className="box-header">
+            <h2>Benny Jukebox</h2>
+          </div>
+          {renderJukebox()}
+        </div>
       </section>
 
       <section className="profile-metrics">
@@ -626,6 +692,11 @@ export default function Profile() {
               );
             })}
           </div>
+          </div>
+
+          <div className="profile-card jukebox-card">
+            <h2>Benny Jukebox</h2>
+            {renderJukebox()}
           </div>
         </div>
 

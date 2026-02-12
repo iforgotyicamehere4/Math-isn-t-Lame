@@ -953,6 +953,18 @@
   font-weight: 600;
 }
 
+.mathsynth .game-shell__controls .game-music-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.mathsynth .game-shell__controls .game-music-toggle input {
+  width: 16px;
+  height: 16px;
+}
+
 .mathsynth .game-shell__controls select,
 .mathsynth .game-shell__controls button {
   padding: 8px 16px;
@@ -972,6 +984,30 @@
 .mathsynth .game-shell__controls button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.mathsynth .game-music-popup {
+  position: fixed;
+  right: 16px;
+  top: 84px;
+  z-index: 1200;
+  max-width: min(86vw, 320px);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 240, 255, 0.45);
+  background: rgba(10, 18, 38, 0.92);
+  color: #dff7ff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.mathsynth .game-music-popup.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .mathsynth .game-shell__body {
@@ -1227,5 +1263,14 @@
 
   .mobile-answer-popup.active {
     display: flex;
+  }
+}
+
+@media (max-width: 900px) {
+  .mathsynth .game-music-popup {
+    right: 10px;
+    top: 72px;
+    font-size: 0.9rem;
+    padding: 9px 10px;
   }
 }

@@ -325,6 +325,55 @@
   box-shadow: 0 0 8px rgba(255, 122, 0, 0.8);
 }
 
+.jukebox-card {
+  flex: 1 1 calc(50% - 16px);
+  max-width: 260px;
+}
+
+.jukebox-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.jukebox-song {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(12, 20, 40, 0.7);
+  color: #eaf4ff;
+  border-radius: 10px;
+  padding: 8px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.jukebox-song.on {
+  border-color: rgba(84, 255, 193, 0.7);
+  background: rgba(13, 59, 48, 0.7);
+}
+
+.jukebox-status {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.jukebox-filename {
+  margin: 2px 0 0;
+  color: #b8cbe6;
+  font-size: 0.78rem;
+}
+
 .profile-games {
   height: 255px;
   margin-top: -1px;
@@ -454,6 +503,20 @@
   .profile-mobile-grid .benny-powers-box {
     align-items: stretch;
     justify-content: space-between;
+  }
+  .profile-mobile-grid .jukebox-box {
+    grid-column: 1 / -1;
+    aspect-ratio: auto;
+    min-height: 240px;
+    padding-bottom: 10px;
+  }
+  .profile-mobile-grid .jukebox-list {
+    max-height: 210px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .profile-mobile-grid .jukebox-song {
+    font-size: 0.75rem;
+    padding: 7px;
   }
   .profile-mobile-grid .benny-colors-box {
     aspect-ratio: auto;

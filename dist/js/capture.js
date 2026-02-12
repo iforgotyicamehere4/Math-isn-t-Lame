@@ -44,12 +44,80 @@ const MINI_TRIGGER_SCORE = 300;
 const MINI_POINTS_PER_CIRCLE = 900;
 const MINI_POTTY_BONUS = 200;
 const MINI_SHOT_COOLDOWN = 240;
+const MINI_DURATION_MS = 25000;
+const MINI_SPAWN_INTERVAL_MS = 900;
+const MINI_TARGET_COUNT = { easy: 6, medium: 8, mathanomical: 10 };
+const MINI_MAX_COUNT = { easy: 8, medium: 11, mathanomical: 14 };
+
+const BENNY_COLORS = [
+  { id: 'solid-01', name: 'Sky', type: 'solid', primary: '#7dd3fc' },
+  { id: 'tone-01', name: 'Mint/Lime', type: 'tone', primary: '#6ee7b7', secondary: '#a3e635' },
+  { id: 'solid-02', name: 'Lavender', type: 'solid', primary: '#c4b5fd' },
+  { id: 'tone-02', name: 'Ocean/Blue', type: 'tone', primary: '#38bdf8', secondary: '#2563eb' },
+  { id: 'solid-03', name: 'Sunshine', type: 'solid', primary: '#fde047' },
+  { id: 'tone-03', name: 'Blush/Coral', type: 'tone', primary: '#f9a8d4', secondary: '#fb7185' },
+  { id: 'solid-04', name: 'Mint', type: 'solid', primary: '#5eead4' },
+  { id: 'tone-04', name: 'Berry/Plum', type: 'tone', primary: '#f472b6', secondary: '#a855f7' },
+  { id: 'solid-05', name: 'Lime', type: 'solid', primary: '#a3e635' },
+  { id: 'tone-05', name: 'Teal/Blue', type: 'tone', primary: '#22d3ee', secondary: '#0ea5e9' },
+  { id: 'solid-06', name: 'Rose', type: 'solid', primary: '#fb7185' },
+  { id: 'tone-06', name: 'Berry/Sun', type: 'tone', primary: '#f472b6', secondary: '#facc15' },
+  { id: 'solid-07', name: 'Blue', type: 'solid', primary: '#60a5fa' },
+  { id: 'tone-07', name: 'Grape/Indigo', type: 'tone', primary: '#818cf8', secondary: '#4f46e5' },
+  { id: 'solid-08', name: 'Spring', type: 'solid', primary: '#86efac' },
+  { id: 'tone-08', name: 'Ice/Lavender', type: 'tone', primary: '#a5b4fc', secondary: '#e0f2fe' },
+  { id: 'solid-09', name: 'Bubblegum', type: 'solid', primary: '#f9a8d4' },
+  { id: 'tone-09', name: 'Lemon/Lime', type: 'tone', primary: '#fde047', secondary: '#bef264' },
+  { id: 'solid-10', name: 'Soft Gray', type: 'solid', primary: '#cbd5f5' },
+  { id: 'tone-10', name: 'Cloud/Blue', type: 'tone', primary: '#7487a0ff', secondary: '#93c5fd' },
+  { id: 'solid-11', name: 'Minty Blue', type: 'solid', primary: '#7dd3fc' },
+  { id: 'tone-11', name: 'Aqua/Mint', type: 'tone', primary: '#2dd4bf', secondary: '#99f6e4' },
+  { id: 'solid-12', name: 'Grape', type: 'solid', primary: '#c084fc' },
+  { id: 'tone-12', name: 'Lilac/Rose', type: 'tone', primary: '#d8b4fe', secondary: '#fda4af' },
+  { id: 'solid-13', name: 'Coral', type: 'solid', primary: '#fb7185' },
+  { id: 'tone-13', name: 'Kiwi/Green', type: 'tone', primary: '#bef264', secondary: '#4ade80' },
+  { id: 'solid-14', name: 'Ice Blue', type: 'solid', primary: '#91d7fdc2' },
+  { id: 'tone-14', name: 'Sky/Indigo', type: 'tone', primary: '#60a5fa', secondary: '#6366f1' },
+  { id: 'solid-15', name: 'Periwinkle', type: 'solid', primary: '#a5b4fc' },
+  { id: 'tone-15', name: 'Mint/Teal', type: 'tone', primary: '#5eead4', secondary: '#14b8a6' },
+  { id: 'solid-16', name: 'Sunbeam', type: 'solid', primary: '#fde68a' },
+  { id: 'tone-16', name: 'Pink/Coral', type: 'tone', primary: '#fda4af', secondary: '#fb7185' },
+  { id: 'solid-17', name: 'Cool Blue', type: 'solid', primary: '#93c5fd' },
+  { id: 'tone-17', name: 'Lime/Teal', type: 'tone', primary: '#a3e635', secondary: '#2dd4bf' },
+  { id: 'solid-18', name: 'Soft Plum', type: 'solid', primary: '#d8b4fe' },
+  { id: 'tone-18', name: 'Sky/Mint', type: 'tone', primary: '#7dd3fc', secondary: '#6ee7b7' },
+  { id: 'solid-19', name: 'Seafoam', type: 'solid', primary: '#99f6e4' },
+  { id: 'tone-19', name: 'Berry/Sky', type: 'tone', primary: '#f472b6', secondary: '#60a5fa' },
+  { id: 'solid-20', name: 'Sunny', type: 'solid', primary: '#facc15' },
+  { id: 'tone-20', name: 'Cool Mint', type: 'tone', primary: '#5eead4', secondary: '#38bdf8' },
+  { id: 'solid-21', name: 'Twilight', type: 'solid', primary: '#a78bfa' },
+  { id: 'tone-21', name: 'Blue/Teal', type: 'tone', primary: '#3b82f6', secondary: '#14b8a6' },
+  { id: 'solid-22', name: 'Spring Leaf', type: 'solid', primary: '#4ade80' },
+  { id: 'tone-22', name: 'Lilac/Ice', type: 'tone', primary: '#c4b5fd', secondary: '#bae6fd' },
+  { id: 'solid-23', name: 'Blush', type: 'solid', primary: '#fda4af' },
+  { id: 'tone-23', name: 'Mint/Sky', type: 'tone', primary: '#5eead4', secondary: '#38bdf8' },
+  { id: 'solid-24', name: 'Cool Mint', type: 'solid', primary: '#2dd4bf' },
+  { id: 'tone-24', name: 'Sun/Lav', type: 'tone', primary: '#fde047', secondary: '#c4b5fd' },
+  { id: 'solid-25', name: 'Powder', type: 'solid', primary: '#e2e8f0' },
+  { id: 'tone-25', name: 'Rose/Mint', type: 'tone', primary: '#fb7185', secondary: '#6ee7b7' }
+];
 
 const keysDown = new Set();
 let bennyState = null;
 let miniCircles = [];
 let miniShots = [];
 let lastShotAt = 0;
+let miniEndAt = 0;
+let miniLastSpawnAt = 0;
+let miniBennyEl = null;
+let miniClearBonusCooldownUntil = 0;
+let miniJoystick = null;
+let miniStick = null;
+let miniShootBtn = null;
+let miniJoystickActive = false;
+let miniJoystickVector = { x: 0, y: 0 };
+let miniJoystickCenter = { x: 0, y: 0 };
+const miniJoystickRadius = 28;
 
 function currentUser() {
   return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -655,15 +723,15 @@ function togglePause() {
 }
 
 function getMiniCircleCount(level) {
-  if (level === 'easy') return 3;
-  if (level === 'medium') return 4;
-  return 5;
+  if (level === 'easy') return 6;
+  if (level === 'medium') return 8;
+  return 10;
 }
 
 function getMiniCircleSpeed(level) {
-  if (level === 'easy') return 160;
-  if (level === 'medium') return 210;
-  return 260;
+  if (level === 'easy') return 170;
+  if (level === 'medium') return 225;
+  return 280;
 }
 
 function maybeTriggerMiniGame() {
@@ -677,27 +745,26 @@ function startMiniGame() {
   roundActive = false;
   miniGameActive = true;
   miniGameDone = false;
-  setStatus("Mini game! Help Benny tag the circles.");
+  setStatus("Mini game! Help Benny tag the circles for 25 seconds.");
   if (inputEl) inputEl.disabled = true;
   syncCanvasSize();
+  document.body.classList.add('capture-mini-active');
 
   const level = currentLevel();
   const count = getMiniCircleCount(level);
   const speed = getMiniCircleSpeed(level);
-  miniCircles = Array.from({ length: count }, () => ({
-    x: randInt(80, (canvas ? canvas.width : 800) - 80),
-    y: randInt(80, (canvas ? canvas.height : 600) - 80),
-    r: 28,
-    vx: (Math.random() < 0.5 ? -1 : 1) * (speed + randInt(0, 60)),
-    vy: (Math.random() < 0.5 ? -1 : 1) * (speed + randInt(0, 60)),
-    color: `hsl(${randInt(160, 320)}, 70%, 60%)`
-  }));
+  miniCircles = Array.from({ length: count }, () => spawnMiniCircle(speed));
   miniShots = [];
+  ensureMiniBenny();
+  ensureMiniControls();
   bennyState = {
     x: Math.max(60, (canvas ? canvas.width : 800) / 2),
     y: Math.max(60, (canvas ? canvas.height : 600) - 120),
-    speed: 260
+    speed: 270,
+    wag: 0
   };
+  miniEndAt = performance.now() + MINI_DURATION_MS;
+  miniLastSpawnAt = performance.now();
 }
 
 function finishMiniGame() {
@@ -708,11 +775,34 @@ function finishMiniGame() {
   miniCircles = [];
   miniShots = [];
   bennyState = null;
+  if (miniBennyEl) miniBennyEl.style.display = "none";
+  if (miniJoystick) miniJoystick.style.display = "none";
+  if (miniShootBtn) miniShootBtn.style.display = "none";
+  document.body.classList.remove('capture-mini-active');
   setTimeout(startRound, 800);
+}
+
+function spawnMiniCircle(speed) {
+  return {
+    x: randInt(80, (canvas ? canvas.width : 800) - 80),
+    y: randInt(80, (canvas ? canvas.height : 600) - 80),
+    r: randInt(22, 34),
+    vx: (Math.random() < 0.5 ? -1 : 1) * (speed + randInt(0, 70)),
+    vy: (Math.random() < 0.5 ? -1 : 1) * (speed + randInt(0, 70)),
+    color: `hsl(${randInt(160, 320)}, 70%, 60%)`
+  };
+}
+
+function miniTimeLeftMs() {
+  return Math.max(0, miniEndAt - performance.now());
 }
 
 function updateMiniGame(deltaSec) {
   if (!ctx || !canvas || !bennyState) return;
+  if (miniTimeLeftMs() <= 0) {
+    finishMiniGame();
+    return;
+  }
 
   let dx = 0;
   let dy = 0;
@@ -720,17 +810,38 @@ function updateMiniGame(deltaSec) {
   if (keysDown.has('ArrowRight')) dx += 1;
   if (keysDown.has('ArrowUp')) dy -= 1;
   if (keysDown.has('ArrowDown')) dy += 1;
+  if (keysDown.has('a') || keysDown.has('A')) dx -= 1;
+  if (keysDown.has('d') || keysDown.has('D')) dx += 1;
+  if (keysDown.has('w') || keysDown.has('W')) dy -= 1;
+  if (keysDown.has('s') || keysDown.has('S')) dy += 1;
+  if (miniJoystickActive) {
+    dx = miniJoystickVector.x;
+    dy = miniJoystickVector.y;
+  }
   const mag = Math.hypot(dx, dy) || 1;
   bennyState.x += (dx / mag) * bennyState.speed * deltaSec;
   bennyState.y += (dy / mag) * bennyState.speed * deltaSec;
   bennyState.x = Math.max(30, Math.min((canvas.width || 800) - 30, bennyState.x));
   bennyState.y = Math.max(30, Math.min((canvas.height || 600) - 30, bennyState.y));
+  bennyState.wag += deltaSec * 8;
+  positionMiniBenny();
 
   miniShots = miniShots.filter((shot) => {
     shot.x += shot.vx * deltaSec;
     shot.y += shot.vy * deltaSec;
     return shot.x > -40 && shot.x < canvas.width + 40 && shot.y > -40 && shot.y < canvas.height + 40;
   });
+
+  const level = currentLevel();
+  const targetCount = MINI_TARGET_COUNT[level] || 6;
+  const maxCount = MINI_MAX_COUNT[level] || 9;
+  if (miniCircles.length < targetCount && performance.now() - miniLastSpawnAt > MINI_SPAWN_INTERVAL_MS) {
+    miniCircles.push(spawnMiniCircle(getMiniCircleSpeed(level)));
+    miniLastSpawnAt = performance.now();
+  }
+  if (miniCircles.length > maxCount) {
+    miniCircles = miniCircles.slice(0, maxCount);
+  }
 
   miniCircles.forEach((circle) => {
     circle.x += circle.vx * deltaSec;
@@ -771,13 +882,27 @@ function updateMiniGame(deltaSec) {
   miniShots = remainingShots;
 
   if (miniCircles.length === 0) {
-    finishMiniGame();
+    const now = performance.now();
+    if (now >= miniClearBonusCooldownUntil) {
+      awardPoints(1000);
+      setStatus("Circle clear bonus! +1000");
+      miniClearBonusCooldownUntil = now + 500;
+      const level = currentLevel();
+      const count = getMiniCircleCount(level);
+      const speed = getMiniCircleSpeed(level);
+      miniCircles = Array.from({ length: count }, () => spawnMiniCircle(speed));
+      miniLastSpawnAt = now;
+    }
   }
 }
 
 function drawMiniGame() {
-  if (!ctx || !canvas || !bennyState) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!ctx || !canvas) return;
+  const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grd.addColorStop(0, "#0b2342");
+  grd.addColorStop(1, "#0e3b5e");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   miniCircles.forEach((circle) => {
     ctx.beginPath();
@@ -798,21 +923,129 @@ function drawMiniGame() {
     ctx.stroke();
   });
 
-  ctx.fillStyle = "#f4d03f";
-  ctx.beginPath();
-  ctx.arc(bennyState.x, bennyState.y, 18, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#2c3e50";
-  ctx.beginPath();
-  ctx.arc(bennyState.x - 6, bennyState.y - 4, 3, 0, Math.PI * 2);
-  ctx.arc(bennyState.x + 6, bennyState.y - 4, 3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#2c3e50";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(bennyState.x - 6, bennyState.y + 6);
-  ctx.lineTo(bennyState.x + 6, bennyState.y + 6);
-  ctx.stroke();
+  drawMiniHud();
+}
+
+function drawMiniHud() {
+  const timeLeft = miniTimeLeftMs();
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.fillRect(12, 12, 200, 56);
+  ctx.fillStyle = "#eaf6ff";
+  ctx.font = "600 14px Arial";
+  ctx.fillText("Mini Game", 22, 32);
+  ctx.font = "12px Arial";
+  ctx.fillText(`Time: ${(timeLeft / 1000).toFixed(1)}s`, 22, 50);
+  ctx.fillText("Move: Arrow keys / WASD", 22, 66);
+}
+
+function ensureMiniBenny() {
+  if (miniBennyEl) {
+    miniBennyEl.style.display = "block";
+    applyMiniBennyColor();
+    return;
+  }
+  if (!canvas) return;
+  const anchor = canvas.parentElement;
+  if (!anchor) return;
+  miniBennyEl = document.createElement('div');
+  miniBennyEl.className = 'benny capture-benny';
+  miniBennyEl.innerHTML = '<div class="benny-base"><div class="benny-shape"><div class="back"></div><div class="leg-left"></div><div class="leg-right"></div><div class="head"></div></div></div>';
+  anchor.appendChild(miniBennyEl);
+  applyMiniBennyColor();
+}
+
+function positionMiniBenny() {
+  if (!miniBennyEl || !bennyState) return;
+  const size = 64;
+  miniBennyEl.style.left = `${bennyState.x - size / 2}px`;
+  miniBennyEl.style.top = `${bennyState.y - size / 2}px`;
+}
+
+function getBennyColorKey() {
+  return `mathpup_benny_color_${currentUser()}`;
+}
+
+function applyMiniBennyColor() {
+  if (!miniBennyEl) return;
+  const saved = localStorage.getItem(getBennyColorKey());
+  const color = BENNY_COLORS.find(c => c.id === saved) || BENNY_COLORS[0];
+  const back = miniBennyEl.querySelector('.back');
+  const head = miniBennyEl.querySelector('.head');
+  if (!back || !head) return;
+  if (color.type === 'tone' && color.secondary) {
+    back.style.background = color.primary;
+    head.style.background = color.secondary;
+  } else {
+    back.style.background = color.primary;
+    head.style.background = color.primary;
+  }
+}
+
+function ensureMiniControls() {
+  if (!canvas) return;
+  const anchor = canvas.parentElement;
+  if (!anchor) return;
+  if (!miniJoystick) {
+    miniJoystick = document.createElement('div');
+    miniJoystick.className = 'capture-mini-joystick';
+    miniJoystick.innerHTML = '<div class="capture-mini-stick"></div>';
+    anchor.appendChild(miniJoystick);
+    miniStick = miniJoystick.querySelector('.capture-mini-stick');
+  }
+  if (!miniShootBtn) {
+    miniShootBtn = document.createElement('button');
+    miniShootBtn.type = 'button';
+    miniShootBtn.className = 'capture-mini-shoot';
+    miniShootBtn.textContent = 'Shoot';
+    anchor.appendChild(miniShootBtn);
+    miniShootBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      fireMiniShots();
+    }, { passive: false });
+    miniShootBtn.addEventListener('click', () => fireMiniShots());
+  }
+  const isMobile = window.matchMedia('(max-width: 900px)').matches;
+  miniJoystick.style.display = isMobile && miniGameActive ? 'flex' : 'none';
+  miniShootBtn.style.display = isMobile && miniGameActive ? 'block' : 'none';
+
+  const resetMiniJoystick = () => {
+    miniJoystickActive = false;
+    miniJoystickVector = { x: 0, y: 0 };
+    if (miniStick) miniStick.style.transform = 'translate(-50%, -50%)';
+  };
+  const handleMiniJoystickMove = (clientX, clientY) => {
+    const dx = clientX - miniJoystickCenter.x;
+    const dy = clientY - miniJoystickCenter.y;
+    const dist = Math.hypot(dx, dy);
+    const ratio = dist > 0 ? Math.min(1, miniJoystickRadius / dist) : 0;
+    const clampedX = dx * ratio;
+    const clampedY = dy * ratio;
+    miniJoystickVector = {
+      x: clampedX / miniJoystickRadius,
+      y: clampedY / miniJoystickRadius
+    };
+    if (miniStick) {
+      miniStick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+    }
+  };
+  if (miniJoystick) {
+    miniJoystick.ontouchstart = (e) => {
+      const touch = e.touches[0];
+      const rect = miniJoystick.getBoundingClientRect();
+      miniJoystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      miniJoystickActive = true;
+      handleMiniJoystickMove(touch.clientX, touch.clientY);
+      e.preventDefault();
+    };
+    miniJoystick.ontouchmove = (e) => {
+      if (!miniJoystickActive) return;
+      const touch = e.touches[0];
+      handleMiniJoystickMove(touch.clientX, touch.clientY);
+      e.preventDefault();
+    };
+    miniJoystick.ontouchend = resetMiniJoystick;
+    miniJoystick.ontouchcancel = resetMiniJoystick;
+  }
 }
 
 // ---------- Loop ----------
@@ -925,6 +1158,10 @@ window.__CaptureCleanup = () => {
   if (animationId) {
     cancelAnimationFrame(animationId);
     animationId = null;
+  }
+  if (miniBennyEl) {
+    miniBennyEl.remove();
+    miniBennyEl = null;
   }
   gamePaused = false;
   gameStarted = false;

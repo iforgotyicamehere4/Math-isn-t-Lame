@@ -2,8 +2,17 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/decimal.css';
 import initDecimal from '../decimal/decimal.js';
+import useGameMusic from '../hooks/useGameMusic';
 
 export default function Decimal() {
+  useGameMusic({
+    toggleId: 'decimalMusicToggle',
+    popupId: 'decimalNowPlaying',
+    statusId: 'prompt',
+    playOnIds: ['start'],
+    togglePauseIds: ['pause']
+  });
+
   // Sync high contrast mode from localStorage on mount
   useEffect(() => {
     const highContrast = localStorage.getItem('highContrast') === 'true';
@@ -47,6 +56,10 @@ export default function Decimal() {
           >
             Pause
           </button>
+          <label htmlFor="decimalMusicToggle" className="game-music-toggle">
+            <input id="decimalMusicToggle" type="checkbox" defaultChecked />
+            Music
+          </label>
         </div>
       </header>
 
@@ -145,6 +158,7 @@ export default function Decimal() {
           Designed for learning decimal reading and operations. Block color is selectable.
         </small>
       </footer>
+      <div id="decimalNowPlaying" className="game-music-popup" aria-live="polite" />
     </main>
   );
 }

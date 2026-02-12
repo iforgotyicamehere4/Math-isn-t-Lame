@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/capture.css';
 import useScriptOnce from '../hooks/useScriptOnce';
+import useGameMusic from '../hooks/useGameMusic';
 
 const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
@@ -9,6 +10,13 @@ export default function Capture() {
   const { loadScript, isLoaded } = useScriptOnce(`${BASE_PATH}js/capture.js`, 'capture');
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  useGameMusic({
+    toggleId: 'captureMusicToggle',
+    popupId: 'captureNowPlaying',
+    statusId: 'status',
+    playOnIds: ['startBtn'],
+    pauseOnIds: ['pauseBtn']
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -78,6 +86,10 @@ export default function Capture() {
           </select>
           <button id="startBtn" className="btn btn--primary">Start</button>
           <button id="pauseBtn" className="btn btn--secondary" disabled>Pause</button>
+          <label htmlFor="captureMusicToggle" className="game-music-toggle">
+            <input id="captureMusicToggle" type="checkbox" defaultChecked />
+            Music
+          </label>
         </div>
       </header>
 
@@ -116,6 +128,7 @@ export default function Capture() {
           </div>
         </div>
       </section>
+      <div id="captureNowPlaying" className="game-music-popup" aria-live="polite" />
     </main>
   );
 }

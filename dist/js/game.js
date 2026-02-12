@@ -19,7 +19,7 @@ colors cost 2500 points each; unlocks persist for Math Pup only.
    the second tier is unlocked after complleting all easy levels. the third tier is unlocked after completing all medium levels.  
    the fourth to tenth tiers are unlocked by earning more points and maintaining longer pup streaks. User profile must have 12k points to unlock all benny tiers.
    to unlock the 4th tier. 
-   4 tier benny has a lightsaber in his mouth and cuts zombies in half. arrow pad and space bar
+   4 tier benny has a plasma rod in his mouth and cuts zombies in half. arrow pad and space bar
    5th tier is a viral video of a dog driving with a person in the passenger seat.  24k points to unlock
    6th tier is  benny wears a hard hat and uses a nuclear guage that shoots gamma rays and fast neutrons in the form of a wifi signal
    to make the zombies fall asleep. arrow pad and space bar requires 36k points to unlock.
@@ -171,7 +171,7 @@ window.__MathPupStateReset = true;
           Mathanomical: 1
         },
         basePoints: 100,
-        levelCompletionCorrect: 30,
+        levelCompletionCorrect: 12,
         maxUniqueHistoryPerLevel: 100000,
         operators: ['+','-','*','/']
       };
@@ -182,6 +182,8 @@ window.__MathPupStateReset = true;
       Object.keys(this.config.levels).forEach(l => this.levelScores[l] = 0);
       this.levelCorrect = {};
       Object.keys(this.config.levels).forEach(l => this.levelCorrect[l] = 0);
+      this.levelPenalty = {};
+      Object.keys(this.config.levels).forEach(l => this.levelPenalty[l] = 0);
       this.completedLevels = new Set();
       this.history = {};
       Object.keys(this.config.levels).forEach(l => this.history[l] = new Set());
@@ -437,10 +439,12 @@ window.__MathPupStateReset = true;
         this.levelScores[p.level] = (this.levelScores[p.level] || 0) + pointsEarned;
         this.levelCorrect[p.level] = (this.levelCorrect[p.level] || 0) + 1;
       } else {
+        this.levelPenalty[p.level] = (this.levelPenalty[p.level] || 0) + 1;
       }
 
       let levelJustCompleted = false;
-      if (this.levelCorrect[p.level] >= this.config.levelCompletionCorrect && !this.completedLevels.has(p.level)) {
+      const requiredCorrect = this.config.levelCompletionCorrect + (this.levelPenalty[p.level] || 0);
+      if (this.levelCorrect[p.level] >= requiredCorrect && !this.completedLevels.has(p.level)) {
         this.completedLevels.add(p.level);
         levelJustCompleted = true;
       }
@@ -472,6 +476,8 @@ window.__MathPupStateReset = true;
   const levelSelect = qs('#levelSelect');
   const startBtn = qs('#startBtn');
   const pauseBtn = qs('#pauseBtn');
+  const musicToggle = qs('#musicToggle');
+  const musicNowPlayingEl = qs('#musicNowPlaying');
   const statusEl = qs('#status');
   const timerEl = qs('#timer');
   const bennyPaletteEl = qs('#bennyPalette');
@@ -552,6 +558,7 @@ window.__MathPupStateReset = true;
   let problemStartAt = null;
   let miniZombies = [];
   let miniShots = [];
+  let zombieIdCounter = 0;
   const pressedKeys = new Set();
   let lastAim = { x: 0, y: -1 };
   let keydownHandler = null;
@@ -565,6 +572,151 @@ window.__MathPupStateReset = true;
   let joystickVector = { x: 0, y: 0 };
   let joystickCenter = { x: 0, y: 0 };
   const joystickRadius = 28;
+  const rawBaseUrl = String(window.__MathPopBaseUrl || '/');
+  const normalizedBaseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl : `${rawBaseUrl}/`;
+  const DEFAULT_SONGS = [{ id: 'song-01', label: 'Math isn\u2019t lame', filename: '01-math-isnt-lame.mp3' }];
+  let musicEnabled = true;
+  let bgMusic = null;
+  let musicToggleHandler = null;
+  let musicPopupTimer = null;
+  let enabledSongs = [];
+  let songQueue = [];
+  let currentSong = null;
+  let triedFallbackForSong = false;
+
+  function shuffleSongs(arr) {
+    const copy = arr.slice();
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  function loadEnabledSongsFromProfile() {
+    const allSongs = Array.isArray(window.__MathPopJukeboxSongs) && window.__MathPopJukeboxSongs.length
+      ? window.__MathPopJukeboxSongs
+      : DEFAULT_SONGS;
+    const user = localStorage.getItem('mathpop_current_user');
+    if (!user) return [];
+    const raw = localStorage.getItem(`mathpop_jukebox_${user}`);
+    if (!raw) return [];
+    try {
+      const state = JSON.parse(raw);
+      return allSongs
+        .filter((song) => Boolean(state?.[song.id]))
+        .map((song) => ({ title: song.label, filename: song.filename }));
+    } catch {
+      return [];
+    }
+  }
+
+  function syncSongsFromProfile() {
+    enabledSongs = loadEnabledSongsFromProfile();
+    songQueue = [];
+    currentSong = null;
+    triedFallbackForSong = false;
+    if (!enabledSongs.length && statusEl) {
+      statusEl.textContent = 'No songs enabled. Turn songs On in Profile > Benny Jukebox.';
+    }
+  }
+
+  function showNowPlaying(title) {
+    if (!musicNowPlayingEl) return;
+    musicNowPlayingEl.textContent = `Now Playing: ${title}`;
+    musicNowPlayingEl.classList.add('show');
+    if (musicPopupTimer) clearTimeout(musicPopupTimer);
+    musicPopupTimer = setTimeout(() => {
+      musicNowPlayingEl.classList.remove('show');
+    }, 2200);
+  }
+
+  function ensureBackgroundMusic() {
+    if (bgMusic) return bgMusic;
+    bgMusic = new Audio();
+    bgMusic.loop = true;
+    bgMusic.preload = 'auto';
+    bgMusic.volume = 0.85;
+    bgMusic.addEventListener('error', () => {
+      if (!currentSong) return;
+      if (!triedFallbackForSong) {
+        setSongSource(currentSong, true);
+        return;
+      }
+      const nextSong = pullNextSong();
+      if (!nextSong || !setSongSource(nextSong, false)) return;
+      if (musicEnabled) playBackgroundMusic();
+    });
+    bgMusic.addEventListener('ended', () => {
+      const nextSong = pullNextSong();
+      if (!nextSong || !setSongSource(nextSong, false)) return;
+      playBackgroundMusic();
+    });
+    bgMusic.loop = false;
+    return bgMusic;
+  }
+
+  function pullNextSong() {
+    if (!enabledSongs.length) return null;
+    if (!songQueue.length) songQueue = shuffleSongs(enabledSongs);
+    return songQueue.shift() || null;
+  }
+
+  function setSongSource(song, useFallback = false) {
+    if (!song) return false;
+    const audio = ensureBackgroundMusic();
+    const filename = String(song.filename || '').replace(/^\//, '');
+    if (!filename) return false;
+    currentSong = song;
+    triedFallbackForSong = useFallback;
+    audio.src = useFallback
+      ? `/audio/jukebox/${filename}`
+      : `${normalizedBaseUrl}audio/jukebox/${filename}`;
+    audio.load();
+    return true;
+  }
+
+  function playBackgroundMusic() {
+    if (!musicEnabled) return;
+    if (!enabledSongs.length) {
+      syncSongsFromProfile();
+      if (!enabledSongs.length) return;
+    }
+    const audio = ensureBackgroundMusic();
+    if (!currentSong) {
+      const nextSong = pullNextSong();
+      if (!nextSong || !setSongSource(nextSong, false)) return;
+    }
+    const wasPaused = audio.paused;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise
+        .then(() => {
+          if (wasPaused && currentSong) showNowPlaying(currentSong.title);
+        })
+        .catch(() => {
+          if (statusEl) statusEl.textContent = 'Music blocked by browser. Tap Music checkbox once.';
+        });
+      return;
+    }
+    if (wasPaused && currentSong) showNowPlaying(currentSong.title);
+  }
+
+  function pauseBackgroundMusic() {
+    if (!bgMusic) return;
+    bgMusic.pause();
+  }
+
+  function applyMusicEnabled(nextValue) {
+    musicEnabled = Boolean(nextValue);
+    if (musicToggle) musicToggle.checked = musicEnabled;
+    if (!musicEnabled) {
+      pauseBackgroundMusic();
+      return;
+    }
+    syncSongsFromProfile();
+    if (running) playBackgroundMusic();
+  }
 
   const BENNY_COLORS = [
     { id: 'solid-01', name: 'Sky', type: 'solid', primary: '#7dd3fc' },
@@ -1055,28 +1207,47 @@ window.__MathPupStateReset = true;
   function getMiniZombieCount(levelName) {
     const order = ['Easy', 'Easy25', 'Easy50', 'Easy75', 'Medium', 'Medium26', 'Medium60', 'Medium100', 'Mathanomical'];
     const idx = Math.max(0, order.indexOf(levelName));
-    return Math.min(12, 3 + idx);
+    return Math.min(18, 3 + idx + 3);
   }
 
   function spawnMiniZombies(levelName) {
     const bounds = getPlayBounds();
-    const zW = 64;
-    const zH = 90;
+    const baseW = 64;
+    const baseH = 90;
+    const scale = getMiniZombieScale();
+    const zW = baseW * scale;
+    const zH = baseH * scale;
     const count = getMiniZombieCount(levelName);
+    const now = performance.now();
     for (let i = 0; i < count; i++) {
       const el = document.createElement('div');
-      el.className = 'zombie';
+      el.className = 'zombie mini-zombie';
       el.textContent = '';
+      el.style.setProperty('--mini-scale', String(scale));
+      el.innerHTML = '<div class="mini-zombie__shadow"></div><div class="mini-zombie__core"></div><div class="mini-zombie__shield"></div><div class="mini-zombie__plate"></div>';
       const x = randInt(bounds.minX, bounds.maxX - zW);
       const y = randInt(bounds.minY, bounds.maxY - zH);
       el.style.left = `${x}px`;
       el.style.top = `${y}px`;
       gameArea.appendChild(el);
+      const shieldOnMs = randInt(850, 1400);
+      const shieldOffMs = randInt(700, 1200);
+      const armor = Math.random() < 0.55 ? 1 : 0;
+      if (armor > 0) el.classList.add('armored');
+      el.classList.add('shielded');
       miniZombies.push({
+        id: ++zombieIdCounter,
         el,
         x,
         y,
-        speed: 0.3 + Math.random() * 0.3
+        w: zW,
+        h: zH,
+        speed: 0.45 + Math.random() * 0.35,
+        shieldActive: true,
+        shieldOnMs,
+        shieldOffMs,
+        nextShieldToggle: now + shieldOnMs,
+        armor
       });
     }
   }
@@ -1085,29 +1256,73 @@ window.__MathPupStateReset = true;
     if (!benny) return;
     const baseX = bennyState.x + 10;
     const baseY = bennyState.y + 8;
+    const activeTier = getActiveTier();
+    const isBoomerang = activeTier === 2 && isTierUnlocked(2);
+    const isTargetLock = activeTier === 3 && isTierUnlocked(3);
+    const isWizard = activeTier === 5 && isTierUnlocked(5);
+    const isGamma = activeTier === 6 && isTierUnlocked(6);
     const aim = lastAim;
-    const spread = 0.25;
+    const spread = isBoomerang ? 0.18 : 0.25;
     const angles = [
       Math.atan2(aim.y, aim.x) - spread,
       Math.atan2(aim.y, aim.x) + spread
     ];
+    const wizardColors = ['#8b5cf6', '#facc15', '#fb923c', '#f472b6'];
+    const shotChar = isBoomerang ? '<' : (isWizard ? 'π' : '−');
+    const pickTargetId = (x, y) => {
+      let chosen = null;
+      let nearest = Infinity;
+      miniZombies.forEach((z) => {
+        const dx = z.x - x;
+        const dy = z.y - y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < nearest) {
+          nearest = dist;
+          chosen = z;
+        }
+      });
+      return chosen ? chosen.id : null;
+    };
     angles.forEach((angle, idx) => {
       const el = document.createElement('div');
       el.className = 'benny-shot';
-      el.textContent = '−';
+      if (isGamma) {
+        el.classList.add('gamma-shot');
+        el.innerHTML = '<span class="gamma-line">~</span><span class="gamma-line">~</span><span class="gamma-line">~</span>';
+      } else {
+        el.textContent = shotChar;
+      }
       el.style.position = 'absolute';
       el.style.fontWeight = '900';
-      el.style.color = '#ffef7a';
-      el.style.textShadow = '0 0 6px rgba(255, 235, 120, 0.8)';
+      if (isGamma) {
+        el.style.color = '#7cf4ff';
+        el.style.textShadow = '0 0 10px rgba(124, 244, 255, 0.9), 0 0 18px rgba(59, 130, 246, 0.7)';
+      } else if (isWizard) {
+        const color = wizardColors[randInt(0, wizardColors.length - 1)];
+        el.style.color = color;
+        el.style.textShadow = `0 0 8px ${color}`;
+      } else {
+        el.style.color = '#ffef7a';
+        el.style.textShadow = '0 0 6px rgba(255, 235, 120, 0.8)';
+      }
       el.style.pointerEvents = 'none';
-      const vx = Math.cos(angle) * 4.2 + (Math.random() - 0.5) * 0.3;
-      const vy = Math.sin(angle) * 4.2 + (Math.random() - 0.5) * 0.3;
+      const baseSpeed = isBoomerang ? 5.1 : 4.2;
+      const vx = Math.cos(angle) * baseSpeed + (Math.random() - 0.5) * 0.3;
+      const vy = Math.sin(angle) * baseSpeed + (Math.random() - 0.5) * 0.3;
       const shot = {
         el,
         x: baseX + (idx === 0 ? -6 : 6),
         y: baseY,
         vx,
-        vy
+        vy,
+        homing: isTargetLock,
+        targetId: isTargetLock ? pickTargetId(baseX, baseY) : null,
+        boomerang: isBoomerang,
+        returning: false,
+        returnAfterMs: 420,
+        lifeMs: 0,
+        maxLifeMs: 2600,
+        spin: idx === 0 ? -1 : 1
       };
       el.style.left = `${shot.x}px`;
       el.style.top = `${shot.y}px`;
@@ -1130,8 +1345,13 @@ window.__MathPupStateReset = true;
         targetIndex = idx;
       }
     });
-    if (targetIndex === -1 || nearest > 120) return false;
+    if (targetIndex === -1) return false;
     const target = miniZombies[targetIndex];
+    // Lunge toward target so Plasma Rod always triggers when selected.
+    bennyState.x = clamp(target.x - 12, getPlayBounds().minX, getPlayBounds().maxX);
+    bennyState.y = clamp(target.y + 8, getPlayBounds().minY, getPlayBounds().maxY);
+    benny.style.left = `${bennyState.x}px`;
+    benny.style.top = `${bennyState.y}px`;
     benny.classList.add('lightsaber');
     target.el.classList.add('lightsaber-cut');
     setTimeout(() => {
@@ -1178,11 +1398,57 @@ window.__MathPupStateReset = true;
     return true;
   }
 
+  function tryNurseCart() {
+    if (!benny) return false;
+    if (!isTierUnlocked(7) || getActiveTier() !== 7) return false;
+    const dirX = lastAim.x || 1;
+    const dirY = lastAim.y || 0;
+    const len = Math.hypot(dirX, dirY) || 1;
+    const nx = dirX / len;
+    const ny = dirY / len;
+    const baseX = bennyState.x + 10;
+    const baseY = bennyState.y + 18;
+    const el = document.createElement('div');
+    el.className = 'nurse-cart';
+    el.style.left = `${baseX}px`;
+    el.style.top = `${baseY}px`;
+    gameArea.appendChild(el);
+    miniShots.push({
+      el,
+      x: baseX,
+      y: baseY,
+      vx: nx * 6.2,
+      vy: ny * 3.8,
+      cart: true,
+      w: 120,
+      h: 54,
+      lifeMs: 0,
+      maxLifeMs: 1400
+    });
+    return true;
+  }
+
+  function getMiniZombieScale() {
+    if (!isMobileLayout()) return 1;
+    const width = window.innerWidth || 0;
+    if (width <= 520) return 1.5;
+    return 1.8;
+  }
+
   function updateMiniGame(deltaMs) {
     const bounds = getPlayBounds();
-    const zW = 64;
-    const zH = 90;
+    const baseW = 64;
+    const baseH = 90;
+    const scale = getMiniZombieScale();
+    const zW = baseW * scale;
+    const zH = baseH * scale;
     const speed = 0.18 * deltaMs;
+    const activeTier = getActiveTier();
+    const targetLockActive = activeTier === 3 && isTierUnlocked(3);
+    if (benny) {
+      benny.classList.toggle('wizard', activeTier === 5 && isTierUnlocked(5));
+      benny.classList.toggle('nuclear', activeTier === 6 && isTierUnlocked(6));
+    }
     if (pressedKeys.has('ArrowLeft')) { bennyState.x -= speed; lastAim = { x: -1, y: 0 }; }
     if (pressedKeys.has('ArrowRight')) { bennyState.x += speed; lastAim = { x: 1, y: 0 }; }
     if (pressedKeys.has('ArrowUp')) { bennyState.y -= speed; lastAim = { x: 0, y: -1 }; }
@@ -1201,46 +1467,233 @@ window.__MathPupStateReset = true;
       benny.style.top = `${bennyState.y}px`;
     }
 
+    const now = performance.now();
     miniZombies.forEach((z) => {
+      if (now >= z.nextShieldToggle) {
+        z.shieldActive = !z.shieldActive;
+        z.nextShieldToggle = now + (z.shieldActive ? z.shieldOnMs : z.shieldOffMs);
+        z.el.classList.toggle('shielded', z.shieldActive);
+      }
+      z.w = zW;
+      z.h = zH;
+      z.el.style.setProperty('--mini-scale', String(scale));
       const dx = z.x - bennyState.x;
       const dy = z.y - bennyState.y;
       const dist = Math.max(1, Math.hypot(dx, dy));
-      const fleeX = (dx / dist) * z.speed * deltaMs * 0.06;
-      const fleeY = (dy / dist) * z.speed * deltaMs * 0.06;
-      z.x = clamp(z.x + fleeX, bounds.minX, bounds.maxX - zW);
-      z.y = clamp(z.y + fleeY, bounds.minY, bounds.maxY - zH);
+      let fleeX = (dx / dist) * z.speed * deltaMs * 0.085;
+      let fleeY = (dy / dist) * z.speed * deltaMs * 0.085;
+      let dodgeX = 0;
+      let dodgeY = 0;
+      let nearestShotDist = Infinity;
+      let nearestShotVec = null;
+      miniShots.forEach((s) => {
+        const sx = s.x || 0;
+        const sy = s.y || 0;
+        const sdx = z.x - sx;
+        const sdy = z.y - sy;
+        const sdist = Math.hypot(sdx, sdy);
+        if (sdist < nearestShotDist) {
+          nearestShotDist = sdist;
+          nearestShotVec = { dx: sdx, dy: sdy, dist: Math.max(1, sdist) };
+        }
+      });
+      if (nearestShotVec && nearestShotDist < 220) {
+        const side = (z.id % 2 === 0) ? 1 : -1;
+        const perpX = (-nearestShotVec.dy / nearestShotVec.dist) * side;
+        const perpY = (nearestShotVec.dx / nearestShotVec.dist) * side;
+        const dodgeBoost = 0.12;
+        dodgeX = perpX * z.speed * deltaMs * dodgeBoost;
+        dodgeY = perpY * z.speed * deltaMs * dodgeBoost;
+      }
+      if (targetLockActive) {
+        if (nearestShotVec && nearestShotDist < 200) {
+          const runBoost = 0.11;
+          fleeX += (nearestShotVec.dx / nearestShotVec.dist) * z.speed * deltaMs * runBoost;
+          fleeY += (nearestShotVec.dy / nearestShotVec.dist) * z.speed * deltaMs * runBoost;
+        }
+      }
+      z.x = clamp(z.x + fleeX + dodgeX, bounds.minX, bounds.maxX - zW);
+      z.y = clamp(z.y + fleeY + dodgeY, bounds.minY, bounds.maxY - zH);
       z.el.style.left = `${z.x}px`;
       z.el.style.top = `${z.y}px`;
     });
 
     miniShots.forEach((s) => {
-      s.x += s.vx * (deltaMs / 16);
-      s.y += s.vy * (deltaMs / 16);
+      const step = deltaMs / 16;
+      if (s.cart) {
+        s.lifeMs += deltaMs;
+        s.x += s.vx * step;
+        s.y += s.vy * step;
+        s.el.style.left = `${s.x}px`;
+        s.el.style.top = `${s.y}px`;
+        if (s.lifeMs >= s.maxLifeMs) {
+          s.done = true;
+        }
+        return;
+      }
+      if (s.boomerang) {
+        s.lifeMs += deltaMs;
+        if (s.lifeMs >= s.maxLifeMs) {
+          s.done = true;
+        }
+        if (!s.returning && s.lifeMs >= s.returnAfterMs) {
+          s.returning = true;
+        }
+        if (s.returning) {
+          const targetX = bennyState.x + 10;
+          const targetY = bennyState.y + 8;
+          const dx = targetX - s.x;
+          const dy = targetY - s.y;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          const steer = 0.24 * step;
+          s.vx += (dx / dist) * steer;
+          s.vy += (dy / dist) * steer;
+          const maxSpeed = 6.4;
+          const speedNow = Math.hypot(s.vx, s.vy);
+          if (speedNow > maxSpeed) {
+            s.vx = (s.vx / speedNow) * maxSpeed;
+            s.vy = (s.vy / speedNow) * maxSpeed;
+          }
+          if (dist < 18) {
+            s.done = true;
+          }
+        }
+        s.x += s.vx * step;
+        s.y += s.vy * step;
+        s.el.style.left = `${s.x}px`;
+        s.el.style.top = `${s.y}px`;
+        s.el.style.transform = `rotate(${s.lifeMs * s.spin * 0.6}deg)`;
+        return;
+      }
+      if (s.homing) {
+        let target = null;
+        if (s.targetId) {
+          target = miniZombies.find(z => z.id === s.targetId) || null;
+        }
+        if (!target && miniZombies.length) {
+          let nearest = null;
+          let nearestDist = Infinity;
+          miniZombies.forEach((z) => {
+            const dx = z.x - s.x;
+            const dy = z.y - s.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < nearestDist) {
+              nearestDist = dist;
+              nearest = z;
+            }
+          });
+          if (nearest) {
+            target = nearest;
+            s.targetId = nearest.id;
+          }
+        }
+        if (target) {
+          const dx = target.x - s.x;
+          const dy = target.y - s.y;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          const steer = 0.34 * step;
+          s.vx += (dx / dist) * steer;
+          s.vy += (dy / dist) * steer;
+          const maxSpeed = 6.8;
+          const speedNow = Math.hypot(s.vx, s.vy);
+          if (speedNow > maxSpeed) {
+            s.vx = (s.vx / speedNow) * maxSpeed;
+            s.vy = (s.vy / speedNow) * maxSpeed;
+          }
+        }
+      }
+      s.x += s.vx * step;
+      s.y += s.vy * step;
       s.el.style.left = `${s.x}px`;
       s.el.style.top = `${s.y}px`;
     });
 
     const remainingShots = [];
     miniShots.forEach((s) => {
+      if (s.done) {
+        s.el.remove();
+        return;
+      }
+      if (s.cart) {
+        let hit = false;
+        for (let i = miniZombies.length - 1; i >= 0; i--) {
+          const z = miniZombies[i];
+          const zw = z.w || zW;
+          const zh = z.h || zH;
+          const withinX = s.x + (s.w || 0) >= z.x && s.x <= z.x + zw;
+          const withinY = s.y + (s.h || 0) >= z.y && s.y <= z.y + zh;
+          if (withinX && withinY) {
+            z.el.remove();
+            miniZombies.splice(i, 1);
+            hit = true;
+          }
+        }
+        const inBounds = s.x <= bounds.maxX + 80 && s.y <= bounds.maxY + 80
+          && s.x + (s.w || 0) >= bounds.minX - 80 && s.y + (s.h || 0) >= bounds.minY - 80;
+        if (!inBounds) s.done = true;
+        if (!s.done) remainingShots.push(s);
+        return;
+      }
       let hit = false;
+      let removeShot = false;
       for (let i = miniZombies.length - 1; i >= 0; i--) {
         const z = miniZombies[i];
-        const withinX = s.x >= z.x && s.x <= z.x + zW;
-        const withinY = s.y >= z.y && s.y <= z.y + zH;
+        const zw = z.w || zW;
+        const zh = z.h || zH;
+        const withinX = s.x >= z.x && s.x <= z.x + zw;
+        const withinY = s.y >= z.y && s.y <= z.y + zh;
         if (withinX && withinY) {
+          if (z.shieldActive) {
+            s.vx = -s.vx * 0.9;
+            s.vy = -s.vy * 0.9;
+            s.repels = (s.repels || 0) + 1;
+            s.el.classList.add('repelled');
+            if (s.boomerang) s.returning = true;
+            statusEl.textContent = 'Shielded! Wait for the glow to drop.';
+            hit = true;
+            if (!s.boomerang && s.repels >= 1) removeShot = true;
+            break;
+          }
+          if (z.armor > 0) {
+            z.armor -= 1;
+            z.el.classList.add('armor-hit');
+            setTimeout(() => z.el.classList.remove('armor-hit'), 180);
+            if (z.armor <= 0) z.el.classList.remove('armored');
+            hit = true;
+            if (s.boomerang) s.returning = true;
+            if (!s.boomerang) removeShot = true;
+            break;
+          }
           z.el.remove();
           miniZombies.splice(i, 1);
           hit = true;
+          if (s.boomerang) s.returning = true;
+          if (!s.boomerang) removeShot = true;
           break;
         }
       }
       const inBounds = s.x >= bounds.minX - 20 && s.x <= bounds.maxX + 20
         && s.y >= bounds.minY - 20 && s.y <= bounds.maxY + 20;
+      if (s.boomerang && !s.returning && !inBounds) {
+        s.returning = true;
+      }
+      if (removeShot) {
+        s.el.remove();
+        return;
+      }
+      if (s.boomerang) {
+        if (s.done) {
+          s.el.remove();
+          return;
+        }
+        remainingShots.push(s);
+        return;
+      }
       if (!hit && inBounds) {
         remainingShots.push(s);
-      } else {
-        s.el.remove();
+        return;
       }
+      s.el.remove();
     });
     miniShots = remainingShots;
 
@@ -1265,7 +1718,7 @@ window.__MathPupStateReset = true;
     clearRoundTimers();
     clearLevelTimer();
     if (timerEl) timerEl.classList.remove('timer-urgent');
-    statusEl.textContent = 'Bonus round! Benny vs zombies.';
+    statusEl.textContent = 'Bonus round! Out-smart the zombies — wait for shields to drop.';
     clearMiniGame();
     ensureBenny();
     undockBenny();
@@ -1440,6 +1893,12 @@ window.__MathPupStateReset = true;
   }
 
   keydownHandler = (e) => {
+    // Don't capture keys when typing in input fields
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      return; // Let input fields handle their own input
+    }
+    
     if (miniGameActive) {
       const key = normalizeKey(e);
       if (!key) return;
@@ -1447,8 +1906,13 @@ window.__MathPupStateReset = true;
       if (key === 'Space') {
         const usedLightsaber = tryLightsaber();
         if (!usedLightsaber) {
-          const usedKo = tryDogKO();
-          if (!usedKo) shootBenny();
+          const usedNurse = tryNurseCart();
+          if (usedNurse) {
+            // nurse cart handles clearing
+          } else {
+            const usedKo = tryDogKO();
+            if (!usedKo) shootBenny();
+          }
         }
       }
       e.preventDefault();
@@ -1553,6 +2017,10 @@ window.__MathPupStateReset = true;
   if (mobileShoot) {
     const shootAction = () => {
       if (!miniGameActive) return;
+      const usedPlasma = tryLightsaber();
+      if (usedPlasma) return;
+      const usedNurse = tryNurseCart();
+      if (usedNurse) return;
       const usedKo = tryDogKO();
       if (!usedKo) shootBenny();
     };
@@ -1623,6 +2091,13 @@ window.__MathPupStateReset = true;
     });
   });
 
+  if (musicToggle) {
+    musicToggle.checked = musicEnabled;
+    musicToggleHandler = () => applyMusicEnabled(musicToggle.checked);
+    musicToggle.addEventListener('change', musicToggleHandler);
+  }
+  applyMusicEnabled(musicEnabled);
+
   startBtn.addEventListener('click', () => {
     if (running) return;
     currentLevel = levelSelect.value;
@@ -1641,6 +2116,7 @@ window.__MathPupStateReset = true;
     startLevelTimer(currentLevel);
     startRound(currentLevel);
     pauseBtn.disabled = false;
+    playBackgroundMusic();
     const stats = loadProfileStats();
     const gameStats = ensureGameStats(stats, 'mathpup');
     gameStats.gamesPlayed += 1;
@@ -1656,6 +2132,7 @@ window.__MathPupStateReset = true;
     clearLevelTimer();
     statusEl.textContent = 'Paused';
     pauseBtn.disabled = true;
+    pauseBackgroundMusic();
   });
 
   levelSelect.addEventListener('change', () => {
@@ -1675,6 +2152,7 @@ window.__MathPupStateReset = true;
     roundActive = false;
     clearRoundTimers();
     clearLevelTimer();
+    pauseBackgroundMusic();
     statusEl.textContent = 'Game Over';
     updateHighScoreIfNeeded(levelName || currentLevel);
     setTimeout(() => alert('Game Over! Your high score has been saved.'), 200);
@@ -1699,8 +2177,18 @@ window.__MathPupStateReset = true;
     clearLevelTimer();
     clearMiniGame();
     clearNextRoundTimeout();
+    pauseBackgroundMusic();
+    if (musicPopupTimer) {
+      clearTimeout(musicPopupTimer);
+      musicPopupTimer = null;
+    }
+    if (musicNowPlayingEl) musicNowPlayingEl.classList.remove('show');
     resetJoystick();
     setMobileControlsActive(false);
+    if (musicToggle && musicToggleHandler) {
+      musicToggle.removeEventListener('change', musicToggleHandler);
+      musicToggleHandler = null;
+    }
     
     // Remove game elements from DOM
     const existingBenny = document.querySelector('#game-area .benny');

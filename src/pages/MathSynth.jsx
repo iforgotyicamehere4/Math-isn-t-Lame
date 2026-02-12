@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import '../styles/mathsynth.css';
 import useScriptOnce from '../hooks/useScriptOnce';
+import useGameMusic from '../hooks/useGameMusic';
 
 const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
@@ -9,6 +10,13 @@ export default function MathSynth() {
   const { loadScript, isLoaded } = useScriptOnce(`${BASE_PATH}js/mathsynth.js`, 'mathsynth');
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  useGameMusic({
+    toggleId: 'mathSynthMusicToggle',
+    popupId: 'mathSynthNowPlaying',
+    statusId: 'mathSynthFeedback',
+    playOnIds: ['startMathSynth'],
+    pauseOnIds: ['resetMathSynth']
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -88,6 +96,10 @@ export default function MathSynth() {
           >
             Reset
           </button>
+          <label htmlFor="mathSynthMusicToggle" className="game-music-toggle">
+            <input id="mathSynthMusicToggle" type="checkbox" defaultChecked />
+            Music
+          </label>
           <div className="mathsynth-grid-note">
             Grid: <span id="mathSynthPreview"></span> &nbsp; Easy: 7x6, Medium: 8x6, Mathanomical: 10x6
           </div>
@@ -153,6 +165,7 @@ export default function MathSynth() {
           <div id="mathSynthBoard" className="mathsynth-board" />
         </div>
       </section>
+      <div id="mathSynthNowPlaying" className="game-music-popup" aria-live="polite" />
     </main>
   );
 }

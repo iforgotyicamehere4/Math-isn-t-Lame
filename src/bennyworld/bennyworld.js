@@ -23,6 +23,7 @@ window.__BennyWorldBabylonCleanup = null;
   const rightBtn = qs('#bwRight');
   const jumpBtn = qs('#bwJump');
   const glideBtn = qs('#bwGlide');
+  const planeBtn = qs('#bwPlane');
 
   if (!root || !area) return;
 
@@ -161,7 +162,11 @@ window.__BennyWorldBabylonCleanup = null;
   let levelIndex = 0;
   let points = 0;
   let distance = 0;
-  let difficulty = 'mathanomical';
+  let difficulty = 'easy';
+  const deskPlaneDurationMs = 12000;
+  let deskFuel = 0;
+  let deskPlaneActive = false;
+  let deskPlaneEndsAt = 0;
 
   const gravity = 0.55;
   const jumpPower = 11.5;
@@ -217,6 +222,45 @@ window.__BennyWorldBabylonCleanup = null;
   let blackHoleTimer = 0;
   let debrisInterval = null;
   const blackHoleDelay = 5000; // 5 seconds after level starts
+
+  function currentUser() {
+    return localStorage.getItem('mathpop_current_user') || 'guest';
+  }
+
+  function deskFuelKey() {
+    return `mathpop_benny_desk_fuel_${currentUser()}`;
+  }
+
+  function loadDeskFuel() {
+    return Math.max(0, parseInt(localStorage.getItem(deskFuelKey()) || '0', 10) || 0);
+  }
+
+  function saveDeskFuel(value) {
+    const next = Math.max(0, Math.floor(value));
+    deskFuel = next;
+    localStorage.setItem(deskFuelKey(), String(next));
+  }
+
+  function activateDeskPlane() {
+    if (deskPlaneActive || deskFuel <= 0) return false;
+    saveDeskFuel(deskFuel - 1);
+    deskPlaneActive = true;
+    deskPlaneEndsAt = performance.now() + deskPlaneDurationMs;
+    setMessage('Desk plane launched! Hopes and dreams online.', 1400);
+    return true;
+  }
+
+  function triggerDeskPlane() {
+    if (deskPlaneActive) return;
+    if (!activateDeskPlane()) {
+      setMessage('No desk fuel. Collect desks in Deci-What bonus.', 1300);
+    }
+  }
+
+  function deskPlaneRemainingRatio(now) {
+    if (!deskPlaneActive) return 0;
+    return Math.max(0, (deskPlaneEndsAt - now) / deskPlaneDurationMs);
+  }
 
   function setMessage(text, holdMs = 1400) {
     if (!msgEl) return;
@@ -301,7 +345,15 @@ window.__BennyWorldBabylonCleanup = null;
   function updateHud() {
     if (pointsEl) pointsEl.textContent = `Points: ${points}`;
     if (dashEl) dashEl.textContent = `Dash: ${Math.floor(distance)}m`;
-    if (statusEl) statusEl.textContent = 'Run to the star!';
+    if (statusEl) {
+      if (deskPlaneActive) {
+        const ratio = deskPlaneRemainingRatio(performance.now());
+        const pct = Math.max(0, Math.ceil(ratio * 100));
+        statusEl.textContent = `Desk Fuel: ${deskFuel} | Plane ${pct}%`;
+      } else {
+        statusEl.textContent = `Run to the star! Desk Fuel: ${deskFuel}`;
+      }
+    }
   }
 
   function getDifficultyScale() {
@@ -387,6 +439,9 @@ window.__BennyWorldBabylonCleanup = null;
     bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
     glideCharges = 2;
     glideActive = false;
+    deskPlaneActive = false;
+    deskPlaneEndsAt = 0;
+    deskFuel = loadDeskFuel();
 
     const rect = area.getBoundingClientRect();
     const groundY = rect.height - 40;
@@ -545,7 +600,19 @@ window.__BennyWorldBabylonCleanup = null;
       
     }
 
-    const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
+    const now = performance.now();
+    if (deskPlaneActive && now >= deskPlaneEndsAt) {
+      deskPlaneActive = false;
+      setMessage('Desk plane power depleted.', 1200);
+    }
+    const planeRatio = deskPlaneRemainingRatio(now);
+    let speedMultiplier = 1;
+    if (deskPlaneActive) {
+      if (planeRatio > 0.5) speedMultiplier = 2.1;
+      else if (planeRatio > 0.25) speedMultiplier = 1.5;
+      else speedMultiplier = 0.85;
+    }
+    const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultiplier;
     if (keys.left) bennyState.vx = -speed;
     else if (keys.right) bennyState.vx = speed;
     else bennyState.vx = 0;
@@ -562,7 +629,15 @@ window.__BennyWorldBabylonCleanup = null;
     }
 
     bennyState.vy = Math.min(maxFall, bennyState.vy + gravity);
-    if (keys.glide && bennyState.vy > 0) {
+    if (deskPlaneActive) {
+      if (planeRatio > 0.25) {
+        bennyState.vy = Math.min(bennyState.vy, 0.75);
+      } else {
+        bennyState.vy = Math.max(bennyState.vy + 0.18, 1.8);
+      }
+      glideActive = false;
+      benny.classList.add('bw-benny--glide');
+    } else if (keys.glide && bennyState.vy > 0) {
       if (!glideActive) {
         if (glideCharges <= 0) {
           keys.glide = false;
@@ -614,7 +689,7 @@ window.__BennyWorldBabylonCleanup = null;
     if (!landed) bennyState.onGround = false;
     if (bennyState.onGround) {
       glideActive = false;
-      keys.glide = false;
+      if (!deskPlaneActive) keys.glide = false;
     }
 
     obstacles.forEach((ob) => {
@@ -761,9 +836,9 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   if (difficultySelect) {
-    difficulty = difficultySelect.value || 'mathanomical';
+    difficulty = difficultySelect.value || 'easy';
     difficultySelect.addEventListener('change', () => {
-      difficulty = difficultySelect.value || 'mathanomical';
+      difficulty = difficultySelect.value || 'easy';
       root.dataset.difficulty = difficulty;
       startLevel();
     });
@@ -824,11 +899,28 @@ window.__BennyWorldBabylonCleanup = null;
     };
   }
 
+  function bindActionButton(btn, action) {
+    if (!btn) return () => {};
+    const onDown = (e) => {
+      e.preventDefault();
+      action();
+    };
+    btn.addEventListener('pointerdown', onDown);
+    btn.addEventListener('touchstart', onDown, { passive: false });
+    btn.addEventListener('click', onDown);
+    return () => {
+      btn.removeEventListener('pointerdown', onDown);
+      btn.removeEventListener('touchstart', onDown);
+      btn.removeEventListener('click', onDown);
+    };
+  }
+
   const cleanupKeys = bindKeyEvents();
   const cleanupLeft = bindButton(leftBtn, 'left', true);
   const cleanupRight = bindButton(rightBtn, 'right', true);
   const cleanupJump = bindButton(jumpBtn, 'jump', true);
   const cleanupGlide = bindButton(glideBtn, 'glide', true);
+  const cleanupPlane = bindActionButton(planeBtn, triggerDeskPlane);
 
   startLevel();
   rafId = requestAnimationFrame(tick);
@@ -840,6 +932,7 @@ window.__BennyWorldBabylonCleanup = null;
     cleanupRight();
     cleanupJump();
     cleanupGlide();
+    cleanupPlane();
     // Also call the Babylon cleanup if present
     if (window.__BennyWorldBabylonCleanup) {
       try { window.__BennyWorldBabylonCleanup(); } catch (e) {}

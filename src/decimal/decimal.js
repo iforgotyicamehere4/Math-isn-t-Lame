@@ -82,22 +82,18 @@ export default function initDecimal() {
   let miniOverlay = null;
   let miniArena = null;
   let miniBenny = null;
-  let miniShapes = [];
-  let miniHealthFill = null;
-  let miniHealthText = null;
-  let miniBennyHealthFill = null;
+  let miniCollectibles = [];
+  let miniHazards = [];
+  let miniDeskText = null;
+  let miniTimerText = null;
   let miniAnimId = null;
-  let miniShots = [];
-  let miniEnemyShots = [];
-  let miniNextEnemyShotAt = 0;
   let miniKeys = { left: false, right: false, up: false, down: false };
-  let miniLastDir = { x: 1, y: 0 };
-  let miniHealth = 150;
-  let miniBennyHealth = 20;
-  const miniBennyHealthMax = 20;
+  let miniRoundEndsAt = 0;
+  let miniCollected = 0;
+  let miniSpawnAt = 0;
+  const miniRoundMs = 18000;
   let miniJoystick = null;
   let miniStick = null;
-  let miniShootBtn = null;
   let miniJoystickActive = false;
   let miniJoystickVector = { x: 0, y: 0 };
   let miniJoystickCenter = { x: 0, y: 0 };
@@ -116,6 +112,38 @@ export default function initDecimal() {
 
   function profileStatsKey() {
     return `mathpop_profile_stats_${currentUser()}`;
+  }
+
+  function deskFuelKey() {
+    return `mathpop_benny_desk_fuel_${currentUser()}`;
+  }
+
+  function deskChargeKey() {
+    return `mathpop_benny_desk_charge_${currentUser()}`;
+  }
+
+  function loadDeskFuel() {
+    return Math.max(0, parseInt(localStorage.getItem(deskFuelKey()) || '0', 10) || 0);
+  }
+
+  function loadDeskCharge() {
+    return Math.max(0, parseInt(localStorage.getItem(deskChargeKey()) || '0', 10) || 0);
+  }
+
+  function addDeskFuelFromDesks(amount) {
+    const desksAdded = Math.max(0, Math.floor(amount));
+    const currentFuel = loadDeskFuel();
+    const currentCharge = loadDeskCharge();
+    if (!desksAdded) {
+      return { tanksEarned: 0, fuelBank: currentFuel, chargeRemainder: currentCharge };
+    }
+    const totalCharge = currentCharge + desksAdded;
+    const tanksEarned = Math.floor(totalCharge / 6);
+    const chargeRemainder = totalCharge % 6;
+    const fuelBank = currentFuel + tanksEarned;
+    localStorage.setItem(deskChargeKey(), String(chargeRemainder));
+    localStorage.setItem(deskFuelKey(), String(fuelBank));
+    return { tanksEarned, fuelBank, chargeRemainder };
   }
 
   function loadProfileStats() {
@@ -1469,7 +1497,6 @@ export default function initDecimal() {
       if (e.key === 'ArrowRight') { miniKeys.right = true; e.preventDefault(); }
       if (e.key === 'ArrowUp') { miniKeys.up = true; e.preventDefault(); }
       if (e.key === 'ArrowDown') { miniKeys.down = true; e.preventDefault(); }
-      if (e.key === ' ') { miniShoot(); e.preventDefault(); }
       return;
     }
     if (!running || paused) return;
@@ -1728,8 +1755,7 @@ export default function initDecimal() {
   function stopGame() {
     running = false; paused = false;
     stopGravity(); clearRoundTimer();
-    if (miniOverlay) miniOverlay.style.display = 'none';
-    miniGameActive = false;
+    stopMiniRound();
     currentPiece = null; selectedRow = null; selectedCol = null;
     feedbackEl.textContent = 'Stopped'; pauseBtn.disabled = true;
     if (inputEl) inputEl.style.display = 'none';
@@ -1737,8 +1763,7 @@ export default function initDecimal() {
 
   function gameOver() {
     running = false; stopGravity(); clearRoundTimer();
-    if (miniOverlay) miniOverlay.style.display = 'none';
-    miniGameActive = false;
+    stopMiniRound();
     promptEl.textContent = 'Game Over';
     feedbackEl.textContent = `Game over — score ${score}`;
     if (inputEl) inputEl.style.display = 'none';
@@ -1761,6 +1786,17 @@ export default function initDecimal() {
     saveProfileStats(stats);
     nextLevelAfterWin = getNextLevelValue(levelEl?.value || 'easy20');
     startShapeBattle();
+  }
+
+  function stopMiniRound() {
+    miniGameActive = false;
+    if (miniAnimId) cancelAnimationFrame(miniAnimId);
+    miniAnimId = null;
+    miniCollectibles.forEach((d) => d.el.remove());
+    miniCollectibles = [];
+    miniHazards.forEach((h) => h.el.remove());
+    miniHazards = [];
+    if (miniOverlay) miniOverlay.style.display = 'none';
   }
 
   function togglePause() {
@@ -1890,25 +1926,23 @@ export default function initDecimal() {
     miniOverlay.innerHTML = `
       <div class="decimal-mini-card">
         <div class="decimal-mini-header">
-          <span>Synthe Battle</span>
-          <span id="decimalMiniHealthText">150 hits</span>
+          <span>Desk Stampede Bonus</span>
+          <span id="decimalMiniTimerText">18s</span>
         </div>
-        <div class="decimal-mini-bar"><div class="decimal-mini-bar-fill"></div></div>
-        <div class="decimal-mini-benny-bar"><div class="decimal-mini-benny-bar-fill"></div></div>
+        <div class="decimal-mini-bar"><div class="decimal-mini-bar-fill" id="decimalMiniDeskFill"></div></div>
         <div class="decimal-mini-arena"></div>
         <div class="decimal-mini-controls" aria-hidden="true">
           <div class="decimal-mini-joystick" id="decimalMiniJoystick">
             <div class="decimal-mini-stick" id="decimalMiniStick"></div>
           </div>
-          <button type="button" class="decimal-mini-shoot" id="decimalMiniShoot">Dis arm synthe</button>
+          <div class="decimal-mini-help">Collect desks, avoid broken desks. 6 desks = 1 Benny Dash tank.</div>
         </div>
       </div>
     `;
     root.appendChild(miniOverlay);
     miniArena = miniOverlay.querySelector('.decimal-mini-arena');
-    miniHealthFill = miniOverlay.querySelector('.decimal-mini-bar-fill');
-    miniHealthText = miniOverlay.querySelector('#decimalMiniHealthText');
-    miniBennyHealthFill = miniOverlay.querySelector('.decimal-mini-benny-bar-fill');
+    miniDeskText = miniOverlay.querySelector('#decimalMiniDeskFill');
+    miniTimerText = miniOverlay.querySelector('#decimalMiniTimerText');
     miniBenny = document.createElement('div');
     miniBenny.className = 'decimal-mini-benny';
     miniBenny.innerHTML = `
@@ -1921,7 +1955,6 @@ export default function initDecimal() {
     const controls = miniOverlay.querySelector('.decimal-mini-controls');
     miniJoystick = miniOverlay.querySelector('#decimalMiniJoystick');
     miniStick = miniOverlay.querySelector('#decimalMiniStick');
-    miniShootBtn = miniOverlay.querySelector('#decimalMiniShoot');
 
     const resetMiniJoystick = () => {
       miniJoystickActive = false;
@@ -1964,16 +1997,6 @@ export default function initDecimal() {
       miniJoystick.addEventListener('touchcancel', resetMiniJoystick);
     }
 
-    if (miniShootBtn) {
-      const shootAction = (e) => {
-        if (e) e.preventDefault();
-        miniShoot();
-      };
-      miniShootBtn.addEventListener('touchstart', shootAction, { passive: false });
-      miniShootBtn.addEventListener('pointerdown', shootAction);
-      miniShootBtn.addEventListener('click', shootAction);
-    }
-
     if (!('ontouchstart' in window) && controls) {
       controls.style.display = 'none';
     }
@@ -1984,37 +2007,19 @@ export default function initDecimal() {
     if (!miniOverlay || !miniArena || !miniBenny) return;
     miniGameActive = true;
     miniOverlay.style.display = 'flex';
-    miniHealth = 150;
-    miniBennyHealth = miniBennyHealthMax;
-    miniShots = [];
-    miniEnemyShots = [];
+    miniCollectibles = [];
+    miniHazards = [];
     miniKeys = { left: false, right: false, up: false, down: false };
-    miniLastDir = { x: 1, y: 0 };
-    miniShapes.forEach(shape => shape.remove());
-    miniShapes = [];
-    if (miniHealthFill) miniHealthFill.style.width = '100%';
-    if (miniHealthText) miniHealthText.textContent = `${miniHealth} hits`;
-    if (miniBennyHealthFill) miniBennyHealthFill.style.width = '100%';
+    miniCollected = 0;
+    miniRoundEndsAt = performance.now() + miniRoundMs;
+    miniSpawnAt = performance.now() + 200;
+    if (miniDeskText) miniDeskText.style.width = '0%';
+    if (miniTimerText) miniTimerText.textContent = `${Math.ceil(miniRoundMs / 1000)}s`;
     const arenaRect = miniArena.getBoundingClientRect();
     miniBenny.dataset.x = String(arenaRect.width * 0.2);
-    miniBenny.dataset.y = String(arenaRect.height * 0.7);
+    miniBenny.dataset.y = String(arenaRect.height * 0.6);
     miniBenny.style.transform = `translate(${miniBenny.dataset.x}px, ${miniBenny.dataset.y}px)`;
-    const lvl = normalizeLevelValue();
-    const shapeCount = lvl === 'easy' ? 1 : (lvl === 'medium' ? 2 : 3);
-    for (let i = 0; i < shapeCount; i++) {
-      const shape = document.createElement('div');
-      shape.className = 'decimal-mini-shape';
-      shape.innerHTML = '<span></span><span></span><span></span><span></span>';
-      const sx = arenaRect.width * (0.6 + Math.random() * 0.3);
-      const sy = arenaRect.height * (0.2 + Math.random() * 0.6);
-      shape.dataset.x = String(sx);
-      shape.dataset.y = String(sy);
-      shape.dataset.speed = String(0.7 + Math.random() * 0.4);
-      shape.style.transform = `translate(${sx}px, ${sy}px)`;
-      miniArena.appendChild(shape);
-      miniShapes.push(shape);
-    }
-    miniNextEnemyShotAt = performance.now() + 1200;
+
     if (miniAnimId) cancelAnimationFrame(miniAnimId);
     miniAnimId = requestAnimationFrame(miniLoop);
   }
@@ -2023,30 +2028,19 @@ export default function initDecimal() {
     miniGameActive = false;
     if (miniAnimId) cancelAnimationFrame(miniAnimId);
     miniAnimId = null;
-    miniShots.forEach(s => s.remove());
-    miniShots = [];
-    miniEnemyShots.forEach(s => s.remove());
-    miniEnemyShots = [];
+    miniCollectibles.forEach((d) => d.el.remove());
+    miniCollectibles = [];
+    miniHazards.forEach((h) => h.el.remove());
+    miniHazards = [];
     if (miniOverlay) miniOverlay.style.display = 'none';
-    feedbackEl.textContent = 'Benny disarmed the synthe!';
+    const reward = addDeskFuelFromDesks(miniCollected);
+    feedbackEl.textContent = `Bonus complete! ${miniCollected} desks collected. +${reward.tanksEarned} tank(s). Benny Dash fuel: ${reward.fuelBank}. Desk charge: ${reward.chargeRemainder}/6`;
     promptEl.textContent = 'Press Start to play again.';
     restartAfterMiniGame();
   }
 
   function failShapeBattle() {
-    miniGameActive = false;
-    if (miniAnimId) cancelAnimationFrame(miniAnimId);
-    miniAnimId = null;
-    miniShots.forEach(s => s.remove());
-    miniShots = [];
-    miniEnemyShots.forEach(s => s.remove());
-    miniEnemyShots = [];
-    if (miniOverlay) miniOverlay.style.display = 'none';
-    feedbackEl.textContent = 'Its ok benny just needs a nap';
-    promptEl.textContent = 'Resting...';
-    setTimeout(() => {
-      restartAfterMiniGame();
-    }, 4000);
+    endShapeBattle();
   }
 
   function getNextLevelValue(current) {
@@ -2063,47 +2057,72 @@ export default function initDecimal() {
     startGame();
   }
 
-  function miniShoot() {
-    if (!miniGameActive || !miniArena || !miniBenny) return;
-    const bx = parseFloat(miniBenny.dataset.x || '0');
-    const by = parseFloat(miniBenny.dataset.y || '0');
-    const dirX = miniLastDir.x || 1;
-    const dirY = miniLastDir.y || 0;
-    const offsets = [-6, 6];
-    offsets.forEach((off) => {
-      const shot = document.createElement('div');
-      shot.className = 'decimal-mini-shot';
-      shot.textContent = '−';
-      shot.dataset.x = String(bx + 18);
-      shot.dataset.y = String(by + 18 + off);
-      shot.dataset.vx = String(dirX * 6);
-      shot.dataset.vy = String(dirY * 6);
-      miniArena.appendChild(shot);
-      miniShots.push(shot);
-    });
+  function updateMiniDeskProgress() {
+    if (!miniDeskText) return;
+    const progress = miniCollected % 6;
+    const pct = progress === 0 && miniCollected > 0 ? 100 : (progress / 6) * 100;
+    miniDeskText.style.width = `${pct}%`;
   }
 
-  function makeEnemyProblem() {
-    const a = randInt(2, 9);
-    const b = randInt(1, 9);
-    const op = Math.random() < 0.5 ? '+' : '-';
-    const expr = `${a}${op}${b}`;
-    return { text: expr };
+  function spawnMiniDesk(arenaRect) {
+    if (!miniArena) return;
+    const desk = document.createElement('div');
+    desk.className = 'decimal-mini-desk';
+    desk.innerHTML = '<span class="back"></span><span class="seat"></span><span class="leg-left"></span><span class="leg-right"></span><span class="desk"></span><span class="smoke smoke-1"></span><span class="smoke smoke-2"></span>';
+    const x = randInt(20, Math.max(22, Math.floor(arenaRect.width - 38)));
+    const y = randInt(20, Math.max(22, Math.floor(arenaRect.height - 34)));
+    const vx = (Math.random() < 0.5 ? -1 : 1) * (1.2 + Math.random() * 1.2);
+    const vy = (Math.random() < 0.5 ? -1 : 1) * (1.2 + Math.random() * 1.1);
+    desk.dataset.x = String(x);
+    desk.dataset.y = String(y);
+    desk.dataset.vx = String(vx);
+    desk.dataset.vy = String(vy);
+    desk.style.transform = `translate(${x}px, ${y}px)`;
+    miniArena.appendChild(desk);
+    miniCollectibles.push({ el: desk, x, y, vx, vy, w: 32, h: 28 });
+  }
+
+  function spawnMiniHazard(arenaRect) {
+    if (!miniArena) return;
+    const hazard = document.createElement('div');
+    hazard.className = 'decimal-mini-broken-desk';
+    const x = randInt(20, Math.max(22, Math.floor(arenaRect.width - 32)));
+    const y = randInt(20, Math.max(22, Math.floor(arenaRect.height - 32)));
+    const vx = (Math.random() < 0.5 ? -1 : 1) * (1.8 + Math.random() * 1.4);
+    const vy = (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random() * 1.3);
+    hazard.dataset.x = String(x);
+    hazard.dataset.y = String(y);
+    hazard.dataset.vx = String(vx);
+    hazard.dataset.vy = String(vy);
+    hazard.style.transform = `translate(${x}px, ${y}px)`;
+    miniArena.appendChild(hazard);
+    miniHazards.push({ el: hazard, x, y, vx, vy, w: 24, h: 24 });
   }
 
   function miniLoop() {
     if (!miniGameActive || !miniArena || !miniBenny) return;
     const arenaRect = miniArena.getBoundingClientRect();
+    const now = performance.now();
+    const timeLeftMs = Math.max(0, miniRoundEndsAt - now);
+    if (miniTimerText) miniTimerText.textContent = `${Math.ceil(timeLeftMs / 1000)}s`;
+    if (timeLeftMs <= 0) {
+      endShapeBattle();
+      return;
+    }
+
+    if (now >= miniSpawnAt) {
+      miniSpawnAt = now + 900;
+      if (miniCollectibles.length < 10) spawnMiniDesk(arenaRect);
+      if (miniHazards.length < 4) spawnMiniHazard(arenaRect);
+    }
+
     const bennySize = 40;
-    const shapeSize = 56;
+    const itemPad = 2;
     let bx = parseFloat(miniBenny.dataset.x || '0');
     let by = parseFloat(miniBenny.dataset.y || '0');
     const moveX = miniJoystickActive ? miniJoystickVector.x : (miniKeys.right ? 1 : 0) - (miniKeys.left ? 1 : 0);
     const moveY = miniJoystickActive ? miniJoystickVector.y : (miniKeys.down ? 1 : 0) - (miniKeys.up ? 1 : 0);
-    if (moveX || moveY) {
-      const len = Math.hypot(moveX, moveY) || 1;
-      miniLastDir = { x: moveX / len, y: moveY / len };
-    }
+
     const speed = 3.2;
     bx = clamp(bx + moveX * speed, 0, Math.max(0, arenaRect.width - bennySize));
     by = clamp(by + moveY * speed, 0, Math.max(0, arenaRect.height - bennySize));
@@ -2111,105 +2130,51 @@ export default function initDecimal() {
     miniBenny.dataset.y = String(by);
     miniBenny.style.transform = `translate(${bx}px, ${by}px)`;
 
-    miniShapes.forEach((shape, idx) => {
-      let sx = parseFloat(shape.dataset.x || '0');
-      let sy = parseFloat(shape.dataset.y || '0');
-      const dx = bx - sx;
-      const dy = by - sy;
-      const dist = Math.max(1, Math.hypot(dx, dy));
-      const chaseSpeed = parseFloat(shape.dataset.speed || '1.1');
-      const wiggle = (idx % 2 === 0 ? 1 : -1) * 0.4;
-      sx = clamp(sx + (dx / dist) * chaseSpeed + wiggle, 0, Math.max(0, arenaRect.width - shapeSize));
-      sy = clamp(sy + (dy / dist) * chaseSpeed - wiggle, 0, Math.max(0, arenaRect.height - shapeSize));
-      shape.dataset.x = String(sx);
-      shape.dataset.y = String(sy);
-      shape.style.transform = `translate(${sx}px, ${sy}px)`;
+    miniCollectibles.forEach((desk) => {
+      desk.x += desk.vx;
+      desk.y += desk.vy;
+      if (desk.x <= 2 || desk.x >= arenaRect.width - desk.w - 2) desk.vx *= -1;
+      if (desk.y <= 2 || desk.y >= arenaRect.height - desk.h - 2) desk.vy *= -1;
+      desk.x = clamp(desk.x, 2, Math.max(2, arenaRect.width - desk.w - 2));
+      desk.y = clamp(desk.y, 2, Math.max(2, arenaRect.height - desk.h - 2));
+      desk.el.style.transform = `translate(${desk.x}px, ${desk.y}px)`;
     });
 
-    const now = performance.now();
-    if (now >= miniNextEnemyShotAt) {
-      miniNextEnemyShotAt = now + 1400;
-      miniShapes.forEach((shape) => {
-        const sx = parseFloat(shape.dataset.x || '0');
-        const sy = parseFloat(shape.dataset.y || '0');
-        const dx = bx - sx;
-        const dy = by - sy;
-        const dist = Math.max(1, Math.hypot(dx, dy));
-        const vx = (dx / dist) * 2.4;
-        const vy = (dy / dist) * 2.4;
-        const shot = document.createElement('div');
-        shot.className = 'decimal-mini-enemy-shot';
-        const prob = makeEnemyProblem();
-        shot.textContent = prob.text;
-        shot.dataset.x = String(sx + shapeSize / 2);
-        shot.dataset.y = String(sy + shapeSize / 2);
-        shot.dataset.vx = String(vx);
-        shot.dataset.vy = String(vy);
-        miniArena.appendChild(shot);
-        miniEnemyShots.push(shot);
-      });
-    }
+    miniHazards.forEach((hazard) => {
+      hazard.x += hazard.vx;
+      hazard.y += hazard.vy;
+      if (hazard.x <= 2 || hazard.x >= arenaRect.width - hazard.w - 2) hazard.vx *= -1;
+      if (hazard.y <= 2 || hazard.y >= arenaRect.height - hazard.h - 2) hazard.vy *= -1;
+      hazard.x = clamp(hazard.x, 2, Math.max(2, arenaRect.width - hazard.w - 2));
+      hazard.y = clamp(hazard.y, 2, Math.max(2, arenaRect.height - hazard.h - 2));
+      hazard.el.style.transform = `translate(${hazard.x}px, ${hazard.y}px)`;
+    });
 
-    miniShots = miniShots.filter((shot) => {
-      let x = parseFloat(shot.dataset.x || '0');
-      let y = parseFloat(shot.dataset.y || '0');
-      const vx = parseFloat(shot.dataset.vx || '0');
-      const vy = parseFloat(shot.dataset.vy || '0');
-      x += vx;
-      y += vy;
-      shot.dataset.x = String(x);
-      shot.dataset.y = String(y);
-      shot.style.transform = `translate(${x}px, ${y}px)`;
-      if (x < -20 || y < -20 || x > arenaRect.width + 20 || y > arenaRect.height + 20) {
-        shot.remove();
+    miniCollectibles = miniCollectibles.filter((desk) => {
+      const hit = bx + bennySize - itemPad > desk.x
+        && bx + itemPad < desk.x + desk.w
+        && by + bennySize - itemPad > desk.y
+        && by + itemPad < desk.y + desk.h;
+      if (hit) {
+        desk.el.remove();
+        miniCollected += 1;
+        updateMiniDeskProgress();
         return false;
-      }
-      for (let i = 0; i < miniShapes.length; i++) {
-        const shape = miniShapes[i];
-        const sx = parseFloat(shape.dataset.x || '0');
-        const sy = parseFloat(shape.dataset.y || '0');
-        const hit = x + 10 > sx && x < sx + shapeSize && y + 10 > sy && y < sy + shapeSize;
-        if (hit) {
-          shot.remove();
-          miniHealth = Math.max(0, miniHealth - 1);
-          if (miniHealthFill) miniHealthFill.style.width = `${(miniHealth / 150) * 100}%`;
-          if (miniHealthText) miniHealthText.textContent = `${miniHealth} hits`;
-          if (miniHealth <= 0) {
-            endShapeBattle();
-          }
-          return false;
-        }
       }
       return true;
     });
 
-    miniEnemyShots = miniEnemyShots.filter((shot) => {
-      let x = parseFloat(shot.dataset.x || '0');
-      let y = parseFloat(shot.dataset.y || '0');
-      const vx = parseFloat(shot.dataset.vx || '0');
-      const vy = parseFloat(shot.dataset.vy || '0');
-      x += vx;
-      y += vy;
-      shot.dataset.x = String(x);
-      shot.dataset.y = String(y);
-      shot.style.transform = `translate(${x}px, ${y}px)`;
-      if (x < -40 || y < -40 || x > arenaRect.width + 40 || y > arenaRect.height + 40) {
-        shot.remove();
-        return false;
-      }
-      const hit = x + 14 > bx && x < bx + bennySize && y + 14 > by && y < by + bennySize;
+    miniHazards = miniHazards.filter((hazard) => {
+      const hit = bx + bennySize - itemPad > hazard.x
+        && bx + itemPad < hazard.x + hazard.w
+        && by + bennySize - itemPad > hazard.y
+        && by + itemPad < hazard.y + hazard.h;
       if (hit) {
-        shot.remove();
+        hazard.el.remove();
+        miniCollected = Math.max(0, miniCollected - 2);
+        updateMiniDeskProgress();
         miniBenny.classList.add('hit');
-        setTimeout(() => miniBenny.classList.remove('hit'), 180);
-        miniBennyHealth = Math.max(0, miniBennyHealth - 1);
-        if (miniBennyHealthFill) {
-          miniBennyHealthFill.style.width = `${(miniBennyHealth / miniBennyHealthMax) * 100}%`;
-        }
-        if (miniBennyHealth <= 0) {
-          failShapeBattle();
-          return false;
-        }
+        setTimeout(() => miniBenny.classList.remove('hit'), 160);
         return false;
       }
       return true;
@@ -2221,9 +2186,7 @@ export default function initDecimal() {
   window.__DecimalCleanup = () => {
     window.removeEventListener('keydown', windowKeydownHandler);
     window.removeEventListener('keyup', windowKeyupHandler);
-    if (miniAnimId) cancelAnimationFrame(miniAnimId);
-    miniAnimId = null;
-    miniGameActive = false;
+    stopMiniRound();
     if (canvas) canvas.removeEventListener('click', canvasClickHandler);
     if (inputEl && inputKeydownHandler) inputEl.removeEventListener('keydown', inputKeydownHandler);
     applyGridBtn?.removeEventListener('click', applyGridHandler);

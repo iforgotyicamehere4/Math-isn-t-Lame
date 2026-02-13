@@ -57,7 +57,7 @@ export default function Decimal() {
             Pause
           </button>
           <label htmlFor="decimalMusicToggle" className="game-music-toggle">
-            <input id="decimalMusicToggle" type="checkbox" defaultChecked />
+            <input id="decimalMusicToggle" type="checkbox" />
             Music
           </label>
         </div>

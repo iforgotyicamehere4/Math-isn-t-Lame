@@ -97,7 +97,7 @@ export default function MathSynth() {
             Reset
           </button>
           <label htmlFor="mathSynthMusicToggle" className="game-music-toggle">
-            <input id="mathSynthMusicToggle" type="checkbox" defaultChecked />
+            <input id="mathSynthMusicToggle" type="checkbox" />
             Music
           </label>
           <div className="mathsynth-grid-note">

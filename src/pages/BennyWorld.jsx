@@ -11,7 +11,9 @@ export default function BennyWorld() {
     toggleId: 'bwMusicToggle',
     popupId: 'bwNowPlaying',
     statusId: 'bwStatus',
-    interactionSelectors: ['#bennyWorldArea', '#bwJump', '#bwGlide']
+    interactionSelectors: ['#bennyWorldArea', '#bwJump', '#bwGlide', '#bwPlane'],
+    startChecked: true,
+    enableHeadsetControls: false
   });
 
   useScriptOnce('https://cdn.babylonjs.com/babylon.js', 'babylon');
@@ -37,7 +39,7 @@ export default function BennyWorld() {
         <div className="bw-stat" id="bwStatus">Run to the star!</div>
         <label className="bw-difficulty" htmlFor="bwDifficulty">
           Difficulty
-          <select id="bwDifficulty" defaultValue="mathanomical">
+          <select id="bwDifficulty" defaultValue="easy">
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="mathanomical">Mathanomical</option>
@@ -69,6 +71,7 @@ export default function BennyWorld() {
         <div className="bw-actions">
           <button className="bw-move bw-action-btn" id="bwJump" type="button" aria-label="Jump">Jump</button>
           <button className="bw-move bw-action-btn" id="bwGlide" type="button" aria-label="Glide">Glide</button>
+          <button className="bw-move bw-action-btn" id="bwPlane" type="button" aria-label="Desk Plane">Desk Plane</button>
         </div>
       </div>
       <div id="bwNowPlaying" className="bw-music-popup" aria-live="polite" />

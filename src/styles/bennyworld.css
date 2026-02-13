@@ -873,12 +873,7 @@ bi.benny-world {
   }
 
   .bw-actions {
-    display: none !important;
-  }
-
-  /* Show original buttons on desktop */
-  .bw-move {
-    display: inline-block;
+    display: flex !important;
   }
 }
 

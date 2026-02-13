@@ -87,7 +87,7 @@ export default function Capture() {
           <button id="startBtn" className="btn btn--primary">Start</button>
           <button id="pauseBtn" className="btn btn--secondary" disabled>Pause</button>
           <label htmlFor="captureMusicToggle" className="game-music-toggle">
-            <input id="captureMusicToggle" type="checkbox" defaultChecked />
+            <input id="captureMusicToggle" type="checkbox" />
             Music
           </label>
         </div>

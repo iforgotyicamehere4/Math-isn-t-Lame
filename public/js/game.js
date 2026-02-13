@@ -575,14 +575,21 @@ window.__MathPupStateReset = true;
   const rawBaseUrl = String(window.__MathPopBaseUrl || '/');
   const normalizedBaseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl : `${rawBaseUrl}/`;
   const DEFAULT_SONGS = [{ id: 'song-01', label: 'Math isn\u2019t lame', filename: '01-math-isnt-lame.mp3' }];
-  let musicEnabled = true;
+  let musicEnabled = false;
   let bgMusic = null;
   let musicToggleHandler = null;
+  let musicToggleClickHandler = null;
   let musicPopupTimer = null;
   let enabledSongs = [];
   let songQueue = [];
   let currentSong = null;
   let triedFallbackForSong = false;
+  let previousSongs = [];
+  let musicTapCount = 0;
+  let musicLastTapAt = 0;
+  let musicTapResetTimer = null;
+  const MUSIC_TAP_WINDOW_MS = 5000;
+  const MUSIC_TAP_DECISION_MS = 320;
 
   function shuffleSongs(arr) {
     const copy = arr.slice();
@@ -616,6 +623,7 @@ window.__MathPupStateReset = true;
     songQueue = [];
     currentSong = null;
     triedFallbackForSong = false;
+    previousSongs = [];
     if (!enabledSongs.length && statusEl) {
       statusEl.textContent = 'No songs enabled. Turn songs On in Profile > Benny Jukebox.';
     }
@@ -643,14 +651,10 @@ window.__MathPupStateReset = true;
         setSongSource(currentSong, true);
         return;
       }
-      const nextSong = pullNextSong();
-      if (!nextSong || !setSongSource(nextSong, false)) return;
-      if (musicEnabled) playBackgroundMusic();
+      skipToNextSong();
     });
     bgMusic.addEventListener('ended', () => {
-      const nextSong = pullNextSong();
-      if (!nextSong || !setSongSource(nextSong, false)) return;
-      playBackgroundMusic();
+      skipToNextSong();
     });
     bgMusic.loop = false;
     return bgMusic;
@@ -695,7 +699,7 @@ window.__MathPupStateReset = true;
           if (wasPaused && currentSong) showNowPlaying(currentSong.title);
         })
         .catch(() => {
-          if (statusEl) statusEl.textContent = 'Music blocked by browser. Tap Music checkbox once.';
+          if (statusEl) statusEl.textContent = 'Music blocked by browser. Tap Music once.';
         });
       return;
     }
@@ -707,11 +711,71 @@ window.__MathPupStateReset = true;
     bgMusic.pause();
   }
 
+  function resetMusicTapSequence() {
+    musicTapCount = 0;
+    musicLastTapAt = 0;
+    if (musicTapResetTimer) {
+      clearTimeout(musicTapResetTimer);
+      musicTapResetTimer = null;
+    }
+  }
+
+  function scheduleMusicTapReset() {
+    if (musicTapResetTimer) clearTimeout(musicTapResetTimer);
+    musicTapResetTimer = setTimeout(() => {
+      const count = musicTapCount;
+      resetMusicTapSequence();
+      if (count >= 3) {
+        goToPreviousSong();
+        return;
+      }
+      if (count === 2) {
+        skipToNextSong();
+        return;
+      }
+      if (count === 1) {
+        if (bgMusic && !bgMusic.paused) {
+          pauseBackgroundMusic();
+        } else {
+          playBackgroundMusic();
+        }
+      }
+    }, MUSIC_TAP_DECISION_MS);
+  }
+
+  function skipToNextSong() {
+    if (!enabledSongs.length) {
+      syncSongsFromProfile();
+      if (!enabledSongs.length) return;
+    }
+    if (currentSong) previousSongs.push(currentSong);
+    const nextSong = pullNextSong();
+    if (!nextSong || !setSongSource(nextSong, false)) return;
+    playBackgroundMusic();
+  }
+
+  function goToPreviousSong() {
+    if (!previousSongs.length) return;
+    const previousSong = previousSongs.pop();
+    if (currentSong) songQueue.unshift(currentSong);
+    if (!setSongSource(previousSong, false)) return;
+    playBackgroundMusic();
+  }
+
+  function handleMusicTap() {
+    const now = Date.now();
+    if (now - musicLastTapAt > MUSIC_TAP_WINDOW_MS) musicTapCount = 0;
+    musicTapCount += 1;
+    musicLastTapAt = now;
+    scheduleMusicTapReset();
+  }
+
   function applyMusicEnabled(nextValue) {
     musicEnabled = Boolean(nextValue);
     if (musicToggle) musicToggle.checked = musicEnabled;
     if (!musicEnabled) {
       pauseBackgroundMusic();
+      resetMusicTapSequence();
       return;
     }
     syncSongsFromProfile();
@@ -2094,7 +2158,13 @@ window.__MathPupStateReset = true;
   if (musicToggle) {
     musicToggle.checked = musicEnabled;
     musicToggleHandler = () => applyMusicEnabled(musicToggle.checked);
+    musicToggleClickHandler = (e) => {
+      if (!musicEnabled) return;
+      e.preventDefault();
+      handleMusicTap();
+    };
     musicToggle.addEventListener('change', musicToggleHandler);
+    musicToggle.addEventListener('click', musicToggleClickHandler);
   }
   applyMusicEnabled(musicEnabled);
 
@@ -2183,11 +2253,16 @@ window.__MathPupStateReset = true;
       musicPopupTimer = null;
     }
     if (musicNowPlayingEl) musicNowPlayingEl.classList.remove('show');
+    resetMusicTapSequence();
     resetJoystick();
     setMobileControlsActive(false);
     if (musicToggle && musicToggleHandler) {
       musicToggle.removeEventListener('change', musicToggleHandler);
       musicToggleHandler = null;
+    }
+    if (musicToggle && musicToggleClickHandler) {
+      musicToggle.removeEventListener('click', musicToggleClickHandler);
+      musicToggleClickHandler = null;
     }
     
     // Remove game elements from DOM

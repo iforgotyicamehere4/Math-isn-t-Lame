@@ -480,51 +480,120 @@
   left: 20px;
 }
 
-.decimal-mini-shape {
+.decimal-mini-desk {
   position: absolute;
-  width: 64px;
-  height: 64px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
+  width: 32px;
+  height: 28px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
 }
 
-.decimal-mini-shape span {
-  background: #facc15;
-  border-radius: 6px;
-  box-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
+.decimal-mini-desk .back,
+.decimal-mini-desk .seat,
+.decimal-mini-desk .leg-left,
+.decimal-mini-desk .leg-right,
+.decimal-mini-desk .desk {
+  position: absolute;
+  border-radius: 4px;
 }
 
-.decimal-mini-shot {
+.decimal-mini-desk .back {
+  left: 16%;
+  top: 6%;
+  width: 68%;
+  height: 46%;
+  background: #e6680e;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.decimal-mini-desk .seat {
+  left: 12%;
+  top: 50%;
+  width: 76%;
+  height: 20%;
+  background: #fffdfd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+}
+
+.decimal-mini-desk .leg-left {
+  bottom: -8%;
+  left: 15%;
+  width: 9%;
+  height: 34%;
+  background: #d4d2bf;
+  transform: rotate(-22deg);
+}
+
+.decimal-mini-desk .leg-right {
+  bottom: -8%;
+  right: 15%;
+  width: 9%;
+  height: 34%;
+  background: #d4d2bf;
+  transform: rotate(-12deg);
+}
+
+.decimal-mini-desk .desk {
+  right: -10%;
+  top: 22%;
+  width: 42%;
+  height: 26%;
+  background: #a77905;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transform: rotate(-6deg);
+}
+
+.decimal-mini-desk .smoke {
   position: absolute;
-  width: 16px;
-  height: 16px;
+  bottom: 54%;
+  right: 2%;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  color: #fff;
-  font-weight: 800;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.65) 0%, rgba(148, 163, 184, 0.25) 65%, rgba(148, 163, 184, 0) 100%);
+  animation: decimalDeskSmoke 1.8s ease-out infinite;
+  pointer-events: none;
 }
 
-.decimal-mini-enemy-shot {
+.decimal-mini-desk .smoke-2 {
+  animation-delay: 0.9s;
+  right: 10%;
+  width: 7px;
+  height: 7px;
+}
+
+@keyframes decimalDeskSmoke {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0.65;
+  }
+  100% {
+    transform: translate(6px, -16px) scale(1.8);
+    opacity: 0;
+  }
+}
+
+.decimal-mini-broken-desk {
   position: absolute;
-  min-width: 26px;
-  height: 20px;
-  padding: 0 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(239, 68, 68, 0.95),
+    rgba(239, 68, 68, 0.95) 4px,
+    rgba(127, 29, 29, 0.95) 4px,
+    rgba(127, 29, 29, 0.95) 8px
+  );
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+}
+
+.decimal-mini-help {
+  color: #dbeafe;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 10px 14px;
   border-radius: 10px;
-  background: rgba(239, 68, 68, 0.22);
-  border: 1px solid rgba(239, 68, 68, 0.6);
-  color: #ffe5e5;
-  font-weight: 800;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+  background: rgba(14, 165, 164, 0.2);
 }
 
 .decimal-mini-benny.hit {
@@ -573,18 +642,6 @@
   user-select: none;
   -webkit-touch-callout: none;
   touch-action: manipulation;
-}
-
-.decimal-mini-shoot {
-  min-width: 140px;
-  height: 64px;
-  border-radius: 18px;
-  background: #0ea5a4;
-  border: none;
-  color: #fff;
-  font-weight: 800;
-  font-size: 1rem;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
 }
 
 @media (max-width: 900px) {

@@ -124,7 +124,7 @@ export default function Game() {
           <button id="startBtn">Start</button>
           <button id="pauseBtn" disabled>Pause</button>
           <label htmlFor="musicToggle" className="music-toggle">
-            <input id="musicToggle" type="checkbox" defaultChecked />
+            <input id="musicToggle" type="checkbox" />
             Music
           </label>
         </div>

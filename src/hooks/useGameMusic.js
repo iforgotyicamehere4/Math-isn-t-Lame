@@ -8,7 +8,10 @@ export default function useGameMusic({
   playOnIds = [],
   pauseOnIds = [],
   togglePauseIds = [],
-  interactionSelectors = []
+  interactionSelectors = [],
+  startChecked = false,
+  enableHeadsetControls = true,
+  sequenceWindowMs = 5000
 }) {
   useEffect(() => {
     if (typeof window === 'undefined' || typeof Audio === 'undefined') return undefined;
@@ -21,11 +24,16 @@ export default function useGameMusic({
     const statusEl = statusId ? document.getElementById(statusId) : null;
 
     let popupTimer = null;
-    let musicEnabled = true;
+    let musicEnabled = Boolean(startChecked);
     let enabledSongs = [];
     let queue = [];
     let currentSong = null;
     let triedFallbackForSong = false;
+    let previousSongs = [];
+    let tapCount = 0;
+    let lastTapAt = 0;
+    let tapResetTimer = null;
+    const tapDecisionMs = 320;
 
     const shuffle = (arr) => {
       const copy = arr.slice();
@@ -56,6 +64,7 @@ export default function useGameMusic({
       queue = [];
       currentSong = null;
       triedFallbackForSong = false;
+      previousSongs = [];
       if (!enabledSongs.length && statusEl) {
         statusEl.textContent = 'No songs enabled. Turn songs On in Profile > Benny Jukebox.';
       }
@@ -98,15 +107,11 @@ export default function useGameMusic({
         setSongSource(currentSong, true);
         return;
       }
-      const next = pullNextSong();
-      if (!next || !setSongSource(next, false)) return;
-      if (musicEnabled) playMusic();
+      skipToNextSong();
     };
 
     const onAudioEnded = () => {
-      const next = pullNextSong();
-      if (!next || !setSongSource(next, false)) return;
-      playMusic();
+      skipToNextSong();
     };
     audio.loop = false;
     audio.addEventListener('error', onAudioError);
@@ -141,19 +146,88 @@ export default function useGameMusic({
       audio.pause();
     };
 
+    const resetTapSequence = () => {
+      tapCount = 0;
+      lastTapAt = 0;
+      if (tapResetTimer) {
+        clearTimeout(tapResetTimer);
+        tapResetTimer = null;
+      }
+    };
+
+    const scheduleTapReset = () => {
+      if (tapResetTimer) clearTimeout(tapResetTimer);
+      tapResetTimer = setTimeout(() => {
+        const count = tapCount;
+        resetTapSequence();
+        if (count >= 3) {
+          goToPreviousSong();
+          return;
+        }
+        if (count === 2) {
+          skipToNextSong();
+          return;
+        }
+        if (count === 1) {
+          if (audio.paused) {
+            playMusic();
+          } else {
+            pauseMusic();
+          }
+        }
+      }, tapDecisionMs);
+    };
+
+    const skipToNextSong = () => {
+      if (!enabledSongs.length) {
+        syncSongsFromProfile();
+        if (!enabledSongs.length) return;
+      }
+      if (currentSong) previousSongs.push(currentSong);
+      const next = pullNextSong();
+      if (!next || !setSongSource(next, false)) return;
+      playMusic();
+    };
+
+    const goToPreviousSong = () => {
+      if (!previousSongs.length) return;
+      const previous = previousSongs.pop();
+      if (currentSong) queue.unshift(currentSong);
+      if (!setSongSource(previous, false)) return;
+      playMusic();
+    };
+
+    const onHeadsetTap = () => {
+      const now = Date.now();
+      if (now - lastTapAt > sequenceWindowMs) tapCount = 0;
+      tapCount += 1;
+      lastTapAt = now;
+      scheduleTapReset();
+    };
+
     const onToggleChange = () => {
       musicEnabled = Boolean(toggleEl?.checked);
       if (!musicEnabled) {
         pauseMusic();
+        resetTapSequence();
       } else {
         syncSongsFromProfile();
         playMusic();
       }
     };
 
+    let onToggleClick = null;
     if (toggleEl) {
-      toggleEl.checked = true;
+      toggleEl.checked = musicEnabled;
       toggleEl.addEventListener('change', onToggleChange);
+      if (enableHeadsetControls) {
+        onToggleClick = (e) => {
+          if (!musicEnabled) return;
+          e.preventDefault();
+          onHeadsetTap();
+        };
+        toggleEl.addEventListener('click', onToggleClick);
+      }
     }
 
     const playHandlers = [];
@@ -205,11 +279,13 @@ export default function useGameMusic({
       pauseMusic();
       audio.removeEventListener('error', onAudioError);
       if (toggleEl) toggleEl.removeEventListener('change', onToggleChange);
+      if (toggleEl && onToggleClick) toggleEl.removeEventListener('click', onToggleClick);
       playHandlers.forEach(([el, handler]) => el.removeEventListener('click', handler));
       pauseHandlers.forEach(([el, handler]) => el.removeEventListener('click', handler));
       togglePauseHandlers.forEach(([el, handler]) => el.removeEventListener('click', handler));
       interactionHandlers.forEach(([el, handler, event]) => el.removeEventListener(event, handler));
       if (popupTimer) clearTimeout(popupTimer);
+      if (tapResetTimer) clearTimeout(tapResetTimer);
       if (popupEl) popupEl.classList.remove('show');
       audio.removeEventListener('ended', onAudioEnded);
       audio.removeEventListener('error', onAudioError);
@@ -221,6 +297,9 @@ export default function useGameMusic({
     playOnIds.join('|'),
     pauseOnIds.join('|'),
     togglePauseIds.join('|'),
-    interactionSelectors.join('|')
+    interactionSelectors.join('|'),
+    startChecked,
+    enableHeadsetControls,
+    sequenceWindowMs
   ]);
 }

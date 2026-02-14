@@ -930,21 +930,22 @@
 
 /* Mini-game zombie upgrade (cooler look + shields/armor) */
 .game-shell .game-area .mini-zombie {
-  background: radial-gradient(
-    circle at 30% 20%,
-    #57ffa3 0%,
-    #2c7a4a 45%,
-    #113326 100%
-  );
-  border: 2px solid #7cffc5;
+  background:
+    radial-gradient(circle at 26% 18%, rgba(188, 216, 255, 0.22) 0%, transparent 34%),
+    linear-gradient(165deg, #121f3d 0%, #1f3158 46%, #0a1429 100%);
+  border: 2px solid #a8c6ff;
   box-shadow:
-    0 10px 22px rgba(0, 0, 0, 0.55),
-    0 0 18px rgba(87, 255, 163, 0.35),
-    inset 0 2px 6px rgba(255, 255, 255, 0.18),
-    inset 0 -8px 12px rgba(0, 0, 0, 0.35);
+    0 14px 28px rgba(0, 0, 0, 0.58),
+    0 0 20px rgba(147, 182, 255, 0.36),
+    inset 0 2px 6px rgba(255, 255, 255, 0.28),
+    inset 0 -10px 14px rgba(0, 0, 0, 0.44),
+    inset 10px 0 12px rgba(31, 73, 146, 0.2);
   overflow: visible;
   transform: scale(var(--mini-scale, 1));
   transform-origin: top left;
+  font-family: "Courier New", "Lucida Console", monospace;
+  color: #f7fbff;
+  isolation: isolate;
 }
 
 .game-shell .game-area .mini-zombie .mini-zombie__shadow {
@@ -962,41 +963,136 @@
 }
 
 .game-shell .game-area .mini-zombie::before {
-  background: radial-gradient(
-    circle at 35% 35%,
-    #76ffdd 0%,
-    #2f9b7b 55%,
-    #1a4d3e 100%
+  content: "";
+  position: absolute;
+  inset: 5px 7px 8px;
+  border-radius: 10px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(0, 0, 0, 0.24) 100%
   );
-  border-color: #7cffc5;
-  box-shadow:
-    inset 0 0 6px rgba(0, 0, 0, 0.35),
-    -12px 8px 0 0 #0b1116,
-    12px 8px 0 0 #0b1116,
-    0px 22px 0 2px #0b1116;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .game-shell .game-area .mini-zombie::after {
-  background: linear-gradient(90deg, #2c7a4a 0%, #44c28a 50%, #2c7a4a 100%);
-  border-color: #0f3b2c;
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(168, 198, 255, 0.24),
+    0 0 18px rgba(123, 168, 255, 0.24);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__limb,
+.game-shell .game-area .mini-zombie .mini-zombie__torso {
+  position: absolute;
+  font-weight: 800;
+  text-shadow:
+    0 0 5px rgba(147, 182, 255, 0.45),
+    0 2px 2px rgba(0, 0, 0, 0.85);
+  line-height: 1;
+  z-index: 1;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.65));
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__head {
+  left: 50%;
+  top: -24px;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__torso {
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: linear-gradient(170deg, rgba(15, 27, 54, 0.84), rgba(9, 18, 37, 0.92));
+  border: 1px solid rgba(154, 188, 255, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+    0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__arm {
+  top: 28px;
+  font-size: 1rem;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__arm--left {
+  left: -8px;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__arm--right {
+  right: -8px;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__hand {
+  top: 44px;
+  font-size: 0.95rem;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__hand--left {
+  left: -14px;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__hand--right {
+  right: -14px;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__leg {
+  bottom: 8px;
+  font-size: 1rem;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__leg--left {
+  left: 20px;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__leg--right {
+  right: 20px;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__foot {
+  bottom: -8px;
+  font-size: 0.8rem;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__foot--left {
+  left: 14px;
+}
+
+.game-shell .game-area .mini-zombie .mini-zombie__foot--right {
+  right: 14px;
 }
 
 .game-shell .game-area .mini-zombie .mini-zombie__core {
   position: absolute;
-  right: 6px;
-  top: 18px;
-  width: 18px;
-  height: 18px;
+  right: 8px;
+  top: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: radial-gradient(
     circle at 30% 30%,
-    #ffe66d 0%,
-    #ff9a3c 60%,
-    #8b3f00 100%
+    #b9ffb5 0%,
+    #4bd377 60%,
+    #126430 100%
   );
   box-shadow:
-    0 0 12px rgba(255, 178, 66, 0.7),
+    0 0 10px rgba(75, 211, 119, 0.75),
     inset 0 0 6px rgba(0, 0, 0, 0.45);
+  z-index: 1;
 }
 
 .game-shell .game-area .mini-zombie .mini-zombie__plate {

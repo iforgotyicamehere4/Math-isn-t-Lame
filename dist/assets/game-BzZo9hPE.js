@@ -575,14 +575,21 @@ window.__MathPupStateReset = true;
   const rawBaseUrl = String(window.__MathPopBaseUrl || '/');
   const normalizedBaseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl : `${rawBaseUrl}/`;
   const DEFAULT_SONGS = [{ id: 'song-01', label: 'Math isn\u2019t lame', filename: '01-math-isnt-lame.mp3' }];
-  let musicEnabled = true;
+  let musicEnabled = false;
   let bgMusic = null;
   let musicToggleHandler = null;
+  let musicToggleClickHandler = null;
   let musicPopupTimer = null;
   let enabledSongs = [];
   let songQueue = [];
   let currentSong = null;
   let triedFallbackForSong = false;
+  let previousSongs = [];
+  let musicTapCount = 0;
+  let musicLastTapAt = 0;
+  let musicTapResetTimer = null;
+  const MUSIC_TAP_WINDOW_MS = 5000;
+  const MUSIC_TAP_DECISION_MS = 320;
 
   function shuffleSongs(arr) {
     const copy = arr.slice();
@@ -616,6 +623,7 @@ window.__MathPupStateReset = true;
     songQueue = [];
     currentSong = null;
     triedFallbackForSong = false;
+    previousSongs = [];
     if (!enabledSongs.length && statusEl) {
       statusEl.textContent = 'No songs enabled. Turn songs On in Profile > Benny Jukebox.';
     }
@@ -643,14 +651,10 @@ window.__MathPupStateReset = true;
         setSongSource(currentSong, true);
         return;
       }
-      const nextSong = pullNextSong();
-      if (!nextSong || !setSongSource(nextSong, false)) return;
-      if (musicEnabled) playBackgroundMusic();
+      skipToNextSong();
     });
     bgMusic.addEventListener('ended', () => {
-      const nextSong = pullNextSong();
-      if (!nextSong || !setSongSource(nextSong, false)) return;
-      playBackgroundMusic();
+      skipToNextSong();
     });
     bgMusic.loop = false;
     return bgMusic;
@@ -695,7 +699,7 @@ window.__MathPupStateReset = true;
           if (wasPaused && currentSong) showNowPlaying(currentSong.title);
         })
         .catch(() => {
-          if (statusEl) statusEl.textContent = 'Music blocked by browser. Tap Music checkbox once.';
+          if (statusEl) statusEl.textContent = 'Music blocked by browser. Tap Music once.';
         });
       return;
     }
@@ -707,11 +711,71 @@ window.__MathPupStateReset = true;
     bgMusic.pause();
   }
 
+  function resetMusicTapSequence() {
+    musicTapCount = 0;
+    musicLastTapAt = 0;
+    if (musicTapResetTimer) {
+      clearTimeout(musicTapResetTimer);
+      musicTapResetTimer = null;
+    }
+  }
+
+  function scheduleMusicTapReset() {
+    if (musicTapResetTimer) clearTimeout(musicTapResetTimer);
+    musicTapResetTimer = setTimeout(() => {
+      const count = musicTapCount;
+      resetMusicTapSequence();
+      if (count >= 3) {
+        goToPreviousSong();
+        return;
+      }
+      if (count === 2) {
+        skipToNextSong();
+        return;
+      }
+      if (count === 1) {
+        if (bgMusic && !bgMusic.paused) {
+          pauseBackgroundMusic();
+        } else {
+          playBackgroundMusic();
+        }
+      }
+    }, MUSIC_TAP_DECISION_MS);
+  }
+
+  function skipToNextSong() {
+    if (!enabledSongs.length) {
+      syncSongsFromProfile();
+      if (!enabledSongs.length) return;
+    }
+    if (currentSong) previousSongs.push(currentSong);
+    const nextSong = pullNextSong();
+    if (!nextSong || !setSongSource(nextSong, false)) return;
+    playBackgroundMusic();
+  }
+
+  function goToPreviousSong() {
+    if (!previousSongs.length) return;
+    const previousSong = previousSongs.pop();
+    if (currentSong) songQueue.unshift(currentSong);
+    if (!setSongSource(previousSong, false)) return;
+    playBackgroundMusic();
+  }
+
+  function handleMusicTap() {
+    const now = Date.now();
+    if (now - musicLastTapAt > MUSIC_TAP_WINDOW_MS) musicTapCount = 0;
+    musicTapCount += 1;
+    musicLastTapAt = now;
+    scheduleMusicTapReset();
+  }
+
   function applyMusicEnabled(nextValue) {
     musicEnabled = Boolean(nextValue);
     if (musicToggle) musicToggle.checked = musicEnabled;
     if (!musicEnabled) {
       pauseBackgroundMusic();
+      resetMusicTapSequence();
       return;
     }
     syncSongsFromProfile();
@@ -1210,6 +1274,51 @@ window.__MathPupStateReset = true;
     return Math.min(18, 3 + idx + 3);
   }
 
+  function pickRandom(arr) {
+    return arr[randInt(0, arr.length - 1)];
+  }
+
+  function buildMiniVillainEquation() {
+    const a = randInt(1, 12);
+    const b = randInt(1, 12);
+    const ops = ['+', '-', '*', '/'];
+    const op = pickRandom(ops);
+    if (op === '/') {
+      const dividend = a * b;
+      return `${dividend}/${a}`;
+    }
+    return `${a}${op}${b}`;
+  }
+
+  function buildMiniVillainMarkup() {
+    const head = pickRandom(['0', '6', '8', '9']);
+    const armLeft = pickRandom(['+', '-', '*']);
+    const armRight = pickRandom(['=', '/', '+']);
+    const handLeft = pickRandom(['(', '{', '<']);
+    const handRight = pickRandom([')', '}', '>']);
+    const legLeft = pickRandom(['1', '7', '|']);
+    const legRight = pickRandom(['2', '4', '|']);
+    const footLeft = pickRandom(['_', '=', '/']);
+    const footRight = pickRandom(['_', '=', '\\']);
+    const torso = buildMiniVillainEquation();
+    return `
+      <div class="mini-zombie__shadow"></div>
+      <div class="mini-zombie__limb mini-zombie__head">${head}</div>
+      <div class="mini-zombie__limb mini-zombie__arm mini-zombie__arm--left">${armLeft}</div>
+      <div class="mini-zombie__limb mini-zombie__arm mini-zombie__arm--right">${armRight}</div>
+      <div class="mini-zombie__limb mini-zombie__hand mini-zombie__hand--left">${handLeft}</div>
+      <div class="mini-zombie__limb mini-zombie__hand mini-zombie__hand--right">${handRight}</div>
+      <div class="mini-zombie__torso">${torso}</div>
+      <div class="mini-zombie__limb mini-zombie__leg mini-zombie__leg--left">${legLeft}</div>
+      <div class="mini-zombie__limb mini-zombie__leg mini-zombie__leg--right">${legRight}</div>
+      <div class="mini-zombie__limb mini-zombie__foot mini-zombie__foot--left">${footLeft}</div>
+      <div class="mini-zombie__limb mini-zombie__foot mini-zombie__foot--right">${footRight}</div>
+      <div class="mini-zombie__core"></div>
+      <div class="mini-zombie__shield"></div>
+      <div class="mini-zombie__plate"></div>
+    `;
+  }
+
   function spawnMiniZombies(levelName) {
     const bounds = getPlayBounds();
     const baseW = 64;
@@ -1224,7 +1333,7 @@ window.__MathPupStateReset = true;
       el.className = 'zombie mini-zombie';
       el.textContent = '';
       el.style.setProperty('--mini-scale', String(scale));
-      el.innerHTML = '<div class="mini-zombie__shadow"></div><div class="mini-zombie__core"></div><div class="mini-zombie__shield"></div><div class="mini-zombie__plate"></div>';
+      el.innerHTML = buildMiniVillainMarkup();
       const x = randInt(bounds.minX, bounds.maxX - zW);
       const y = randInt(bounds.minY, bounds.maxY - zH);
       el.style.left = `${x}px`;
@@ -1718,7 +1827,7 @@ window.__MathPupStateReset = true;
     clearRoundTimers();
     clearLevelTimer();
     if (timerEl) timerEl.classList.remove('timer-urgent');
-    statusEl.textContent = 'Bonus round! Out-smart the zombies — wait for shields to drop.';
+    statusEl.textContent = 'Bonus round! Out-smart the math villains - wait for shields to drop.';
     clearMiniGame();
     ensureBenny();
     undockBenny();
@@ -2094,7 +2203,13 @@ window.__MathPupStateReset = true;
   if (musicToggle) {
     musicToggle.checked = musicEnabled;
     musicToggleHandler = () => applyMusicEnabled(musicToggle.checked);
+    musicToggleClickHandler = (e) => {
+      if (!musicEnabled) return;
+      e.preventDefault();
+      handleMusicTap();
+    };
     musicToggle.addEventListener('change', musicToggleHandler);
+    musicToggle.addEventListener('click', musicToggleClickHandler);
   }
   applyMusicEnabled(musicEnabled);
 
@@ -2183,11 +2298,16 @@ window.__MathPupStateReset = true;
       musicPopupTimer = null;
     }
     if (musicNowPlayingEl) musicNowPlayingEl.classList.remove('show');
+    resetMusicTapSequence();
     resetJoystick();
     setMobileControlsActive(false);
     if (musicToggle && musicToggleHandler) {
       musicToggle.removeEventListener('change', musicToggleHandler);
       musicToggleHandler = null;
+    }
+    if (musicToggle && musicToggleClickHandler) {
+      musicToggle.removeEventListener('click', musicToggleClickHandler);
+      musicToggleClickHandler = null;
     }
     
     // Remove game elements from DOM

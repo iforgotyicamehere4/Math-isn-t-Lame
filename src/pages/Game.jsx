@@ -153,12 +153,10 @@ export default function Game() {
             <button id="mobileAnswerBtn" type="button">Answer</button>
           </div>
           <p id="bennyStory" className="benny-story">
-            Benny Sum A.K.A the Dog Knight is at home in the backyard while Mr.
-            Boooiiii is teaching. Can you help keep Benny from zombies and keep
-            him company by completing math problems? Benny is 54 in human years,
-            but in this game he is always 8 years old. If Benny gets lost inside
-            a zombie, type his dog age (8) to unlock an ancient Mathanomical
-            power and bring him back.
+            while Mr Boooiii is at work benny is at home working on his math pup
+            game can you help him get rid of the bugs??? Benny is 54 in human
+            years but he still has alot of pep in his steps. Solve math problems
+            to unlock mini game.
           </p>
           <div id="bennyUnlockInfo" style={{ marginTop: 8 }} />
           <div id="bennyPalette" className="benny-palette" />

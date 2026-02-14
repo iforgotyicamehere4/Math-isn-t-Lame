@@ -9,20 +9,6 @@
   "background_color": "#0a1420",
   "theme_color": "#6ef0ff",
   "categories": ["education", "games"],
-  "screenshots": [
-    {
-      "src": "/screenshots/mathpop-540.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshots/mathpop-1280.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ],
   "icons": [
     {
       "src": "/favicon.svg",
@@ -90,4 +76,3 @@
   ],
   "prefer_related_applications": false
 }
-

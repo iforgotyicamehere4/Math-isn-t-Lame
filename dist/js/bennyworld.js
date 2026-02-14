@@ -19,10 +19,13 @@ window.__BennyWorldBabylonCleanup = null;
   const dashEl = qs('#bwDash');
   const statusEl = qs('#bwStatus');
   const difficultySelect = qs('#bwDifficulty');
+  const progressBtn = qs('#bwProgressBtn');
   const leftBtn = qs('#bwLeft');
   const rightBtn = qs('#bwRight');
   const jumpBtn = qs('#bwJump');
   const glideBtn = qs('#bwGlide');
+  const planeBtn = qs('#bwPlane');
+  const fireBtn = qs('#bwFire');
   
   // Joystick elements
   const joystickContainer = qs('#bwJoystickContainer');
@@ -167,12 +170,68 @@ window.__BennyWorldBabylonCleanup = null;
     'ruler', 'calendar', 'notepad', 'graphpaper', 'indexcard',
     'planner', 'lab', 'chalk', 'computerlab', 'hallway'
   ];
+  const BENNY_COLORS = [
+    { id: 'solid-01', type: 'solid', primary: '#7dd3fc' },
+    { id: 'tone-01', type: 'tone', primary: '#6ee7b7', secondary: '#a3e635' },
+    { id: 'solid-02', type: 'solid', primary: '#c4b5fd' },
+    { id: 'tone-02', type: 'tone', primary: '#38bdf8', secondary: '#2563eb' },
+    { id: 'solid-03', type: 'solid', primary: '#fde047' },
+    { id: 'tone-03', type: 'tone', primary: '#f9a8d4', secondary: '#fb7185' },
+    { id: 'solid-04', type: 'solid', primary: '#5eead4' },
+    { id: 'tone-04', type: 'tone', primary: '#f472b6', secondary: '#a855f7' },
+    { id: 'solid-05', type: 'solid', primary: '#a3e635' },
+    { id: 'tone-05', type: 'tone', primary: '#22d3ee', secondary: '#0ea5e9' },
+    { id: 'solid-06', type: 'solid', primary: '#fb7185' },
+    { id: 'tone-06', type: 'tone', primary: '#f472b6', secondary: '#facc15' },
+    { id: 'solid-07', type: 'solid', primary: '#60a5fa' },
+    { id: 'tone-07', type: 'tone', primary: '#818cf8', secondary: '#4f46e5' },
+    { id: 'solid-08', type: 'solid', primary: '#86efac' },
+    { id: 'tone-08', type: 'tone', primary: '#a5b4fc', secondary: '#e0f2fe' },
+    { id: 'solid-09', type: 'solid', primary: '#f9a8d4' },
+    { id: 'tone-09', type: 'tone', primary: '#fde047', secondary: '#bef264' },
+    { id: 'solid-10', type: 'solid', primary: '#cbd5f5' },
+    { id: 'tone-10', type: 'tone', primary: '#e2e8f0', secondary: '#93c5fd' },
+    { id: 'solid-11', type: 'solid', primary: '#7dd3fc' },
+    { id: 'tone-11', type: 'tone', primary: '#2dd4bf', secondary: '#99f6e4' },
+    { id: 'solid-12', type: 'solid', primary: '#c084fc' },
+    { id: 'tone-12', type: 'tone', primary: '#d8b4fe', secondary: '#fda4af' },
+    { id: 'solid-13', type: 'solid', primary: '#fb7185' },
+    { id: 'tone-13', type: 'tone', primary: '#bef264', secondary: '#4ade80' },
+    { id: 'solid-14', type: 'solid', primary: '#bae6fd' },
+    { id: 'tone-14', type: 'tone', primary: '#60a5fa', secondary: '#6366f1' },
+    { id: 'solid-15', type: 'solid', primary: '#a5b4fc' },
+    { id: 'tone-15', type: 'tone', primary: '#5eead4', secondary: '#14b8a6' },
+    { id: 'solid-16', type: 'solid', primary: '#fde68a' },
+    { id: 'tone-16', type: 'tone', primary: '#fda4af', secondary: '#fb7185' },
+    { id: 'solid-17', type: 'solid', primary: '#93c5fd' },
+    { id: 'tone-17', type: 'tone', primary: '#a3e635', secondary: '#2dd4bf' },
+    { id: 'solid-18', type: 'solid', primary: '#d8b4fe' },
+    { id: 'tone-18', type: 'tone', primary: '#7dd3fc', secondary: '#6ee7b7' },
+    { id: 'solid-19', type: 'solid', primary: '#99f6e4' },
+    { id: 'tone-19', type: 'tone', primary: '#f472b6', secondary: '#60a5fa' },
+    { id: 'solid-20', type: 'solid', primary: '#facc15' },
+    { id: 'tone-20', type: 'tone', primary: '#5eead4', secondary: '#38bdf8' },
+    { id: 'solid-21', type: 'solid', primary: '#a78bfa' },
+    { id: 'tone-21', type: 'tone', primary: '#3b82f6', secondary: '#14b8a6' },
+    { id: 'solid-22', type: 'solid', primary: '#4ade80' },
+    { id: 'tone-22', type: 'tone', primary: '#c4b5fd', secondary: '#bae6fd' },
+    { id: 'solid-23', type: 'solid', primary: '#fda4af' },
+    { id: 'tone-23', type: 'tone', primary: '#5eead4', secondary: '#38bdf8' },
+    { id: 'solid-24', type: 'solid', primary: '#2dd4bf' },
+    { id: 'tone-24', type: 'tone', primary: '#fde047', secondary: '#c4b5fd' },
+    { id: 'solid-25', type: 'solid', primary: '#e2e8f0' },
+    { id: 'tone-25', type: 'tone', primary: '#fb7185', secondary: '#6ee7b7' }
+  ];
 
-  const totalLevels = 100;
+  const totalLevels = 75;
   let levelIndex = 0;
   let points = 0;
   let distance = 0;
-  let difficulty = 'mathanomical';
+  let difficulty = 'easy';
+  const deskPlaneDurationMs = 12000;
+  let deskFuel = 0;
+  let deskPlaneActive = false;
+  let deskPlaneEndsAt = 0;
 
   const gravity = 0.55;
   const jumpPower = 11.5;
@@ -183,10 +242,11 @@ window.__BennyWorldBabylonCleanup = null;
 
   const keys = { left: false, right: false, jump: false, glide: false };
   let rafId = 0;
+  let lastAutoSaveAt = 0;
 
   const benny = document.createElement('div');
   benny.className = 'bw-benny';
-  benny.innerHTML = '<div class="benny-base"><div class="benny-shape"><div class="back"></div><div class="leg-left"></div><div class="leg-right"></div><div class="head"></div></div></div>';
+  benny.innerHTML = '<div class="benny-base"><div class="benny-shape"><div class="back"></div><div class="leg-left"></div><div class="leg-right"></div><div class="head"></div><div class="hardhat"><span class="hardhat-brand">S+L Dogineers</span></div><div class="nuclear-gauge"><span class="g-handle"></span><span class="g-knob"></span><span class="g-post g-post-left"></span><span class="g-post g-post-right"></span><span class="g-base"></span></div></div></div>';
   const star = document.createElement('div');
   star.className = 'bw-star';
   star.textContent = '★';
@@ -234,6 +294,17 @@ window.__BennyWorldBabylonCleanup = null;
   
   area.appendChild(blackHole);
   area.appendChild(crumblingFloor);
+  const debugKing = document.createElement('div');
+  debugKing.className = 'bw-debug-king';
+  debugKing.innerHTML = `
+    <div class="bw-debug-king__crown">+ - * / =</div>
+    <div class="bw-debug-king__cloak">&lt;code/&gt; while(x){...}</div>
+    <div class="bw-debug-king__body">x ?= y / 0</div>
+  `;
+  const bossArena = document.createElement('div');
+  bossArena.className = 'bw-boss-arena';
+  area.appendChild(bossArena);
+  area.appendChild(debugKing);
 
   let bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
   let starPos = { x: 0, y: 0 };
@@ -243,17 +314,159 @@ window.__BennyWorldBabylonCleanup = null;
   let wallContact = 0;
   let gameOver = false;
   let flipActiveUntil = 0;
-  let glideCharges = 2;
   let glideActive = false;
   let pendingSuperJump = false;
   const upPresses = [];
   const downPresses = [];
+  let bossActive = false;
+  let bossPhase = 0;
+  let bossHealth = 0;
+  let bossX = 0;
+  let bossY = 0;
+  let mirroredControls = false;
+  let bossProjectiles = [];
+  let bossPatternNodes = [];
+  let bossPatternProgress = 0;
+  let bossLastSpawnAt = 0;
+  let bossPulseAt = 0;
+  let bossWonThisLevel = false;
+  const bossPatternSequence = ['2x', '4x', '8x'];
+  const bossProjectilePool = ['x+/=y', '(a+b]?', '÷0', 'if(x){', '==??', 'loop()'];
+  const bossSpawnMs = { 1: 850, 2: 620, 3: 700 };
+  const airEnemies = [];
+  let enemyErrors = [];
+  let bennyShots = [];
+  let lastBennyShotAt = 0;
+  let slowUntil = 0;
+  let freezeUntil = 0;
+  let nextEnemyWaveDistance = 500;
+  const bennyShotCooldownMs = 220;
   
   // Black hole and crumbling floor state
   let blackHoleActive = false;
   let blackHoleTimer = 0;
   let debrisInterval = null;
   const blackHoleDelay = 5000; // 5 seconds after level starts
+
+  function currentUser() {
+    return localStorage.getItem('mathpop_current_user') || 'guest';
+  }
+
+  function normalizeDifficulty(mode) {
+    return ['easy', 'medium', 'mathanomical'].includes(mode) ? mode : 'easy';
+  }
+
+  function progressKey(mode = difficulty) {
+    const normalized = normalizeDifficulty(mode);
+    return `mathpop_benny_dash_progress_${currentUser()}_${normalized}`;
+  }
+
+  function legacyProgressKey() {
+    return `mathpop_benny_dash_progress_${currentUser()}`;
+  }
+
+  function deskFuelKey() {
+    return `mathpop_benny_desk_fuel_${currentUser()}`;
+  }
+
+  function bennyColorKey() {
+    return `mathpup_benny_color_${currentUser()}`;
+  }
+
+  function loadDeskFuel() {
+    return Math.max(0, parseInt(localStorage.getItem(deskFuelKey()) || '0', 10) || 0);
+  }
+
+  function saveDeskFuel(value) {
+    const next = Math.max(0, Math.floor(value));
+    deskFuel = next;
+    localStorage.setItem(deskFuelKey(), String(next));
+  }
+
+  function applyBennyColor() {
+    const selectedId = localStorage.getItem(bennyColorKey()) || 'solid-01';
+    const color = BENNY_COLORS.find((c) => c.id === selectedId) || BENNY_COLORS[0];
+    const back = benny.querySelector('.back');
+    const head = benny.querySelector('.head');
+    if (!back || !head) return;
+    if (color.type === 'tone' && color.secondary) {
+      back.style.background = color.primary;
+      head.style.background = color.secondary;
+    } else {
+      back.style.background = color.primary;
+      head.style.background = color.primary;
+    }
+  }
+
+  function saveProgress(mode = 'auto') {
+    const payload = {
+      version: 1,
+      savedAt: Date.now(),
+      levelIndex: Math.max(0, Math.min(totalLevels - 1, Math.floor(levelIndex))),
+      points: Math.max(0, Math.floor(points)),
+      distance: Math.max(0, Math.floor(distance)),
+      difficulty: ['easy', 'medium', 'mathanomical'].includes(difficulty) ? difficulty : 'easy',
+      deskFuel: Math.max(0, Math.floor(deskFuel)),
+      bossWonThisLevel: Boolean(bossWonThisLevel)
+    };
+    localStorage.setItem(progressKey(payload.difficulty), JSON.stringify(payload));
+    if (mode === 'manual') {
+      setMessage(`Progress saved: Level ${payload.levelIndex + 1}.`, 1000);
+    }
+  }
+
+  function loadProgress(showMessage = true) {
+    const raw = localStorage.getItem(progressKey(difficulty));
+    const legacyRaw = localStorage.getItem(legacyProgressKey());
+    const source = raw || legacyRaw;
+    if (!source) return false;
+    try {
+      const data = JSON.parse(source);
+      if (!data || typeof data !== 'object') return false;
+      const nextDifficulty = ['easy', 'medium', 'mathanomical'].includes(data.difficulty)
+        ? data.difficulty
+        : 'easy';
+      levelIndex = Math.max(0, Math.min(totalLevels - 1, Number(data.levelIndex) || 0));
+      points = Math.max(0, Number(data.points) || 0);
+      distance = Math.max(0, Number(data.distance) || 0);
+      difficulty = nextDifficulty;
+      saveDeskFuel(Number(data.deskFuel) || 0);
+      bossWonThisLevel = Boolean(data.bossWonThisLevel);
+      if (difficultySelect) difficultySelect.value = nextDifficulty;
+      // Migrate legacy single-slot save into difficulty-specific save slots.
+      if (!raw && legacyRaw) {
+        localStorage.setItem(progressKey(nextDifficulty), JSON.stringify({
+          ...data,
+          difficulty: nextDifficulty
+        }));
+      }
+      if (showMessage) setMessage(`Progress loaded: Level ${levelIndex + 1}.`, 1100);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function activateDeskPlane() {
+    if (deskPlaneActive || deskFuel <= 0) return false;
+    saveDeskFuel(deskFuel - 1);
+    deskPlaneActive = true;
+    deskPlaneEndsAt = performance.now() + deskPlaneDurationMs;
+    setMessage('Desk plane launched! Hopes and dreams online.', 1400);
+    return true;
+  }
+
+  function triggerDeskPlane() {
+    if (deskPlaneActive) return;
+    if (!activateDeskPlane()) {
+      setMessage('No desk fuel. Collect desks in Deci-What bonus.', 1300);
+    }
+  }
+
+  function deskPlaneRemainingRatio(now) {
+    if (!deskPlaneActive) return 0;
+    return Math.max(0, (deskPlaneEndsAt - now) / deskPlaneDurationMs);
+  }
 
   function setMessage(text, holdMs = 1400) {
     if (!msgEl) return;
@@ -346,16 +559,261 @@ window.__BennyWorldBabylonCleanup = null;
     });
   }
 
+  function setBossMode(active) {
+    bossActive = active;
+    debugKing.classList.toggle('active', active);
+    bossArena.classList.toggle('active', active);
+    if (!active) {
+      mirroredControls = false;
+      bossPhase = 0;
+      bossPatternProgress = 0;
+      bossPatternNodes.forEach(node => node.el.remove());
+      bossPatternNodes = [];
+      bossProjectiles.forEach(p => p.el.remove());
+      bossProjectiles = [];
+    }
+  }
+
+  function spawnBossProjectile(type = 'syntax') {
+    const el = document.createElement('div');
+    el.className = `bw-boss-projectile ${type}`;
+    el.textContent = bossProjectilePool[Math.floor(Math.random() * bossProjectilePool.length)];
+    area.appendChild(el);
+    const angle = Math.atan2((bennyState.y + 18) - bossY, (bennyState.x + 18) - bossX);
+    const base = type === 'illusion' ? 4.5 : 3.5;
+    bossProjectiles.push({
+      el,
+      x: bossX + 30,
+      y: bossY + 24,
+      vx: Math.cos(angle) * base,
+      vy: Math.sin(angle) * base,
+      type
+    });
+  }
+
+  function triggerBossPulse() {
+    if (!bossActive) return;
+    const now = performance.now();
+    if (now - bossPulseAt < 350) return;
+    bossPulseAt = now;
+    const ring = document.createElement('div');
+    ring.className = 'bw-boss-pulse';
+    ring.style.left = `${bennyState.x - cameraOffset - 28}px`;
+    ring.style.top = `${bennyState.y - 28}px`;
+    area.appendChild(ring);
+    setTimeout(() => ring.remove(), 260);
+
+    const bennyCx = bennyState.x + 18;
+    const bennyCy = bennyState.y + 18;
+    const bossDist = Math.hypot((bossX + 24) - bennyCx, (bossY + 24) - bennyCy);
+    if (bossPhase < 3 && bossDist < 160) {
+      bossHealth = Math.max(0, bossHealth - 1);
+      debugKing.classList.add('hit');
+      setTimeout(() => debugKing.classList.remove('hit'), 160);
+    }
+  }
+
+  function spawnBossPatternNodes() {
+    bossPatternNodes.forEach(node => node.el.remove());
+    bossPatternNodes = [];
+    const rect = area.getBoundingClientRect();
+    const cx = Math.max(180, Math.min(rect.width - 180, bossX - cameraOffset));
+    const cy = Math.max(130, Math.min(rect.height - 120, bossY));
+    const radius = 120;
+    const labels = [...bossPatternSequence, '3x', '6x'];
+    labels.forEach((label, idx) => {
+      const ang = (Math.PI * 2 * idx) / labels.length;
+      const el = document.createElement('div');
+      el.className = 'bw-pattern-node';
+      el.textContent = label;
+      area.appendChild(el);
+      bossPatternNodes.push({
+        el,
+        label,
+        x: cx + Math.cos(ang) * radius,
+        y: cy + Math.sin(ang) * radius
+      });
+    });
+  }
+
+  function startDebugKingFight() {
+    setBossMode(true);
+    blackHoleActive = false;
+    blackHoleTimer = 0;
+    stopDebrisFall();
+    crumblingFloor.classList.remove('crumpling');
+    area.classList.remove('shake');
+    bossWonThisLevel = false;
+    bossHealth = 12;
+    bossPhase = 1;
+    bossPatternProgress = 0;
+    bossLastSpawnAt = performance.now();
+    const rect = area.getBoundingClientRect();
+    bossX = Math.max(rect.width * 0.6 + cameraOffset, starPos.x - 40);
+    bossY = Math.max(80, rect.height - 180);
+    debugKing.style.left = `${bossX - cameraOffset}px`;
+    debugKing.style.top = `${bossY}px`;
+    setMessage('Debug King appears: Phase 1 - Syntax Chaos', 1600);
+  }
+
+  function finishDebugKingFight() {
+    setBossMode(false);
+    bossWonThisLevel = true;
+    points += 500;
+    setMessage('Debug King defeated! +500', 1800);
+    levelIndex = Math.min(totalLevels - 1, levelIndex + 1);
+    saveProgress('auto');
+    startLevel();
+  }
+
   function updateHud() {
     if (pointsEl) pointsEl.textContent = `Points: ${points}`;
     if (dashEl) dashEl.textContent = `Dash: ${Math.floor(distance)}m`;
-    if (statusEl) statusEl.textContent = 'Run to the star!';
+    if (statusEl) {
+      if (bossActive) {
+        const phaseLabel = bossPhase === 1
+          ? 'Syntax Chaos'
+          : bossPhase === 2
+            ? 'Logic Illusions'
+            : 'Infinite Loop Arena';
+        const pattern = bossPhase === 3
+          ? ` | Pattern ${bossPatternProgress}/${bossPatternSequence.length}`
+          : '';
+        statusEl.textContent = `Debug King: ${phaseLabel} | HP ${bossHealth}${pattern}`;
+        return;
+      }
+      if (deskPlaneActive) {
+        const ratio = deskPlaneRemainingRatio(performance.now());
+        const pct = Math.max(0, Math.ceil(ratio * 100));
+        statusEl.textContent = `Desk Fuel: ${deskFuel} | Plane ${pct}%`;
+      } else {
+        statusEl.textContent = `Run to the star! Desk Fuel: ${deskFuel}`;
+      }
+    }
   }
 
   function getDifficultyScale() {
     if (difficulty === 'easy') return 0.5;
     if (difficulty === 'medium') return 0.75;
     return 1;
+  }
+
+  function freezeDurationMs() {
+    if (difficulty === 'easy') return 3000;
+    if (difficulty === 'medium') return 4000;
+    return 5000;
+  }
+
+  function activeTier() {
+    const key = `mathpop_profile_stats_${currentUser()}`;
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+      const unlocks = new Set(Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : []);
+      unlocks.add(1);
+      const tier = Math.max(1, Math.min(10, Math.floor(Number(parsed.activeTier) || 1)));
+      return unlocks.has(tier) ? tier : 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  function hitsNeededForTier() {
+    return Math.max(1, 11 - activeTier());
+  }
+
+  function spawnAirEnemy(type, x, baseY) {
+    const el = document.createElement('div');
+    el.className = `bw-air-enemy ${type}`;
+    el.textContent = type === 'syntax' ? '⚠️' : '🐛';
+    area.appendChild(el);
+    airEnemies.push({
+      type,
+      el,
+      x,
+      y: baseY - 120 - Math.random() * 80,
+      w: 40,
+      h: 40,
+      vx: (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 1.1),
+      vy: -5 - Math.random() * 3,
+      baseY: baseY - 120 - Math.random() * 80,
+      nextHopAt: performance.now() + 500 + Math.random() * 700,
+      nextThrowAt: performance.now() + 800 + Math.random() * 1100,
+      hp: hitsNeededForTier()
+    });
+  }
+
+  function spawnEnemyError(enemy) {
+    const el = document.createElement('div');
+    const warning = enemy.type === 'syntax';
+    el.className = `bw-error-projectile ${warning ? 'warning' : 'stop'}`;
+    el.textContent = warning ? '⚠️' : '🛑';
+    area.appendChild(el);
+    const fromX = enemy.x + enemy.w * 0.5;
+    const fromY = enemy.y + enemy.h * 0.4;
+    const toX = bennyState.x + 18;
+    const toY = bennyState.y + 18;
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    const speed = warning ? 3.8 : 3.1;
+    enemyErrors.push({
+      el,
+      x: fromX,
+      y: fromY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      type: warning ? 'warning' : 'stop'
+    });
+  }
+
+  function fireBennyShot() {
+    const now = performance.now();
+    if (now - lastBennyShotAt < bennyShotCooldownMs) return;
+    lastBennyShotAt = now;
+    const el = document.createElement('div');
+    el.className = 'bw-shot';
+    el.textContent = activeTier() >= 6 ? '✦' : '•';
+    area.appendChild(el);
+    let target = null;
+    let nearest = Infinity;
+    airEnemies.forEach((enemy) => {
+      const dx = (enemy.x + enemy.w * 0.5) - (bennyState.x + 18);
+      const dy = (enemy.y + enemy.h * 0.5) - (bennyState.y + 18);
+      const dist = Math.hypot(dx, dy);
+      if (dist < nearest) {
+        nearest = dist;
+        target = enemy;
+      }
+    });
+    const dir = target
+      ? Math.atan2((target.y + target.h * 0.5) - (bennyState.y + 18), (target.x + target.w * 0.5) - (bennyState.x + 18))
+      : (benny.classList.contains('bw-benny--left') ? Math.PI : 0);
+    bennyShots.push({
+      el,
+      x: bennyState.x + 18,
+      y: bennyState.y + 16,
+      vx: Math.cos(dir) * 7.2,
+      vy: Math.sin(dir) * 7.2,
+      damage: 1
+    });
+  }
+
+  function spawnDistanceEnemyWave() {
+    const rect = area.getBoundingClientRect();
+    const groundY = rect.height - 40;
+    const levelWidth = rect.width * (8 + levelIndex * 2);
+    const aheadX = Math.max(
+      200,
+      Math.min(levelWidth - 220, bennyState.x + rect.width * 0.9 + Math.random() * 320)
+    );
+    const diffScale = getDifficultyScale();
+    const syntaxWave = Math.max(2, Math.ceil((1 + Math.floor(levelIndex / 12)) * (1 + diffScale)));
+    const bugWave = Math.max(1, Math.ceil((1 + Math.floor(levelIndex / 16)) * (0.9 + diffScale)));
+    for (let i = 0; i < syntaxWave; i += 1) {
+      spawnAirEnemy('syntax', aheadX + (Math.random() - 0.5) * 220, groundY);
+    }
+    for (let i = 0; i < bugWave; i += 1) {
+      spawnAirEnemy('bug', aheadX + (Math.random() - 0.5) * 220, groundY);
+    }
+    setMessage(`Enemy wave at ${Math.floor(nextEnemyWaveDistance)}m!`, 900);
   }
 
   function setTheme() {
@@ -376,6 +834,7 @@ window.__BennyWorldBabylonCleanup = null;
     setTimeout(() => {
       gameOver = false;
       points = 0;
+      saveProgress('auto');
       if (overlay) {
         overlay.classList.remove('is-visible');
         overlay.textContent = '';
@@ -427,18 +886,31 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function buildLevel() {
-    // Save black hole and crumbling floor references before clearing
+    // Save persistent FX/boss nodes before clearing
     const savedBlackHole = blackHole;
     const savedCrumblingFloor = crumblingFloor;
+    const savedDebugKing = debugKing;
+    const savedBossArena = bossArena;
     
     area.innerHTML = '';
     platforms = [];
     obstacles.splice(0, obstacles.length);
+    airEnemies.forEach((enemy) => enemy.el.remove());
+    airEnemies.splice(0, airEnemies.length);
+    enemyErrors.forEach((proj) => proj.el.remove());
+    enemyErrors = [];
+    bennyShots.forEach((shot) => shot.el.remove());
+    bennyShots = [];
+    slowUntil = 0;
+    freezeUntil = 0;
+    nextEnemyWaveDistance = 500;
     distance = 0;
     cameraOffset = 0;
     bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
-    glideCharges = 2;
     glideActive = false;
+    deskPlaneActive = false;
+    deskPlaneEndsAt = 0;
+    deskFuel = loadDeskFuel();
 
     const rect = area.getBoundingClientRect();
     const groundY = rect.height - 40;
@@ -512,11 +984,13 @@ window.__BennyWorldBabylonCleanup = null;
       addFallingNumber(x, 24, value);
     }
 
-    // Re-append Benny, star, and black hole elements
+    // Re-append Benny, star, FX and boss elements
     area.appendChild(benny);
     area.appendChild(star);
     area.appendChild(savedBlackHole);
     area.appendChild(savedCrumblingFloor);
+    area.appendChild(savedBossArena);
+    area.appendChild(savedDebugKing);
 
     const lastPath = safePath[safePath.length - 1];
     const starX = lastPath ? lastPath.x + lastPath.w / 2 : rect.width - 70;
@@ -529,13 +1003,19 @@ window.__BennyWorldBabylonCleanup = null;
     benny.style.top = `${groundY - 36}px`;
   }
 
-function applyPhysics() {
+  function applyPhysics() {
     if (gameOver) return;
     const rect = area.getBoundingClientRect();
     const groundY = rect.height - 40;
+    if (bossActive) {
+      blackHoleActive = false;
+      blackHoleTimer = 0;
+      crumblingFloor.classList.remove('crumpling');
+      area.classList.remove('shake');
+    }
 
     // Automatic black hole timer - activates 5 seconds after level starts
-    if (!blackHoleActive) {
+    if (!bossActive && !blackHoleActive) {
       blackHoleTimer += 16.67; // Approximate frame time
       
       if (blackHoleTimer >= blackHoleDelay) {
@@ -684,21 +1164,42 @@ function applyPhysics() {
       
     }
 
-const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
+    const now = performance.now();
+    if (deskPlaneActive && now >= deskPlaneEndsAt) {
+      deskPlaneActive = false;
+      setMessage('Desk plane power depleted.', 1200);
+    }
+    const frozen = now < freezeUntil;
+    const slowed = now < slowUntil;
+    const planeRatio = deskPlaneRemainingRatio(now);
+    let speedMultiplier = 1;
+    if (deskPlaneActive) {
+      if (planeRatio > 0.5) speedMultiplier = 2.1;
+      else if (planeRatio > 0.25) speedMultiplier = 1.5;
+      else speedMultiplier = 0.85;
+    }
+    if (slowed) speedMultiplier *= 0.55;
+const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultiplier;
+    const moveLeft = mirroredControls ? keys.right : keys.left;
+    const moveRight = mirroredControls ? keys.left : keys.right;
     
     // Keyboard input
-    if (keys.left) bennyState.vx = -speed;
-    else if (keys.right) bennyState.vx = speed;
+    if (frozen) {
+      bennyState.vx = 0;
+      bennyState.vy = 0;
+    } else if (moveLeft) bennyState.vx = -speed;
+    else if (moveRight) bennyState.vx = speed;
     else {
       // Joystick input - only use if joystick is active and has horizontal input
       if (joystickActive && Math.abs(joystickVector.x) > 0.1) {
-        bennyState.vx = joystickVector.x * speed;
+        const joyX = mirroredControls ? -joystickVector.x : joystickVector.x;
+        bennyState.vx = joyX * speed;
       } else {
         bennyState.vx = 0;
       }
     }
 
-    const wantsJump = keys.jump || (autoJump && bennyState.onGround);
+    const wantsJump = !frozen && (keys.jump || (autoJump && bennyState.onGround));
     if (wantsJump && (bennyState.onGround || wallContact !== 0)) {
       const boost = bennyState.onGround ? 1.1 : 1;
       bennyState.vy = -(wallContact !== 0 ? wallJumpPower : jumpPower * boost);
@@ -709,15 +1210,20 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
       wallContact = 0;
     }
 
-    bennyState.vy = Math.min(maxFall, bennyState.vy + gravity);
-    if (keys.glide && bennyState.vy > 0) {
+    if (!frozen) {
+      bennyState.vy = Math.min(maxFall, bennyState.vy + gravity);
+    }
+    if (deskPlaneActive) {
+      if (planeRatio > 0.25) {
+        bennyState.vy = Math.min(bennyState.vy, 0.75);
+      } else {
+        bennyState.vy = Math.max(bennyState.vy + 0.18, 1.8);
+      }
+      glideActive = false;
+      benny.classList.add('bw-benny--glide');
+    } else if (keys.glide && bennyState.vy > 0) {
       if (!glideActive) {
-        if (glideCharges <= 0) {
-          keys.glide = false;
-        } else {
-          glideCharges -= 1;
-          glideActive = true;
-        }
+        glideActive = true;
       }
       bennyState.vy = Math.min(bennyState.vy, 1.4);
       benny.classList.add('bw-benny--glide');
@@ -762,7 +1268,7 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
     if (!landed) bennyState.onGround = false;
     if (bennyState.onGround) {
       glideActive = false;
-      keys.glide = false;
+      if (!deskPlaneActive) keys.glide = false;
     }
 
     obstacles.forEach((ob) => {
@@ -818,6 +1324,89 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
       }
     });
 
+    airEnemies.forEach((enemy) => {
+      if (enemy.nextHopAt <= now && Math.abs(enemy.vy) < 0.2) {
+        enemy.vy = -(7.8 + Math.random() * 3.2);
+        enemy.nextHopAt = now + 520 + Math.random() * 720;
+      }
+      enemy.vy = Math.min(9, enemy.vy + gravity * 0.35);
+      enemy.y += enemy.vy;
+      enemy.x += enemy.vx;
+      if (enemy.y > enemy.baseY) {
+        enemy.y = enemy.baseY;
+        enemy.vy = 0;
+      }
+      if (enemy.x < 12 || enemy.x + enemy.w > (rect.width * (8 + levelIndex * 2)) - 12) {
+        enemy.vx *= -1;
+      }
+      if (enemy.nextThrowAt <= now && !frozen) {
+        spawnEnemyError(enemy);
+        enemy.nextThrowAt = now + 900 + Math.random() * 1400;
+      }
+      enemy.el.style.left = `${enemy.x - cameraOffset}px`;
+      enemy.el.style.top = `${enemy.y}px`;
+    });
+
+    enemyErrors = enemyErrors.filter((proj) => {
+      proj.x += proj.vx;
+      proj.y += proj.vy;
+      proj.el.style.left = `${proj.x - cameraOffset}px`;
+      proj.el.style.top = `${proj.y}px`;
+      const hit = Math.abs((bennyState.x + 18) - proj.x) < 20 && Math.abs((bennyState.y + 18) - proj.y) < 20;
+      if (hit) {
+        if (proj.type === 'warning') {
+          slowUntil = Math.max(slowUntil, now + 2200);
+          setMessage('Syntax warning hit. Benny slowed!', 1000);
+        } else {
+          freezeUntil = Math.max(freezeUntil, now + freezeDurationMs());
+          setMessage(`Stop sign hit. Frozen ${Math.floor(freezeDurationMs() / 1000)}s!`, 1200);
+        }
+        proj.el.remove();
+        return false;
+      }
+      const out = proj.x < cameraOffset - 90 || proj.x > cameraOffset + rect.width + 90 || proj.y < -80 || proj.y > rect.height + 80;
+      if (out) {
+        proj.el.remove();
+        return false;
+      }
+      return true;
+    });
+
+    bennyShots = bennyShots.filter((shot) => {
+      shot.x += shot.vx;
+      shot.y += shot.vy;
+      shot.el.style.left = `${shot.x - cameraOffset}px`;
+      shot.el.style.top = `${shot.y}px`;
+      let hitEnemy = null;
+      for (let i = 0; i < airEnemies.length; i += 1) {
+        const enemy = airEnemies[i];
+        const withinX = shot.x >= enemy.x && shot.x <= enemy.x + enemy.w;
+        const withinY = shot.y >= enemy.y && shot.y <= enemy.y + enemy.h;
+        if (withinX && withinY) {
+          hitEnemy = enemy;
+          break;
+        }
+      }
+      if (hitEnemy) {
+        hitEnemy.hp -= shot.damage;
+        if (hitEnemy.hp <= 0) {
+          points += 120;
+          setMessage(`${hitEnemy.type === 'syntax' ? 'Syntax Error' : 'Bug'} eliminated!`, 900);
+          hitEnemy.el.remove();
+          const idx = airEnemies.indexOf(hitEnemy);
+          if (idx >= 0) airEnemies.splice(idx, 1);
+        }
+        shot.el.remove();
+        return false;
+      }
+      const out = shot.x < cameraOffset - 120 || shot.x > cameraOffset + rect.width + 120 || shot.y < -120 || shot.y > rect.height + 120;
+      if (out) {
+        shot.el.remove();
+        return false;
+      }
+      return true;
+    });
+
     if (bennyState.y > groundY) {
       bennyState.y = groundY - 36;
       bennyState.vy = 0;
@@ -847,6 +1436,95 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
     
     // Update Benny with camera offset
     benny.style.left = `${bennyState.x - cameraOffset}px`;
+    benny.classList.toggle('bw-benny--nuclear', activeTier() === 6);
+
+    if (bossActive) {
+      const now = performance.now();
+      bossX += Math.sin(now / 500) * 0.8;
+      bossY += Math.cos(now / 800) * 0.5;
+      debugKing.style.left = `${bossX - cameraOffset}px`;
+      debugKing.style.top = `${bossY}px`;
+
+      if (bossPhase === 1 && bossHealth <= 8) {
+        bossPhase = 2;
+        mirroredControls = true;
+        setMessage('Phase 2 - Logic Illusions (controls mirrored!)', 1600);
+      } else if (bossPhase === 2 && bossHealth <= 4) {
+        bossPhase = 3;
+        mirroredControls = false;
+        bossPatternProgress = 0;
+        spawnBossPatternNodes();
+        setMessage('Phase 3 - Infinite Loop Arena. Solve the pattern!', 1800);
+      }
+
+      const spawnEvery = bossSpawnMs[bossPhase] || 700;
+      if (now - bossLastSpawnAt >= spawnEvery) {
+        const projectileType = bossPhase === 2 ? 'illusion' : 'syntax';
+        spawnBossProjectile(projectileType);
+        bossLastSpawnAt = now;
+      }
+
+      bossProjectiles = bossProjectiles.filter((proj) => {
+        proj.x += proj.vx;
+        proj.y += proj.vy;
+        proj.el.style.left = `${proj.x - cameraOffset}px`;
+        proj.el.style.top = `${proj.y}px`;
+        const hitBenny = Math.abs((bennyState.x + 18) - proj.x) < 24 && Math.abs((bennyState.y + 18) - proj.y) < 24;
+        if (hitBenny) {
+          points = Math.max(0, points - (proj.type === 'illusion' ? 40 : 25));
+          setMessage(proj.type === 'illusion' ? 'Fake answer trap! -40' : 'Syntax hit! -25', 900);
+          proj.el.remove();
+          return false;
+        }
+        const tooFar = proj.x < cameraOffset - 120 || proj.x > cameraOffset + rect.width + 120 || proj.y > rect.height + 80 || proj.y < -80;
+        if (tooFar) {
+          proj.el.remove();
+          return false;
+        }
+        return true;
+      });
+
+      if (bossPhase === 3) {
+        const arenaCenterX = bossX - 40;
+        const arenaCenterY = bossY + 30;
+        const dxArena = (bennyState.x + 18) - arenaCenterX;
+        const dyArena = (bennyState.y + 18) - arenaCenterY;
+        const maxR = 180;
+        const dist = Math.hypot(dxArena, dyArena);
+        bossArena.style.left = `${arenaCenterX - maxR - cameraOffset}px`;
+        bossArena.style.top = `${arenaCenterY - maxR}px`;
+        if (dist > maxR) {
+          const nx = dxArena / dist;
+          const ny = dyArena / dist;
+          bennyState.x = arenaCenterX + nx * maxR - 18;
+          bennyState.y = arenaCenterY + ny * maxR - 18;
+        }
+
+        bossPatternNodes.forEach((node) => {
+          node.el.style.left = `${node.x - cameraOffset}px`;
+          node.el.style.top = `${node.y}px`;
+          const hit = Math.abs((bennyState.x + 18) - node.x) < 24 && Math.abs((bennyState.y + 18) - node.y) < 24;
+          if (!hit || node.done) return;
+          const expected = bossPatternSequence[bossPatternProgress];
+          if (node.label === expected) {
+            node.done = true;
+            node.el.classList.add('done');
+            bossPatternProgress += 1;
+            setMessage(`Pattern ${bossPatternProgress}/${bossPatternSequence.length}`, 700);
+            if (bossPatternProgress >= bossPatternSequence.length) {
+              finishDebugKingFight();
+            }
+          } else {
+            bossPatternProgress = 0;
+            bossPatternNodes.forEach((n) => {
+              n.done = false;
+              n.el.classList.remove('done');
+            });
+            setMessage('Infinite loop reset. Find 2x -> 4x -> 8x', 1200);
+          }
+        });
+      }
+    }
   }
 
   function registerPress(list) {
@@ -880,11 +1558,24 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
   }
 
   function checkGoal() {
+    if (bossActive) return;
     // Use the stored star position instead of getBoundingClientRect
     const hit = bennyState.x + 30 > starPos.x && bennyState.x < starPos.x + 30 && bennyState.y + 30 > starPos.y && bennyState.y < starPos.y + 30;
     if (hit) {
+      const isFinalLevel = levelIndex === totalLevels - 1;
+      if (isFinalLevel && !bossWonThisLevel) {
+        points += 200;
+        saveProgress('auto');
+        setMessage('Level 75 cleared. Debug King encounter begins!', 1600);
+        startDebugKingFight();
+        return;
+      }
       points += 200;
       levelIndex = Math.min(totalLevels - 1, levelIndex + 1);
+      // Keep boss completion state on the final level so the encounter
+      // does not re-trigger on every star touch after victory.
+      if (!isFinalLevel) bossWonThisLevel = false;
+      saveProgress('auto');
       setMessage('Desk Dash cleared!', 1200);
       startLevel();
     }
@@ -892,8 +1583,17 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
 
   function tick() {
     applyPhysics();
+    while (distance >= nextEnemyWaveDistance) {
+      spawnDistanceEnemyWave();
+      nextEnemyWaveDistance += 500;
+    }
     checkGoal();
     updateHud();
+    const now = performance.now();
+    if (!gameOver && now - lastAutoSaveAt >= 15000) {
+      saveProgress('auto');
+      lastAutoSaveAt = now;
+    }
     if (bennyState.vx < -0.1) {
       benny.classList.add('bw-benny--left');
     } else if (bennyState.vx > 0.1) {
@@ -903,18 +1603,40 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
   }
 
   function startLevel() {
+    setBossMode(false);
+    applyBennyColor();
     setTheme();
     if (levelLabel) levelLabel.textContent = `Level ${levelIndex + 1}`;
     buildLevel();
+    saveProgress('auto');
   }
 
   if (difficultySelect) {
-    difficulty = difficultySelect.value || 'mathanomical';
+    difficulty = normalizeDifficulty(difficultySelect.value || 'easy');
+    loadProgress(false);
+    root.dataset.difficulty = difficulty;
     difficultySelect.addEventListener('change', () => {
-      difficulty = difficultySelect.value || 'mathanomical';
+      difficulty = normalizeDifficulty(difficultySelect.value || 'easy');
       root.dataset.difficulty = difficulty;
+      if (!loadProgress(false)) {
+        levelIndex = 0;
+        points = 0;
+        distance = 0;
+        bossWonThisLevel = false;
+      }
+      saveProgress('auto');
       startLevel();
     });
+  }
+
+  let cleanupProgressBtn = () => {};
+  if (progressBtn) {
+    const onProgressClick = (e) => {
+      e.preventDefault();
+      saveProgress('manual');
+    };
+    progressBtn.addEventListener('click', onProgressClick);
+    cleanupProgressBtn = () => progressBtn.removeEventListener('click', onProgressClick);
   }
 
   function bindKeyEvents() {
@@ -924,6 +1646,8 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') {
         keys.jump = true;
         triggerFlip();
+        triggerBossPulse();
+        fireBennyShot();
         if (registerPress(upPresses)) {
           pendingSuperJump = true;
         }
@@ -934,6 +1658,7 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
         }
       }
       if (e.key === 'Shift') keys.glide = true;
+      if (e.key === 'f' || e.key === 'F') fireBennyShot();
     };
     const up = (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
@@ -955,6 +1680,8 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
       e.preventDefault();
       keys[key] = pressed;
       if (key === 'jump') triggerFlip();
+      if (key === 'jump') triggerBossPulse();
+      if (key === 'jump') fireBennyShot();
     };
     const onUp = (e) => {
       e.preventDefault();
@@ -972,11 +1699,29 @@ const speed = bennyState.onGround ? moveSpeed * 1.2 : moveSpeed;
     };
   }
 
+  function bindActionButton(btn, action) {
+    if (!btn) return () => {};
+    const onDown = (e) => {
+      e.preventDefault();
+      action();
+    };
+    btn.addEventListener('pointerdown', onDown);
+    btn.addEventListener('touchstart', onDown, { passive: false });
+    btn.addEventListener('click', onDown);
+    return () => {
+      btn.removeEventListener('pointerdown', onDown);
+      btn.removeEventListener('touchstart', onDown);
+      btn.removeEventListener('click', onDown);
+    };
+  }
+
 const cleanupKeys = bindKeyEvents();
   const cleanupLeft = bindButton(leftBtn, 'left', true);
   const cleanupRight = bindButton(rightBtn, 'right', true);
   const cleanupJump = bindButton(jumpBtn, 'jump', true);
   const cleanupGlide = bindButton(glideBtn, 'glide', true);
+  const cleanupPlane = bindActionButton(planeBtn, triggerDeskPlane);
+  const cleanupFire = bindActionButton(fireBtn, fireBennyShot);
 
   // Joystick event handlers
   function handleJoystickStart(clientX, clientY) {
@@ -1057,12 +1802,19 @@ const cleanupKeys = bindKeyEvents();
   rafId = requestAnimationFrame(tick);
 
   window.__BennyWorldCleanup = () => {
+    saveProgress('auto');
     if (rafId) cancelAnimationFrame(rafId);
+    airEnemies.forEach((enemy) => enemy.el.remove());
+    enemyErrors.forEach((proj) => proj.el.remove());
+    bennyShots.forEach((shot) => shot.el.remove());
     cleanupKeys();
     cleanupLeft();
     cleanupRight();
     cleanupJump();
     cleanupGlide();
+    cleanupPlane();
+    cleanupFire();
+    cleanupProgressBtn();
     // Also call the Babylon cleanup if present
     if (window.__BennyWorldBabylonCleanup) {
       try { window.__BennyWorldBabylonCleanup(); } catch (e) {}

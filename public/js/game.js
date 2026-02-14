@@ -1274,6 +1274,51 @@ window.__MathPupStateReset = true;
     return Math.min(18, 3 + idx + 3);
   }
 
+  function pickRandom(arr) {
+    return arr[randInt(0, arr.length - 1)];
+  }
+
+  function buildMiniVillainEquation() {
+    const a = randInt(1, 12);
+    const b = randInt(1, 12);
+    const ops = ['+', '-', '*', '/'];
+    const op = pickRandom(ops);
+    if (op === '/') {
+      const dividend = a * b;
+      return `${dividend}/${a}`;
+    }
+    return `${a}${op}${b}`;
+  }
+
+  function buildMiniVillainMarkup() {
+    const head = pickRandom(['0', '6', '8', '9']);
+    const armLeft = pickRandom(['+', '-', '*']);
+    const armRight = pickRandom(['=', '/', '+']);
+    const handLeft = pickRandom(['(', '{', '<']);
+    const handRight = pickRandom([')', '}', '>']);
+    const legLeft = pickRandom(['1', '7', '|']);
+    const legRight = pickRandom(['2', '4', '|']);
+    const footLeft = pickRandom(['_', '=', '/']);
+    const footRight = pickRandom(['_', '=', '\\']);
+    const torso = buildMiniVillainEquation();
+    return `
+      <div class="mini-zombie__shadow"></div>
+      <div class="mini-zombie__limb mini-zombie__head">${head}</div>
+      <div class="mini-zombie__limb mini-zombie__arm mini-zombie__arm--left">${armLeft}</div>
+      <div class="mini-zombie__limb mini-zombie__arm mini-zombie__arm--right">${armRight}</div>
+      <div class="mini-zombie__limb mini-zombie__hand mini-zombie__hand--left">${handLeft}</div>
+      <div class="mini-zombie__limb mini-zombie__hand mini-zombie__hand--right">${handRight}</div>
+      <div class="mini-zombie__torso">${torso}</div>
+      <div class="mini-zombie__limb mini-zombie__leg mini-zombie__leg--left">${legLeft}</div>
+      <div class="mini-zombie__limb mini-zombie__leg mini-zombie__leg--right">${legRight}</div>
+      <div class="mini-zombie__limb mini-zombie__foot mini-zombie__foot--left">${footLeft}</div>
+      <div class="mini-zombie__limb mini-zombie__foot mini-zombie__foot--right">${footRight}</div>
+      <div class="mini-zombie__core"></div>
+      <div class="mini-zombie__shield"></div>
+      <div class="mini-zombie__plate"></div>
+    `;
+  }
+
   function spawnMiniZombies(levelName) {
     const bounds = getPlayBounds();
     const baseW = 64;
@@ -1288,7 +1333,7 @@ window.__MathPupStateReset = true;
       el.className = 'zombie mini-zombie';
       el.textContent = '';
       el.style.setProperty('--mini-scale', String(scale));
-      el.innerHTML = '<div class="mini-zombie__shadow"></div><div class="mini-zombie__core"></div><div class="mini-zombie__shield"></div><div class="mini-zombie__plate"></div>';
+      el.innerHTML = buildMiniVillainMarkup();
       const x = randInt(bounds.minX, bounds.maxX - zW);
       const y = randInt(bounds.minY, bounds.maxY - zH);
       el.style.left = `${x}px`;
@@ -1782,7 +1827,7 @@ window.__MathPupStateReset = true;
     clearRoundTimers();
     clearLevelTimer();
     if (timerEl) timerEl.classList.remove('timer-urgent');
-    statusEl.textContent = 'Bonus round! Out-smart the zombies — wait for shields to drop.';
+    statusEl.textContent = 'Bonus round! Out-smart the math villains - wait for shields to drop.';
     clearMiniGame();
     ensureBenny();
     undockBenny();

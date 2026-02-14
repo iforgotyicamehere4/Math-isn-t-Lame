@@ -105,6 +105,30 @@
   let running = false;
   let puzzle = [];
   let solvedEquations = [];
+  let miniGameActive = false;
+  let miniOverlay = null;
+  let miniArena = null;
+  let miniBenny = null;
+  let miniShapes = [];
+  let miniHealthFill = null;
+  let miniHealthText = null;
+  let miniBennyHealthFill = null;
+  let miniAnimId = null;
+  let miniShots = [];
+  let miniEnemyShots = [];
+  let miniNextEnemyShotAt = 0;
+  let miniKeys = { left: false, right: false, up: false, down: false };
+  let miniLastDir = { x: 1, y: 0 };
+  let miniHealth = 150;
+  let miniBennyHealth = 20;
+  const miniBennyHealthMax = 20;
+  let miniJoystick = null;
+  let miniStick = null;
+  let miniShootBtn = null;
+  let miniJoystickActive = false;
+  let miniJoystickVector = { x: 0, y: 0 };
+  let miniJoystickCenter = { x: 0, y: 0 };
+  const miniJoystickRadius = 28;
 
   // Arena mode (post-level FPS)
   let arenaActive = false;
@@ -200,6 +224,7 @@
     stopTimer();
     running = false;
     stopArena();
+    stopShapeBattle(true);
     score = 0;
     solved = 0;
     timeLeft = 0;
@@ -359,6 +384,7 @@
   function startGame() {
     stopTimer();
     stopArena();
+    stopShapeBattle(true);
     running = true;
     score = 0;
     solved = 0;
@@ -510,10 +536,17 @@
     gameStats.bestScore = gameStats.bestScore === null ? score : Math.min(gameStats.bestScore, score);
     gameStats.bestTime = Math.max(gameStats.bestTime || 0, timeLeft);
     saveProfileStats(stats);
-    startArena();
+    startShapeBattle();
   }
 
   window.addEventListener('keydown', (e) => {
+    if (miniGameActive) {
+      if (e.key === 'ArrowLeft') { miniKeys.left = true; e.preventDefault(); return; }
+      if (e.key === 'ArrowRight') { miniKeys.right = true; e.preventDefault(); return; }
+      if (e.key === 'ArrowUp') { miniKeys.up = true; e.preventDefault(); return; }
+      if (e.key === 'ArrowDown') { miniKeys.down = true; e.preventDefault(); return; }
+      if (e.key === ' ') { miniShoot(); e.preventDefault(); return; }
+    }
     if (!arenaActive) return;
     const key = e.key;
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(key)) {
@@ -526,6 +559,13 @@
     }
   });
   window.addEventListener('keyup', (e) => {
+    if (miniGameActive) {
+      if (e.key === 'ArrowLeft') miniKeys.left = false;
+      if (e.key === 'ArrowRight') miniKeys.right = false;
+      if (e.key === 'ArrowUp') miniKeys.up = false;
+      if (e.key === 'ArrowDown') miniKeys.down = false;
+      return;
+    }
     if (!arenaActive) return;
     const key = e.key;
     arenaKeys.delete(key);
@@ -639,6 +679,322 @@
       arenaShootBtn.addEventListener('pointerdown', shootAction);
       arenaShootBtn.addEventListener('click', shootAction);
     }
+  }
+
+  function ensureMiniGameElements() {
+    if (miniOverlay) return;
+    const root = document.querySelector('.game-page--mathsynth') || document.body;
+    if (!root) return;
+    miniOverlay = document.createElement('div');
+    miniOverlay.className = 'decimal-mini-game';
+    miniOverlay.innerHTML = `
+      <div class="decimal-mini-card">
+        <div class="decimal-mini-header">
+          <span>Synthe Battle</span>
+          <span id="decimalMiniHealthText">150 hits</span>
+        </div>
+        <div class="decimal-mini-bar"><div class="decimal-mini-bar-fill"></div></div>
+        <div class="decimal-mini-benny-bar"><div class="decimal-mini-benny-bar-fill"></div></div>
+        <div class="decimal-mini-arena"></div>
+        <div class="decimal-mini-controls" aria-hidden="true">
+          <div class="decimal-mini-joystick" id="decimalMiniJoystick">
+            <div class="decimal-mini-stick" id="decimalMiniStick"></div>
+          </div>
+          <button type="button" class="decimal-mini-shoot" id="decimalMiniShoot">Dis arm synthe</button>
+        </div>
+      </div>
+    `;
+    root.appendChild(miniOverlay);
+    miniArena = miniOverlay.querySelector('.decimal-mini-arena');
+    miniHealthFill = miniOverlay.querySelector('.decimal-mini-bar-fill');
+    miniHealthText = miniOverlay.querySelector('#decimalMiniHealthText');
+    miniBennyHealthFill = miniOverlay.querySelector('.decimal-mini-benny-bar-fill');
+    miniBenny = document.createElement('div');
+    miniBenny.className = 'decimal-mini-benny';
+    miniBenny.innerHTML = `
+      <div class="benny-body"></div>
+      <div class="benny-head"></div>
+      <div class="benny-leg left"></div>
+      <div class="benny-leg right"></div>
+    `;
+    miniArena.appendChild(miniBenny);
+    const controls = miniOverlay.querySelector('.decimal-mini-controls');
+    miniJoystick = miniOverlay.querySelector('#decimalMiniJoystick');
+    miniStick = miniOverlay.querySelector('#decimalMiniStick');
+    miniShootBtn = miniOverlay.querySelector('#decimalMiniShoot');
+
+    const resetMiniJoystick = () => {
+      miniJoystickActive = false;
+      miniJoystickVector = { x: 0, y: 0 };
+      if (miniStick) miniStick.style.transform = 'translate(-50%, -50%)';
+    };
+
+    const handleMiniJoystickMove = (clientX, clientY) => {
+      const dx = clientX - miniJoystickCenter.x;
+      const dy = clientY - miniJoystickCenter.y;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist > 0 ? Math.min(1, miniJoystickRadius / dist) : 0;
+      const clampedX = dx * ratio;
+      const clampedY = dy * ratio;
+      miniJoystickVector = {
+        x: clampedX / miniJoystickRadius,
+        y: clampedY / miniJoystickRadius
+      };
+      if (miniStick) {
+        miniStick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+      }
+    };
+
+    if (miniJoystick) {
+      miniJoystick.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        const rect = miniJoystick.getBoundingClientRect();
+        miniJoystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        miniJoystickActive = true;
+        handleMiniJoystickMove(touch.clientX, touch.clientY);
+        e.preventDefault();
+      }, { passive: false });
+      miniJoystick.addEventListener('touchmove', (e) => {
+        if (!miniJoystickActive) return;
+        const touch = e.touches[0];
+        handleMiniJoystickMove(touch.clientX, touch.clientY);
+        e.preventDefault();
+      }, { passive: false });
+      miniJoystick.addEventListener('touchend', resetMiniJoystick);
+      miniJoystick.addEventListener('touchcancel', resetMiniJoystick);
+    }
+
+    if (miniShootBtn) {
+      const shootAction = (e) => {
+        if (e) e.preventDefault();
+        miniShoot();
+      };
+      miniShootBtn.addEventListener('touchstart', shootAction, { passive: false });
+      miniShootBtn.addEventListener('pointerdown', shootAction);
+      miniShootBtn.addEventListener('click', shootAction);
+    }
+
+    if (!('ontouchstart' in window) && controls) {
+      controls.style.display = 'none';
+    }
+  }
+
+  function startShapeBattle() {
+    ensureMiniGameElements();
+    if (!miniOverlay || !miniArena || !miniBenny) return;
+    miniGameActive = true;
+    miniOverlay.style.display = 'flex';
+    miniHealth = 150;
+    miniBennyHealth = miniBennyHealthMax;
+    miniShots = [];
+    miniEnemyShots = [];
+    miniKeys = { left: false, right: false, up: false, down: false };
+    miniLastDir = { x: 1, y: 0 };
+    miniShapes.forEach(shape => shape.remove());
+    miniShapes = [];
+    if (miniHealthFill) miniHealthFill.style.width = '100%';
+    if (miniHealthText) miniHealthText.textContent = `${miniHealth} hits`;
+    if (miniBennyHealthFill) miniBennyHealthFill.style.width = '100%';
+    const arenaRect = miniArena.getBoundingClientRect();
+    miniBenny.dataset.x = String(arenaRect.width * 0.2);
+    miniBenny.dataset.y = String(arenaRect.height * 0.7);
+    miniBenny.style.transform = `translate(${miniBenny.dataset.x}px, ${miniBenny.dataset.y}px)`;
+    const lvl = levelSelect ? levelSelect.value : 'easy';
+    const shapeCount = lvl === 'easy' ? 1 : (lvl === 'medium' ? 2 : 3);
+    for (let i = 0; i < shapeCount; i++) {
+      const shape = document.createElement('div');
+      shape.className = 'decimal-mini-shape';
+      shape.innerHTML = '<span></span><span></span><span></span><span></span>';
+      const sx = arenaRect.width * (0.6 + Math.random() * 0.3);
+      const sy = arenaRect.height * (0.2 + Math.random() * 0.6);
+      shape.dataset.x = String(sx);
+      shape.dataset.y = String(sy);
+      shape.dataset.speed = String(0.7 + Math.random() * 0.4);
+      shape.style.transform = `translate(${sx}px, ${sy}px)`;
+      miniArena.appendChild(shape);
+      miniShapes.push(shape);
+    }
+    miniNextEnemyShotAt = performance.now() + 1200;
+    if (miniAnimId) cancelAnimationFrame(miniAnimId);
+    miniAnimId = requestAnimationFrame(miniLoop);
+  }
+
+  function stopShapeBattle(silent = false) {
+    miniGameActive = false;
+    if (miniAnimId) cancelAnimationFrame(miniAnimId);
+    miniAnimId = null;
+    miniShots.forEach(s => s.remove());
+    miniShots = [];
+    miniEnemyShots.forEach(s => s.remove());
+    miniEnemyShots = [];
+    if (miniOverlay) miniOverlay.style.display = 'none';
+    if (!silent) {
+      feedbackEl.textContent = 'Benny disarmed the synthe!';
+      promptEl.textContent = 'Press Start to play again.';
+    }
+  }
+
+  function failShapeBattle() {
+    stopShapeBattle(true);
+    feedbackEl.textContent = 'Its ok benny just needs a nap';
+    promptEl.textContent = 'Resting...';
+    setTimeout(() => {
+      promptEl.textContent = 'Press Start to try again.';
+    }, 3500);
+  }
+
+  function miniShoot() {
+    if (!miniGameActive || !miniArena || !miniBenny) return;
+    const bx = parseFloat(miniBenny.dataset.x || '0');
+    const by = parseFloat(miniBenny.dataset.y || '0');
+    const dirX = miniLastDir.x || 1;
+    const dirY = miniLastDir.y || 0;
+    const offsets = [-6, 6];
+    offsets.forEach((off) => {
+      const shot = document.createElement('div');
+      shot.className = 'decimal-mini-shot';
+      shot.textContent = '−';
+      shot.dataset.x = String(bx + 18);
+      shot.dataset.y = String(by + 18 + off);
+      shot.dataset.vx = String(dirX * 6);
+      shot.dataset.vy = String(dirY * 6);
+      miniArena.appendChild(shot);
+      miniShots.push(shot);
+    });
+  }
+
+  function makeEnemyProblem() {
+    const a = rand(2, 9);
+    const b = rand(1, 9);
+    const op = Math.random() < 0.5 ? '+' : '-';
+    return { text: `${a}${op}${b}` };
+  }
+
+  function miniLoop() {
+    if (!miniGameActive || !miniArena || !miniBenny) return;
+    const arenaRect = miniArena.getBoundingClientRect();
+    const bennySize = 40;
+    const shapeSize = 56;
+    let bx = parseFloat(miniBenny.dataset.x || '0');
+    let by = parseFloat(miniBenny.dataset.y || '0');
+    const moveX = miniJoystickActive ? miniJoystickVector.x : (miniKeys.right ? 1 : 0) - (miniKeys.left ? 1 : 0);
+    const moveY = miniJoystickActive ? miniJoystickVector.y : (miniKeys.down ? 1 : 0) - (miniKeys.up ? 1 : 0);
+    if (moveX || moveY) {
+      const len = Math.hypot(moveX, moveY) || 1;
+      miniLastDir = { x: moveX / len, y: moveY / len };
+    }
+    const speed = 3.2;
+    bx = clamp(bx + moveX * speed, 0, Math.max(0, arenaRect.width - bennySize));
+    by = clamp(by + moveY * speed, 0, Math.max(0, arenaRect.height - bennySize));
+    miniBenny.dataset.x = String(bx);
+    miniBenny.dataset.y = String(by);
+    miniBenny.style.transform = `translate(${bx}px, ${by}px)`;
+
+    miniShapes.forEach((shape, idx) => {
+      let sx = parseFloat(shape.dataset.x || '0');
+      let sy = parseFloat(shape.dataset.y || '0');
+      const dx = bx - sx;
+      const dy = by - sy;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      const chaseSpeed = parseFloat(shape.dataset.speed || '1.1');
+      const wiggle = (idx % 2 === 0 ? 1 : -1) * 0.4;
+      sx = clamp(sx + (dx / dist) * chaseSpeed + wiggle, 0, Math.max(0, arenaRect.width - shapeSize));
+      sy = clamp(sy + (dy / dist) * chaseSpeed - wiggle, 0, Math.max(0, arenaRect.height - shapeSize));
+      shape.dataset.x = String(sx);
+      shape.dataset.y = String(sy);
+      shape.style.transform = `translate(${sx}px, ${sy}px)`;
+    });
+
+    const now = performance.now();
+    if (now >= miniNextEnemyShotAt) {
+      miniNextEnemyShotAt = now + 1400;
+      miniShapes.forEach((shape) => {
+        const sx = parseFloat(shape.dataset.x || '0');
+        const sy = parseFloat(shape.dataset.y || '0');
+        const dx = bx - sx;
+        const dy = by - sy;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const vx = (dx / dist) * 2.4;
+        const vy = (dy / dist) * 2.4;
+        const shot = document.createElement('div');
+        shot.className = 'decimal-mini-enemy-shot';
+        const prob = makeEnemyProblem();
+        shot.textContent = prob.text;
+        shot.dataset.x = String(sx + shapeSize / 2);
+        shot.dataset.y = String(sy + shapeSize / 2);
+        shot.dataset.vx = String(vx);
+        shot.dataset.vy = String(vy);
+        miniArena.appendChild(shot);
+        miniEnemyShots.push(shot);
+      });
+    }
+
+    miniShots = miniShots.filter((shot) => {
+      let x = parseFloat(shot.dataset.x || '0');
+      let y = parseFloat(shot.dataset.y || '0');
+      const vx = parseFloat(shot.dataset.vx || '0');
+      const vy = parseFloat(shot.dataset.vy || '0');
+      x += vx;
+      y += vy;
+      shot.dataset.x = String(x);
+      shot.dataset.y = String(y);
+      shot.style.transform = `translate(${x}px, ${y}px)`;
+      if (x < -20 || y < -20 || x > arenaRect.width + 20 || y > arenaRect.height + 20) {
+        shot.remove();
+        return false;
+      }
+      for (let i = 0; i < miniShapes.length; i++) {
+        const shape = miniShapes[i];
+        const sx = parseFloat(shape.dataset.x || '0');
+        const sy = parseFloat(shape.dataset.y || '0');
+        const hit = x + 10 > sx && x < sx + shapeSize && y + 10 > sy && y < sy + shapeSize;
+        if (hit) {
+          shot.remove();
+          miniHealth = Math.max(0, miniHealth - 1);
+          if (miniHealthFill) miniHealthFill.style.width = `${(miniHealth / 150) * 100}%`;
+          if (miniHealthText) miniHealthText.textContent = `${miniHealth} hits`;
+          if (miniHealth <= 0) {
+            stopShapeBattle(false);
+          }
+          return false;
+        }
+      }
+      return true;
+    });
+
+    miniEnemyShots = miniEnemyShots.filter((shot) => {
+      let x = parseFloat(shot.dataset.x || '0');
+      let y = parseFloat(shot.dataset.y || '0');
+      const vx = parseFloat(shot.dataset.vx || '0');
+      const vy = parseFloat(shot.dataset.vy || '0');
+      x += vx;
+      y += vy;
+      shot.dataset.x = String(x);
+      shot.dataset.y = String(y);
+      shot.style.transform = `translate(${x}px, ${y}px)`;
+      if (x < -40 || y < -40 || x > arenaRect.width + 40 || y > arenaRect.height + 40) {
+        shot.remove();
+        return false;
+      }
+      const hit = x + 14 > bx && x < bx + bennySize && y + 14 > by && y < by + bennySize;
+      if (hit) {
+        shot.remove();
+        miniBenny.classList.add('hit');
+        setTimeout(() => miniBenny.classList.remove('hit'), 180);
+        miniBennyHealth = Math.max(0, miniBennyHealth - 1);
+        if (miniBennyHealthFill) {
+          miniBennyHealthFill.style.width = `${(miniBennyHealth / miniBennyHealthMax) * 100}%`;
+        }
+        if (miniBennyHealth <= 0) {
+          failShapeBattle();
+          return false;
+        }
+        return false;
+      }
+      return true;
+    });
+
+    miniAnimId = requestAnimationFrame(miniLoop);
   }
 
   function handleArenaJoystickMove(clientX, clientY) {
@@ -1525,6 +1881,8 @@
   window.__MathSynthCleanup = () => {
     stopTimer();
     stopOthersSpawner();
+    stopShapeBattle(true);
+    stopArena();
     hideAnswerSection();
     hideMobilePopup();
     window.__MathSynthCleanup = null;

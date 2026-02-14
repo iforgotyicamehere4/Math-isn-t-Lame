@@ -112,6 +112,25 @@ bi.benny-world {
   font-size: 0.85rem;
 }
 
+.bw-progress-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(145deg, rgba(26, 35, 60, 0.9), rgba(12, 18, 34, 0.9));
+  color: #d9eeff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.bw-progress-btn:hover {
+  filter: brightness(1.08);
+}
+
 .bw-music-toggle input {
   width: 16px;
   height: 16px;
@@ -741,6 +760,154 @@ bi.benny-world {
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
 
+.bw-benny .hardhat,
+.bw-benny .nuclear-gauge {
+  display: none;
+}
+
+.bw-benny.bw-benny--nuclear .hardhat {
+  position: absolute;
+  left: 5px;
+  top: -8px;
+  width: 17px;
+  height: 9px;
+  border-radius: 9px 9px 5px 5px;
+  background: linear-gradient(180deg, #ffd94b 0%, #f8c319 64%, #d39600 100%);
+  border: 1px solid rgba(102, 68, 0, 0.55);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  display: block;
+  z-index: 9;
+}
+
+.bw-benny.bw-benny--nuclear .hardhat::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 3px;
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #c40d1f 0%, #ffffff 50%, #0a3da8 100%);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.bw-benny.bw-benny--nuclear .hardhat .hardhat-brand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3px;
+  text-align: center;
+  font-size: 2.6px;
+  font-weight: 900;
+  color: #0f1b34;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  z-index: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge {
+  position: absolute;
+  right: -44px; /* spaced in front of Benny silhouette */
+  top: -12px;
+  width: 38px;
+  height: 52px;
+  display: block;
+  z-index: 8;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-handle {
+  position: absolute;
+  left: 2px;
+  top: 0;
+  width: 32px;
+  height: 7px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #d9e7ff 0%, #4d6fa8 55%, #0f1a2e 100%);
+  border: 1px solid rgba(11, 20, 34, 0.55);
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-knob {
+  position: absolute;
+  left: 15px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #8fa0ba 0%, #2f3f59 70%);
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-post {
+  position: absolute;
+  top: 6px;
+  width: 3px;
+  height: 31px; /* longer rod */
+  border-radius: 2px;
+  background: linear-gradient(180deg, #8397b9 0%, #3e4f6f 100%);
+  border: 1px solid rgba(10, 17, 28, 0.4);
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-post-left {
+  left: 11px;
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-post-right {
+  left: 20px;
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-base {
+  position: absolute;
+  left: 2px;
+  bottom: 0;
+  width: 34px;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #f6e45c 0%, #e4cc39 62%, #a5901f 100%);
+  border: 1px solid rgba(76, 66, 0, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* 22-button keypad style: 2 side buttons + 5x4 matrix on panel */
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-base::before {
+  content: "";
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 22px;
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #d6dbe7, #a9b2c4);
+  border: 1px solid rgba(22, 32, 54, 0.35);
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-base::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 4px;
+  width: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: #3c4f73;
+  box-shadow:
+    0 4px 0 #3c4f73,
+    8px 0 0 #3c4f73, 12px 0 0 #3c4f73, 16px 0 0 #3c4f73, 20px 0 0 #3c4f73,
+    8px 2px 0 #566d98, 12px 2px 0 #566d98, 16px 2px 0 #566d98, 20px 2px 0 #566d98,
+    8px 4px 0 #3c4f73, 12px 4px 0 #3c4f73, 16px 4px 0 #3c4f73, 20px 4px 0 #3c4f73,
+    8px 6px 0 #566d98, 12px 6px 0 #566d98, 16px 6px 0 #566d98, 20px 6px 0 #566d98,
+    8px 8px 0 #3c4f73, 12px 8px 0 #3c4f73, 16px 8px 0 #3c4f73, 20px 8px 0 #3c4f73;
+}
+
+/* Keep silhouette consistent with other mini games. */
+.bw-benny.bw-benny--nuclear .back {
+  display: block;
+}
+
 .bw-attack-ring {
   position: absolute;
   width: 90px;
@@ -765,6 +932,219 @@ bi.benny-world {
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.35);
   user-select: none;
   touch-action: none;
+}
+
+.bw-air-enemy {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  z-index: 5;
+  user-select: none;
+  pointer-events: none;
+  box-shadow:
+    0 10px 16px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.bw-air-enemy.syntax {
+  background: linear-gradient(145deg, #ffe57a, #f4b23a);
+  border: 2px solid rgba(104, 67, 0, 0.45);
+}
+
+.bw-air-enemy.bug {
+  background: linear-gradient(145deg, #b8ffbe, #31c87b);
+  border: 2px solid rgba(4, 71, 43, 0.45);
+}
+
+.bw-error-projectile {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 1rem;
+  z-index: 6;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bw-error-projectile.warning {
+  background: linear-gradient(145deg, #fff3a7, #f2bb31);
+  box-shadow: 0 8px 12px rgba(106, 73, 0, 0.36);
+}
+
+.bw-error-projectile.stop {
+  background: linear-gradient(145deg, #ff9c9c, #ff4e4e);
+  box-shadow: 0 8px 12px rgba(109, 0, 0, 0.36);
+}
+
+.bw-debug-king {
+  position: absolute;
+  width: 160px;
+  height: 120px;
+  display: none;
+  pointer-events: none;
+  z-index: 7;
+  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.5));
+}
+
+.bw-debug-king.active {
+  display: block;
+}
+
+.bw-debug-king.hit {
+  transform: scale(1.05) rotate(-2deg);
+}
+
+.bw-debug-king__crown {
+  position: absolute;
+  left: 24px;
+  top: -6px;
+  padding: 3px 8px;
+  border-radius: 10px 10px 6px 6px;
+  background: linear-gradient(180deg, #ffe17a, #c88c21);
+  color: #2a1b00;
+  font-weight: 900;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  box-shadow:
+    0 5px 10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.bw-debug-king__cloak {
+  position: absolute;
+  left: 6px;
+  top: 24px;
+  width: 148px;
+  height: 82px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #2f1d56 0%, #1b153a 56%, #0f1a2f 100%);
+  border: 2px solid rgba(170, 188, 255, 0.45);
+  color: #9ff4ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 8px 10px;
+  line-height: 1.2;
+  box-shadow:
+    0 0 14px rgba(120, 150, 255, 0.3),
+    inset 0 -8px 12px rgba(0, 0, 0, 0.45);
+}
+
+.bw-debug-king__body {
+  position: absolute;
+  left: 34px;
+  top: 56px;
+  min-width: 90px;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #152c50, #0f1d36);
+  border: 1px solid rgba(158, 203, 255, 0.48);
+  color: #f4fbff;
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  animation: bwDebugShift 1.3s steps(2) infinite;
+}
+
+.bw-boss-arena {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  border: 3px dashed rgba(147, 190, 255, 0.5);
+  box-shadow:
+    0 0 22px rgba(110, 170, 255, 0.28),
+    inset 0 0 28px rgba(40, 70, 140, 0.23);
+  display: none;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.bw-boss-arena.active {
+  display: block;
+}
+
+.bw-boss-projectile {
+  position: absolute;
+  min-width: 42px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  text-align: center;
+  font-family: "Courier New", monospace;
+  font-weight: 800;
+  font-size: 0.72rem;
+  z-index: 6;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bw-boss-projectile.syntax {
+  background: linear-gradient(130deg, #ff8ca0, #ff4f6a);
+  color: #25080f;
+  box-shadow: 0 8px 14px rgba(90, 0, 18, 0.4);
+}
+
+.bw-boss-projectile.illusion {
+  background: linear-gradient(130deg, #6dd3ff, #7a7aff);
+  color: #050a29;
+  box-shadow: 0 8px 14px rgba(18, 26, 102, 0.4);
+}
+
+.bw-pattern-node {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #fff2a8, #f8bf4f);
+  border: 2px solid rgba(0, 0, 0, 0.35);
+  color: #3b2300;
+  font-weight: 900;
+  font-size: 0.85rem;
+  z-index: 7;
+  pointer-events: none;
+  box-shadow: 0 10px 14px rgba(0, 0, 0, 0.35);
+}
+
+.bw-pattern-node.done {
+  background: linear-gradient(145deg, #9cffc3, #3fd48d);
+  color: #08341f;
+}
+
+.bw-boss-pulse {
+  position: absolute;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 3px solid rgba(190, 236, 255, 0.85);
+  box-shadow: 0 0 18px rgba(126, 207, 255, 0.5);
+  pointer-events: none;
+  z-index: 8;
+  animation: bwPulse 260ms ease-out forwards;
+}
+
+@keyframes bwDebugShift {
+  0% {
+    transform: skewX(0deg);
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    transform: skewX(-4deg);
+    filter: hue-rotate(20deg);
+  }
+  100% {
+    transform: skewX(3deg);
+    filter: hue-rotate(-15deg);
+  }
 }
 
 @keyframes bwPulse {

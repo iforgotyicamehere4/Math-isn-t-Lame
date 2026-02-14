@@ -159,6 +159,7 @@ function getColorFill(color) {
 
 export default function Profile() {
   const [refresh, setRefresh] = useState(0);
+  const [dashDeleteMode, setDashDeleteMode] = useState('easy');
   const currentUser = useMemo(() => localStorage.getItem('mathpop_current_user'), []);
   const [jukeboxState, setJukeboxState] = useState(() => loadJukeboxState(currentUser));
   const profile = useMemo(() => {
@@ -384,6 +385,22 @@ export default function Profile() {
       return next;
     });
   };
+  const deleteBennyDashProgress = () => {
+    if (!currentUser) return;
+    const mode = ['easy', 'medium', 'mathanomical'].includes(dashDeleteMode) ? dashDeleteMode : 'easy';
+    const scopedKey = `mathpop_benny_dash_progress_${currentUser}_${mode}`;
+    localStorage.removeItem(scopedKey);
+    // Cleanup old legacy key if user clears easy (legacy had no difficulty suffix).
+    if (mode === 'easy') {
+      localStorage.removeItem(`mathpop_benny_dash_progress_${currentUser}`);
+    }
+    if (typeof window !== 'undefined' && typeof window.showUnifyMessage === 'function') {
+      window.showUnifyMessage({ text: `Deleted Benny Dash ${mode} progress.`, topic: 'profile' });
+    } else {
+      window.alert(`Deleted Benny Dash ${mode} progress.`);
+    }
+    setRefresh((v) => v + 1);
+  };
   const renderJukebox = () => (
     <>
       <p className="profile-subtitle">Tap a song to switch it On or Off.</p>
@@ -589,6 +606,20 @@ export default function Profile() {
           </div>
           {renderJukebox()}
         </div>
+        <div className="profile-box">
+          <div className="box-header">
+            <h2>Delete Dash Save</h2>
+          </div>
+          <p className="profile-subtitle">Choose a difficulty save to delete.</p>
+          <select value={dashDeleteMode} onChange={(e) => setDashDeleteMode(e.target.value)}>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="mathanomical">Mathanomical</option>
+          </select>
+          <button type="button" className="tier-buy" onClick={deleteBennyDashProgress}>
+            Delete Benny Saved Progress
+          </button>
+        </div>
       </section>
 
       <section className="profile-metrics">
@@ -697,6 +728,19 @@ export default function Profile() {
           <div className="profile-card jukebox-card">
             <h2>Benny Jukebox</h2>
             {renderJukebox()}
+          </div>
+
+          <div className="profile-card benny-progress-card">
+            <h2>Delete Benny Dash Save</h2>
+            <p className="profile-subtitle">Choose difficulty progress to remove.</p>
+            <select value={dashDeleteMode} onChange={(e) => setDashDeleteMode(e.target.value)}>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="mathanomical">Mathanomical</option>
+            </select>
+            <button type="button" className="tier-buy" onClick={deleteBennyDashProgress}>
+              Delete Benny Saved Progress
+            </button>
           </div>
         </div>
 

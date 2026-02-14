@@ -16,8 +16,11 @@ export default function useScriptOnce(src, key) {
     // Check if already loaded
     const existing = document.querySelector(`script[data-script-key="${key}"]`);
     if (existing) {
+      const domLoaded = existing.dataset.loaded === 'true';
       // Check if already loaded successfully
-      if (loadedRef.current) {
+      if (loadedRef.current || domLoaded) {
+        loadedRef.current = true;
+        loadingRef.current = false;
         return Promise.resolve(existing);
       }
       // If still loading, wait for it
@@ -58,6 +61,7 @@ export default function useScriptOnce(src, key) {
       script.onload = () => {
         loadedRef.current = true;
         loadingRef.current = false;
+        script.dataset.loaded = 'true';
         console.log(`[useScriptOnce] Loaded: ${src}`);
         resolve(script);
       };

@@ -118,6 +118,24 @@ let miniJoystickActive = false;
 let miniJoystickVector = { x: 0, y: 0 };
 let miniJoystickCenter = { x: 0, y: 0 };
 const miniJoystickRadius = 28;
+const BUG_SYMBOLS = ['+', '-', '*', '/', '=', '>', '<', '≈', '≠', '√', '%'];
+const BUG_HEADS = ['0', '8', '9', '∞', 'θ', 'π'];
+const BUG_HANDS_LEFT = ['(', '{', '<', '['];
+const BUG_HANDS_RIGHT = [')', '}', '>', ']'];
+const BUG_FEET_LEFT = ['_', '/', '='];
+const BUG_FEET_RIGHT = ['_', '\\', '='];
+const BROKEN_PHRASES = [
+  'x+/=y',
+  'if n then ?',
+  '2x==/4',
+  'sum( ) ?',
+  'frac//mix',
+  '÷ by zero?',
+  '(a+b] =',
+  'solve: ??',
+  'x<=>/y',
+  '∫ no dx'
+];
 
 function currentUser() {
   return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -285,7 +303,10 @@ class Bubble {
     this.fraction = labelFrac; // {num,den} or mixed-like display object accepted by formatDisplay
     this.x = x;
     this.y = -40;
-    this.radius = 38;
+    this.radius = 40;
+    this.w = 92;
+    this.h = 114;
+    this.sprite = createSyntaxBugSprite();
     this.speed = computePxPerSec(currentLevel()); // px/sec
   }
 
@@ -298,28 +319,139 @@ class Bubble {
 
   draw() {
     if (!ctx) return;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#78d3f7";
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "#fff";
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.fillStyle = "#fff";
-    ctx.font = "16px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const txt = formatDisplay(this.fraction) || "";
-    ctx.fillText(txt, this.x, this.y);
+    drawSyntaxBug(ctx, this.x, this.y, this.w, this.h, this.sprite, formatDisplay(this.fraction) || '');
   }
 
   isClicked(mouseX, mouseY) {
-    const dx = mouseX - this.x;
-    const dy = mouseY - this.y;
-    return Math.sqrt(dx * dx + dy * dy) < this.radius;
+    return (
+      mouseX >= this.x - this.w * 0.5 &&
+      mouseX <= this.x + this.w * 0.5 &&
+      mouseY >= this.y - this.h * 0.48 &&
+      mouseY <= this.y + this.h * 0.52
+    );
   }
+}
+
+function pick(arr) {
+  return arr[randInt(0, arr.length - 1)];
+}
+
+function createSyntaxBugSprite() {
+  return {
+    head: pick(BUG_HEADS),
+    phrase: pick(BROKEN_PHRASES),
+    armL: pick(BUG_SYMBOLS),
+    armR: pick(BUG_SYMBOLS),
+    handL: pick(BUG_HANDS_LEFT),
+    handR: pick(BUG_HANDS_RIGHT),
+    legL: pick(['1', '7', '|', '/']),
+    legR: pick(['2', '4', '|', '\\']),
+    footL: pick(BUG_FEET_LEFT),
+    footR: pick(BUG_FEET_RIGHT),
+    tilt: (Math.random() - 0.5) * 0.36,
+    limbWarpL: (Math.random() - 0.5) * 16,
+    limbWarpR: (Math.random() - 0.5) * 16,
+    hue: randInt(188, 328)
+  };
+}
+
+function drawSyntaxBug(context, x, y, w, h, sprite, torsoLabel) {
+  const bodyTop = y - h * 0.28;
+  const bodyH = h * 0.52;
+  const bodyW = w * 0.64;
+  const bodyX = x - bodyW * 0.5;
+  const bodyY = bodyTop;
+  const headY = y - h * 0.48;
+  const legY = y + h * 0.22;
+
+  context.save();
+  context.translate(x, y);
+  context.rotate(sprite.tilt);
+  context.translate(-x, -y);
+
+  // Ground/contact shadow
+  context.fillStyle = 'rgba(2, 8, 24, 0.52)';
+  context.beginPath();
+  context.ellipse(x, y + h * 0.5, w * 0.44, h * 0.1, 0, 0, Math.PI * 2);
+  context.fill();
+
+  // Ambient soft glow for pseudo-4D depth
+  context.fillStyle = `hsla(${sprite.hue}, 78%, 62%, 0.17)`;
+  context.beginPath();
+  context.ellipse(x, y + 6, w * 0.62, h * 0.58, 0, 0, Math.PI * 2);
+  context.fill();
+
+  // Torso plate
+  const torsoGradient = context.createLinearGradient(bodyX, bodyY, bodyX + bodyW, bodyY + bodyH);
+  torsoGradient.addColorStop(0, '#203764');
+  torsoGradient.addColorStop(0.55, '#17284c');
+  torsoGradient.addColorStop(1, '#0a132a');
+  context.fillStyle = torsoGradient;
+  roundRect(context, bodyX, bodyY, bodyW, bodyH, 14);
+  context.fill();
+  context.strokeStyle = 'rgba(180, 210, 255, 0.88)';
+  context.lineWidth = 2;
+  roundRect(context, bodyX, bodyY, bodyW, bodyH, 14);
+  context.stroke();
+
+  // Bevel highlight
+  context.strokeStyle = 'rgba(234, 247, 255, 0.34)';
+  context.lineWidth = 1.2;
+  roundRect(context, bodyX + 4, bodyY + 3, bodyW - 8, bodyH - 9, 10);
+  context.stroke();
+
+  // Head glyph
+  context.fillStyle = '#eff8ff';
+  context.font = `900 ${Math.max(20, Math.round(h * 0.2))}px "Courier New", monospace`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.shadowColor = 'rgba(120, 170, 255, 0.5)';
+  context.shadowBlur = 10;
+  context.fillText(sprite.head, x, headY);
+  context.shadowBlur = 0;
+
+  // Disfigured arms/hands
+  context.fillStyle = '#e8f4ff';
+  context.font = `800 ${Math.max(15, Math.round(h * 0.12))}px "Courier New", monospace`;
+  context.fillText(sprite.armL, x - bodyW * 0.7 + sprite.limbWarpL * 0.2, bodyY + bodyH * 0.34);
+  context.fillText(sprite.armR, x + bodyW * 0.7 + sprite.limbWarpR * 0.2, bodyY + bodyH * 0.31);
+  context.font = `700 ${Math.max(13, Math.round(h * 0.1))}px "Courier New", monospace`;
+  context.fillText(sprite.handL, x - bodyW * 0.86 + sprite.limbWarpL * 0.3, bodyY + bodyH * 0.5);
+  context.fillText(sprite.handR, x + bodyW * 0.86 + sprite.limbWarpR * 0.3, bodyY + bodyH * 0.47);
+
+  // Torso broken phrase + target fraction
+  context.fillStyle = '#f6fbff';
+  context.font = '700 11px "Courier New", monospace';
+  context.fillText(sprite.phrase, x, bodyY + bodyH * 0.28);
+  context.font = '900 15px "Courier New", monospace';
+  context.fillStyle = '#bdf8c8';
+  context.fillText(torsoLabel, x, bodyY + bodyH * 0.62);
+
+  // Legs + feet
+  context.fillStyle = '#e9f4ff';
+  context.font = `900 ${Math.max(14, Math.round(h * 0.12))}px "Courier New", monospace`;
+  context.fillText(sprite.legL, x - bodyW * 0.2 + sprite.limbWarpL * 0.1, legY);
+  context.fillText(sprite.legR, x + bodyW * 0.2 + sprite.limbWarpR * 0.1, legY + 2);
+  context.font = `800 ${Math.max(12, Math.round(h * 0.09))}px "Courier New", monospace`;
+  context.fillText(sprite.footL, x - bodyW * 0.27, legY + 14);
+  context.fillText(sprite.footR, x + bodyW * 0.27, legY + 14);
+
+  context.restore();
+}
+
+function roundRect(context, x, y, width, height, radius) {
+  const r = Math.min(radius, width * 0.5, height * 0.5);
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.lineTo(x + width - r, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + r);
+  context.lineTo(x + width, y + height - r);
+  context.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  context.lineTo(x + r, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - r);
+  context.lineTo(x, y + r);
+  context.quadraticCurveTo(x, y, x + r, y);
+  context.closePath();
 }
 function computePxPerSec(level) {
   syncCanvasSize();
@@ -597,7 +729,7 @@ function startRound() {
 
   currentProblem = generateProblemForLevel(level, choiceCount);
 
-  setStatus("Get 'em tiger");
+  setStatus("Syntax Bugs incoming. Solve to survive.");
   if (targetEl) targetEl.textContent = `Find: ${currentProblem.display}`;
   if (hintEl) setHint(currentProblem.hint || "");
 
@@ -745,7 +877,7 @@ function startMiniGame() {
   roundActive = false;
   miniGameActive = true;
   miniGameDone = false;
-  setStatus("Mini game! Help Benny tag the circles for 25 seconds.");
+  setStatus("Mini game! Help Benny squash Syntax Bugs for 25 seconds.");
   if (inputEl) inputEl.disabled = true;
   syncCanvasSize();
   document.body.classList.add('capture-mini-active');
@@ -783,13 +915,20 @@ function finishMiniGame() {
 }
 
 function spawnMiniCircle(speed) {
+  const w = randInt(74, 102);
+  const h = randInt(88, 124);
   return {
     x: randInt(80, (canvas ? canvas.width : 800) - 80),
     y: randInt(80, (canvas ? canvas.height : 600) - 80),
-    r: randInt(22, 34),
+    r: Math.max(20, Math.round(Math.min(w, h) * 0.32)),
+    w,
+    h,
     vx: (Math.random() < 0.5 ? -1 : 1) * (speed + randInt(0, 70)),
     vy: (Math.random() < 0.5 ? -1 : 1) * (speed + randInt(0, 70)),
-    color: `hsl(${randInt(160, 320)}, 70%, 60%)`
+    color: `hsl(${randInt(160, 320)}, 70%, 60%)`,
+    sprite: createSyntaxBugSprite(),
+    syntaxLabel: pick(BROKEN_PHRASES),
+    wobble: Math.random() * Math.PI * 2
   };
 }
 
@@ -846,6 +985,7 @@ function updateMiniGame(deltaSec) {
   miniCircles.forEach((circle) => {
     circle.x += circle.vx * deltaSec;
     circle.y += circle.vy * deltaSec;
+    circle.wobble += deltaSec * (2.8 + Math.random() * 0.3);
     if (circle.x - circle.r < 0 || circle.x + circle.r > canvas.width) circle.vx *= -1;
     if (circle.y - circle.r < 0 || circle.y + circle.r > canvas.height) circle.vy *= -1;
   });
@@ -872,7 +1012,7 @@ function updateMiniGame(deltaSec) {
       if (Math.hypot(dxC, dyC) < circle.r + 8) {
         hit = true;
         awardPoints(MINI_POINTS_PER_CIRCLE);
-        setStatus(`Nice hit! +${MINI_POINTS_PER_CIRCLE}`);
+        setStatus(`Syntax Bug zapped! +${MINI_POINTS_PER_CIRCLE}`);
         return false;
       }
       return true;
@@ -885,7 +1025,7 @@ function updateMiniGame(deltaSec) {
     const now = performance.now();
     if (now >= miniClearBonusCooldownUntil) {
       awardPoints(1000);
-      setStatus("Circle clear bonus! +1000");
+      setStatus("Syntax swarm clear bonus! +1000");
       miniClearBonusCooldownUntil = now + 500;
       const level = currentLevel();
       const count = getMiniCircleCount(level);
@@ -905,13 +1045,17 @@ function drawMiniGame() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   miniCircles.forEach((circle) => {
-    ctx.beginPath();
-    ctx.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2);
-    ctx.fillStyle = circle.color;
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "#ffffff";
-    ctx.stroke();
+    const wobbleX = Math.sin(circle.wobble) * 6;
+    const wobbleY = Math.cos(circle.wobble * 1.2) * 4;
+    drawSyntaxBug(
+      ctx,
+      circle.x + wobbleX,
+      circle.y + wobbleY,
+      circle.w,
+      circle.h,
+      circle.sprite,
+      circle.syntaxLabel
+    );
   });
 
   miniShots.forEach((shot) => {
@@ -932,7 +1076,7 @@ function drawMiniHud() {
   ctx.fillRect(12, 12, 200, 56);
   ctx.fillStyle = "#eaf6ff";
   ctx.font = "600 14px Arial";
-  ctx.fillText("Mini Game", 22, 32);
+  ctx.fillText("Syntax Bug Hunt", 22, 32);
   ctx.font = "12px Arial";
   ctx.fillText(`Time: ${(timeLeft / 1000).toFixed(1)}s`, 22, 50);
   ctx.fillText("Move: Arrow keys / WASD", 22, 66);
@@ -1079,7 +1223,7 @@ function loop(timestamp) {
 // ---------- Events ----------
 if (startBtn) startBtn.addEventListener("click", () => {
   startGame();
-  setStatus("Get 'em tiger");
+  setStatus("Syntax Bugs incoming. Solve to survive.");
 });
 if (pauseBtn) pauseBtn.addEventListener("click", togglePause);
 
@@ -1138,7 +1282,7 @@ window.addEventListener('keydown', keydownHandler);
 window.addEventListener('keyup', keyupHandler);
 
 updateHud();
-setStatus("Press Start to begin.");
+setStatus("Press Start to begin. Syntax Bug alert.");
 
 // ---------- helpers ----------
 function layOutBubbleX(count) {

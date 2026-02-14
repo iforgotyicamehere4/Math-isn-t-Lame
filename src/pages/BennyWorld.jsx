@@ -11,7 +11,7 @@ export default function BennyWorld() {
     toggleId: 'bwMusicToggle',
     popupId: 'bwNowPlaying',
     statusId: 'bwStatus',
-    interactionSelectors: ['#bennyWorldArea', '#bwJump', '#bwGlide', '#bwPlane'],
+    interactionSelectors: ['#bennyWorldArea', '#bwJump', '#bwGlide', '#bwPlane', '#bwFire'],
     startChecked: true,
     enableHeadsetControls: false
   });
@@ -45,6 +45,9 @@ export default function BennyWorld() {
             <option value="mathanomical">Mathanomical</option>
           </select>
         </label>
+        <button id="bwProgressBtn" type="button" className="bw-progress-btn">
+          Save Progress
+        </button>
         <label className="bw-music-toggle" htmlFor="bwMusicToggle">
           <input id="bwMusicToggle" type="checkbox" defaultChecked />
           Music
@@ -69,6 +72,7 @@ export default function BennyWorld() {
         
         {/* Action buttons - right side */}
         <div className="bw-actions">
+          <button className="bw-move bw-action-btn" id="bwFire" type="button" aria-label="Go Play">Go Play</button>
           <button className="bw-move bw-action-btn" id="bwJump" type="button" aria-label="Jump">Jump</button>
           <button className="bw-move bw-action-btn" id="bwGlide" type="button" aria-label="Glide">Glide</button>
           <button className="bw-move bw-action-btn" id="bwPlane" type="button" aria-label="Desk Plane">Desk Plane</button>

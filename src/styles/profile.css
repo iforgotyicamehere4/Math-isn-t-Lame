@@ -330,6 +330,20 @@
   max-width: 260px;
 }
 
+.benny-progress-card {
+  flex: 1 1 calc(50% - 16px);
+  max-width: 260px;
+}
+
+.benny-progress-card select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(11, 19, 36, 0.85);
+  color: #eaf4ff;
+  font-weight: 700;
+}
+
 .jukebox-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

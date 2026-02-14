@@ -810,10 +810,11 @@ bi.benny-world {
 
 .bw-benny.bw-benny--nuclear .nuclear-gauge {
   position: absolute;
-  right: -44px; /* spaced in front of Benny silhouette */
-  top: -12px;
-  width: 38px;
-  height: 52px;
+  right: -52px; /* keep clear space in front of Benny silhouette */
+  top: -41px;
+  --g-space: 18px; /* one wall-line gap = one space */
+  width: 46px; /* scaled to Dogineers word width */
+  height: calc(var(--g-space) * 3.5); /* 2.5 spaces rods+handle + 1 space base */
   display: block;
   z-index: 8;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
@@ -821,49 +822,72 @@ bi.benny-world {
 
 .bw-benny.bw-benny--nuclear .nuclear-gauge .g-handle {
   position: absolute;
-  left: 2px;
+  left: 1px;
   top: 0;
-  width: 32px;
-  height: 7px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #d9e7ff 0%, #4d6fa8 55%, #0f1a2e 100%);
+  width: 36px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #d9e7ff 0%, #5a78ad 50%, #14233d 100%);
   border: 1px solid rgba(11, 20, 34, 0.55);
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-handle::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 1px;
+  width: 5px;
+  height: 6px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #c7d4eb, #6078a5);
+}
+
+.bw-benny.bw-benny--nuclear .nuclear-gauge .g-handle::after {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 7px;
+  width: 3px;
+  height: 6px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #6a7e9f, #32425e);
+  border: 1px solid rgba(14, 21, 35, 0.35);
 }
 
 .bw-benny.bw-benny--nuclear .nuclear-gauge .g-knob {
   position: absolute;
-  left: 15px;
+  left: 16px;
   top: -3px;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #8fa0ba 0%, #2f3f59 70%);
 }
 
 .bw-benny.bw-benny--nuclear .nuclear-gauge .g-post {
   position: absolute;
-  top: 6px;
+  top: 8px;
   width: 3px;
-  height: 31px; /* longer rod */
+  height: calc(var(--g-space) * 2.5 - 8px); /* rod+handle total = 2.5 spaces */
   border-radius: 2px;
   background: linear-gradient(180deg, #8397b9 0%, #3e4f6f 100%);
   border: 1px solid rgba(10, 17, 28, 0.4);
 }
 
 .bw-benny.bw-benny--nuclear .nuclear-gauge .g-post-left {
-  left: 11px;
+  left: 12px;
 }
 
 .bw-benny.bw-benny--nuclear .nuclear-gauge .g-post-right {
-  left: 20px;
+  left: 23px;
 }
 
 .bw-benny.bw-benny--nuclear .nuclear-gauge .g-base {
   position: absolute;
-  left: 2px;
+  left: 0;
   bottom: 0;
-  width: 34px;
-  height: 14px;
+  width: 46px;
+  height: var(--g-space); /* one space tall */
   border-radius: 6px;
   background: linear-gradient(180deg, #f6e45c 0%, #e4cc39 62%, #a5901f 100%);
   border: 1px solid rgba(76, 66, 0, 0.5);
@@ -876,10 +900,10 @@ bi.benny-world {
 .bw-benny.bw-benny--nuclear .nuclear-gauge .g-base::before {
   content: "";
   position: absolute;
-  right: 2px;
+  right: 3px;
   top: 2px;
-  width: 22px;
-  height: 10px;
+  width: 31px;
+  height: 13px;
   border-radius: 2px;
   background: linear-gradient(180deg, #d6dbe7, #a9b2c4);
   border: 1px solid rgba(22, 32, 54, 0.35);
@@ -888,19 +912,19 @@ bi.benny-world {
 .bw-benny.bw-benny--nuclear .nuclear-gauge .g-base::after {
   content: "";
   position: absolute;
-  left: 3px;
+  left: 4px;
   top: 4px;
   width: 2px;
   height: 2px;
   border-radius: 1px;
   background: #3c4f73;
   box-shadow:
-    0 4px 0 #3c4f73,
-    8px 0 0 #3c4f73, 12px 0 0 #3c4f73, 16px 0 0 #3c4f73, 20px 0 0 #3c4f73,
-    8px 2px 0 #566d98, 12px 2px 0 #566d98, 16px 2px 0 #566d98, 20px 2px 0 #566d98,
-    8px 4px 0 #3c4f73, 12px 4px 0 #3c4f73, 16px 4px 0 #3c4f73, 20px 4px 0 #3c4f73,
-    8px 6px 0 #566d98, 12px 6px 0 #566d98, 16px 6px 0 #566d98, 20px 6px 0 #566d98,
-    8px 8px 0 #3c4f73, 12px 8px 0 #3c4f73, 16px 8px 0 #3c4f73, 20px 8px 0 #3c4f73;
+    0 5px 0 #3c4f73,
+    11px 0 0 #3c4f73, 15px 0 0 #3c4f73, 19px 0 0 #3c4f73, 23px 0 0 #3c4f73,
+    11px 3px 0 #566d98, 15px 3px 0 #566d98, 19px 3px 0 #566d98, 23px 3px 0 #566d98,
+    11px 6px 0 #3c4f73, 15px 6px 0 #3c4f73, 19px 6px 0 #3c4f73, 23px 6px 0 #3c4f73,
+    11px 9px 0 #566d98, 15px 9px 0 #566d98, 19px 9px 0 #566d98, 23px 9px 0 #566d98,
+    11px 12px 0 #3c4f73, 15px 12px 0 #3c4f73, 19px 12px 0 #3c4f73, 23px 12px 0 #3c4f73;
 }
 
 /* Keep silhouette consistent with other mini games. */

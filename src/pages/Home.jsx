@@ -297,9 +297,8 @@ function wrapPhrase(phrase, maxChars) {
         lines.push(current);
         current = '';
       }
-      for (let i = 0; i < word.length; i += maxChars) {
-        lines.push(word.slice(i, i + maxChars));
-      }
+      // Keep each word intact on its own line; never split letters across lines.
+      lines.push(word);
       return;
     }
     pushChunk(word);
@@ -344,7 +343,7 @@ function collectTargets(rows) {
   return targets;
 }
 
-function buildCompactRows(phrase, maxChars) {
+function buildCompactRows(phrase, maxChars, minCols = 1) {
   // Slightly denser wrap for post-animation mobile layout, while keeping cell size fixed.
   const lines = wrapPhrase(phrase, Math.max(5, maxChars - 2));
   const rowsByLine = lines.map((line) => {
@@ -360,7 +359,8 @@ function buildCompactRows(phrase, maxChars) {
     return rows;
   });
 
-  const maxCols = rowsByLine.reduce((m, rows) => Math.max(m, rows[0]?.length || 0), 0) || 1;
+  const lineMaxCols = rowsByLine.reduce((m, rows) => Math.max(m, rows[0]?.length || 0), 0) || 1;
+  const maxCols = Math.max(minCols, lineMaxCols);
   const centeredRows = rowsByLine.map((rows) => rows.map((row) => {
     const leftPad = Math.floor((maxCols - row.length) / 2);
     const rightPad = Math.max(0, maxCols - row.length - leftPad);
@@ -479,23 +479,23 @@ export default function Home() {
 
   const phraseLayout = useMemo(() => {
     const viewport = typeof window !== 'undefined' ? window.innerWidth : 1024;
-    const stageWidth = Math.max(260, Math.min(viewport - 30, 980));
+    const stageWidth = Math.max(220, Math.min(viewport - 24, 980));
     let maxChars = viewport <= 420 ? 9 : viewport <= 720 ? 12 : 18;
     let rows = buildPhraseRows(homeQuote.phrase, maxChars);
     let cols = rows[0]?.length || 1;
     let cellSize = Math.floor(stageWidth / cols);
+    const minCell = viewport <= 420 ? 3 : 4;
 
-    while ((cellSize < 5 || rows.length > 18) && maxChars > 6) {
+    while ((cellSize < minCell || rows.length > 18) && maxChars > 6) {
       maxChars -= 1;
       rows = buildPhraseRows(homeQuote.phrase, maxChars);
       cols = rows[0]?.length || 1;
       cellSize = Math.floor(stageWidth / cols);
     }
 
-    cellSize = Math.max(4, Math.min(viewport <= 520 ? 16 : 20, cellSize));
+    cellSize = Math.max(minCell, Math.min(viewport <= 520 ? 16 : 20, cellSize));
     const width = cols * cellSize;
-    const height = rows.length * cellSize;
-    const stageHeight = Math.max(viewport <= 520 ? 220 : 250, height + 22);
+    const baseHeight = rows.length * cellSize;
     const variant = homeQuoteSelection.quoteIndex % 25;
     const duration = 1100 + (variant % 5) * 220;
     const stagger = 6 + (variant % 7) * 4;
@@ -508,11 +508,14 @@ export default function Home() {
     ];
 
     const targets = collectTargets(rows);
-    const compactRows = buildCompactRows(homeQuote.phrase, maxChars);
+    const compactRows = buildCompactRows(homeQuote.phrase, maxChars, cols);
     const compactTargets = collectTargets(compactRows);
     const usePostLayout = viewport <= 720
       && compactTargets.length === targets.length
       && compactRows.join('') !== rows.join('');
+    const compactHeight = compactRows.length * cellSize;
+    const height = usePostLayout ? Math.max(baseHeight, compactHeight) : baseHeight;
+    const stageHeight = Math.max(viewport <= 520 ? 220 : 250, height + 22);
 
     const total = targets.length || 1;
     const mappedTargets = targets.map((target, order) => {
@@ -712,24 +715,6 @@ export default function Home() {
         </ul>
       </nav>
 
-      {/* Benny mascot with contrast toggle */}
-      <button
-        className="home-benny"
-        type="button"
-        aria-pressed={highContrast ? 'true' : 'false'}
-        title="Toggle high contrast"
-        onClick={() => setHighContrast((v) => !v)}
-      >
-        <span className="benny-base">
-          <span className="benny-shape">
-            <span className="back" />
-            <span className="leg-left" />
-            <span className="leg-right" />
-            <span className="head" />
-          </span>
-        </span>
-      </button>
-
       <header>
         <div className="hero-card">
           <p className="tagline">{tr.heroTagline || homeStrings.heroTagline}</p>
@@ -757,11 +742,6 @@ export default function Home() {
             >
               {tr.signIn || homeStrings.signIn}
             </button>
-            {currentUser && (
-              <Link className="start-btn" style={{ marginLeft: 8, textDecoration: 'none' }} to="/profile">
-                {tr.viewProfile || homeStrings.viewProfile}
-              </Link>
-            )}
             <div id="homeHighScore" style={{ marginTop: 10, color: '#e9e2e2', fontWeight: 700 }}>
               {currentUser
                 ? `${currentUser} — ${tr.highScore || homeStrings.highScore}: ${homeHighScore}`
@@ -812,6 +792,20 @@ export default function Home() {
               </div>
             ))}
           </div>
+          <button
+            className="quote-benny"
+            type="button"
+            aria-pressed={highContrast ? 'true' : 'false'}
+            title="Toggle high contrast"
+            onClick={() => setHighContrast((v) => !v)}
+          >
+            <span className="quote-benny-shape">
+              <span className="back" />
+              <span className="leg-left" />
+              <span className="leg-right" />
+              <span className="head" />
+            </span>
+          </button>
         </div>
         <blockquote className="quote-text">{tr.quoteText || homeStrings.quoteText}</blockquote>
         <p className="quote-byline">{tr.quoteByline || homeStrings.quoteByline}</p>

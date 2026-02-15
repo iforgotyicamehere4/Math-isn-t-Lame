@@ -320,13 +320,13 @@
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .mathsynth-arena .ms-enemy__eq {
     font-size: 0.7rem;
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .mathsynth-arena-controls {
     display: flex;
   }
@@ -606,7 +606,7 @@
   font-weight: 500;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .mathsynth .game-shell__body {
     color: transparent;
     display: flex;
@@ -1266,7 +1266,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .mathsynth .game-music-popup {
     right: 10px;
     top: 72px;

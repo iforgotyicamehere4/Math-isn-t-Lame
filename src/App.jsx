@@ -33,6 +33,11 @@ export default function App() {
   const unifyConfirmNoRef = useRef(null);
 
   useEffect(() => {
+    const highContrast = localStorage.getItem('highContrast') === 'true';
+    document.body.classList.toggle('high-contrast', highContrast);
+  }, [location.pathname]);
+
+  useEffect(() => {
     window.showUnifyMessage = (payload) => {
       const next = typeof payload === 'string' ? { text: payload } : (payload || {});
       const text = next.text || 'Congratulations, Mr. or Ms. Big Spender';

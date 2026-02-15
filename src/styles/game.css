@@ -226,7 +226,7 @@
   transform: translateY(0);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .game-page--mathpup .mobile-controls {
     position: static;
     display: flex;
@@ -297,7 +297,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .game-page--mathpup .number-keyboard {
     display: flex;
   }
@@ -1503,7 +1503,7 @@
     inset 0 -4px 8px rgba(0, 0, 0, 0.14);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .game-page--mathpup {
     margin: 8px;
     padding: 6px 12px 140px;
@@ -1600,7 +1600,7 @@
   display: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .game-page--mathpup .mobile-answer {
     display: flex;
     gap: 8px;

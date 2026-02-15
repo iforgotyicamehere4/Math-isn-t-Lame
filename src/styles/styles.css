@@ -717,6 +717,13 @@ h1 {
   filter: saturate(1);
 }
 
+/* Post-animation mobile re-layout: same cell size, new arrangement for long phrases */
+.quote-stage.animate.post-layout .chair {
+  transform: translate(var(--post-x, var(--end-x)), var(--post-y, var(--end-y))) rotate(0deg) scale(1);
+  transition-duration: 620ms;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 .quote-motion-5 .chair,
 .quote-motion-6 .chair,
 .quote-motion-7 .chair,

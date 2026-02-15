@@ -333,6 +333,48 @@ function buildPhraseRows(phrase, maxChars) {
   return merged;
 }
 
+function collectTargets(rows) {
+  const targets = [];
+  rows.forEach((row, r) => {
+    row.split('').forEach((cell, c) => {
+      if (cell !== '1') return;
+      targets.push({ r, c });
+    });
+  });
+  return targets;
+}
+
+function buildCompactRows(phrase, maxChars) {
+  // Slightly denser wrap for post-animation mobile layout, while keeping cell size fixed.
+  const lines = wrapPhrase(phrase, Math.max(5, maxChars - 2));
+  const rowsByLine = lines.map((line) => {
+    const rows = Array.from({ length: 5 }, () => '');
+    line.split('').forEach((rawChar, idx) => {
+      const char = /[A-Z ]/.test(rawChar) ? rawChar : ' ';
+      const pattern = LETTER_PATTERNS[char] || LETTER_PATTERNS[' '];
+      for (let r = 0; r < 5; r += 1) rows[r] += pattern[r];
+      if (idx < line.length - 1) {
+        for (let r = 0; r < 5; r += 1) rows[r] += '0';
+      }
+    });
+    return rows;
+  });
+
+  const maxCols = rowsByLine.reduce((m, rows) => Math.max(m, rows[0]?.length || 0), 0) || 1;
+  const centeredRows = rowsByLine.map((rows) => rows.map((row) => {
+    const leftPad = Math.floor((maxCols - row.length) / 2);
+    const rightPad = Math.max(0, maxCols - row.length - leftPad);
+    return `${'0'.repeat(leftPad)}${row}${'0'.repeat(rightPad)}`;
+  }));
+
+  const merged = [];
+  centeredRows.forEach((rows, idx) => {
+    merged.push(...rows);
+    if (idx < centeredRows.length - 1) merged.push('0'.repeat(maxCols));
+  });
+  return merged;
+}
+
 function getStartPoint(variant, order, total, target, width, height, cellSize) {
   const left = -2.4 * cellSize;
   const right = width + 2.4 * cellSize;
@@ -399,6 +441,7 @@ export default function Home() {
   const homeQuote = homeQuoteSelection.quote;
   const quotePronunciation = QUOTE_PRONUNCIATIONS[homeQuote.id] || homeQuote.author;
   const [phraseAnimate, setPhraseAnimate] = useState(false);
+  const [postLayoutActive, setPostLayoutActive] = useState(false);
 
   // Signup modal state
   const [suUsername, setSuUsername] = useState('');
@@ -441,9 +484,17 @@ export default function Home() {
   }, [highContrast]);
 
   useEffect(() => {
+    setPostLayoutActive(false);
     const id = requestAnimationFrame(() => setPhraseAnimate(true));
     return () => cancelAnimationFrame(id);
-  }, []);
+  }, [homeQuote.id]);
+
+  useEffect(() => {
+    if (!phraseAnimate || !phraseLayout.usePostLayout) return;
+    const delay = phraseLayout.postLayoutDelayMs || 2400;
+    const timer = window.setTimeout(() => setPostLayoutActive(true), delay);
+    return () => window.clearTimeout(timer);
+  }, [phraseAnimate, phraseLayout.postLayoutDelayMs, phraseLayout.usePostLayout]);
 
   useEffect(() => {
     if (currentUser) {
@@ -589,17 +640,17 @@ export default function Home() {
       'cubic-bezier(0.07,0.82,0.17,1)'
     ];
 
-    const targets = [];
-    rows.forEach((row, r) => {
-      row.split('').forEach((cell, c) => {
-        if (cell !== '1') return;
-        targets.push({ r, c });
-      });
-    });
+    const targets = collectTargets(rows);
+    const compactRows = buildCompactRows(homeQuote.phrase, maxChars);
+    const compactTargets = collectTargets(compactRows);
+    const usePostLayout = viewport <= 720
+      && compactTargets.length === targets.length
+      && compactRows.join('') !== rows.join('');
 
     const total = targets.length || 1;
     const mappedTargets = targets.map((target, order) => {
       const start = getStartPoint(variant, order, total, target, stageWidth, stageHeight, cellSize);
+      const compactTarget = compactTargets[order] || target;
       const delay = Math.floor(order * stagger);
       const startRotate = (variant * 19 + order * 7) % 100 - 50;
       const startScale = 0.75 + ((order + variant) % 5) * 0.08;
@@ -613,9 +664,14 @@ export default function Home() {
         duration,
         ease: easePresets[variant % easePresets.length],
         rotate: `${startRotate}deg`,
-        scale: String(startScale)
+        scale: String(startScale),
+        postX: compactTarget.c * cellSize,
+        postY: compactTarget.r * cellSize
       };
     });
+
+    const maxDelay = mappedTargets.reduce((m, t) => Math.max(m, t.delay), 0);
+    const postLayoutDelayMs = duration + maxDelay + 220;
 
     return {
       cellSize,
@@ -623,7 +679,9 @@ export default function Home() {
       height,
       stageHeight,
       variant,
-      targets: mappedTargets
+      targets: mappedTargets,
+      usePostLayout,
+      postLayoutDelayMs
     };
   }, [homeQuote.phrase, homeQuoteSelection.quoteIndex]);
 
@@ -715,7 +773,7 @@ export default function Home() {
       </header>
 
       <section
-        className={`quote-stage quote-anim-${homeQuote.id} quote-motion-${phraseLayout.variant}${phraseAnimate ? ' animate' : ''}`}
+        className={`quote-stage quote-anim-${homeQuote.id} quote-motion-${phraseLayout.variant}${phraseAnimate ? ' animate' : ''}${postLayoutActive ? ' post-layout' : ''}`}
         data-translation-key={homeQuote.translationKey}
         aria-label="Featured math quote"
       >
@@ -738,6 +796,8 @@ export default function Home() {
                   '--start-y': `${t.startY}px`,
                   '--end-x': `${t.endX}px`,
                   '--end-y': `${t.endY}px`,
+                  '--post-x': `${t.postX}px`,
+                  '--post-y': `${t.postY}px`,
                   '--delay-ms': `${t.delay}ms`,
                   '--travel-ms': `${t.duration}ms`,
                   '--travel-ease': t.ease,

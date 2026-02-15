@@ -344,6 +344,75 @@
   text-align: center;
 }
 
+.game-page--capture .capture-target-expression {
+  display: inline;
+}
+
+.game-page--capture .capture-frac-token {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.game-page--capture .capture-op-token {
+  font-weight: 900;
+  color: #f8fafc;
+}
+
+.game-page--capture .capture-denominator-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0 5px;
+  margin-left: 1px;
+  line-height: 1.15;
+  font: inherit;
+  font-weight: 800;
+  color: #0b1633;
+  background: #facc15;
+  cursor: pointer;
+}
+
+.game-page--capture .capture-denominator-btn:hover,
+.game-page--capture .capture-denominator-btn:focus-visible {
+  background: #fde047;
+  outline: 2px solid #fef08a;
+  outline-offset: 1px;
+}
+
+.game-page--capture .capture-denominator-popup {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 15, 35, 0.65);
+  z-index: 60;
+  padding: 16px;
+}
+
+.game-page--capture .capture-denominator-popup.show {
+  display: flex;
+}
+
+.game-page--capture .capture-denominator-popup__card {
+  width: min(520px, 96vw);
+  background: #f8fbff;
+  color: #0f172a;
+  border-radius: 14px;
+  border: 2px solid #93c5fd;
+  padding: 16px 16px 12px;
+  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.32);
+}
+
+.game-page--capture .capture-denominator-popup__card h3 {
+  margin: 0 0 8px;
+}
+
+.game-page--capture .capture-denominator-popup__card p {
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
 .game-page--capture #hint {
   margin-top: 8px;
   color: var(--text-secondary);

@@ -81,7 +81,9 @@ export default function Capture() {
           <label htmlFor="levelSelect">Difficulty:</label>
           <select id="levelSelect" className="select" defaultValue="easy">
             <option value="easy">Easy (halves, thirds, quarters)</option>
+            <option value="easy25">Easy .25 (improper to mixed, 90s)</option>
             <option value="medium">Medium (denominators up to 9)</option>
+            <option value="medium25">Medium .25 (add/subtract improper)</option>
             <option value="mathanomical">Mathanomical (mixed numbers)</option>
           </select>
           <button id="startBtn" className="btn btn--primary">Start</button>
@@ -98,6 +100,13 @@ export default function Capture() {
         <div className="stat-badge" id="streakDisplay">Streak: x0</div>
         <div className="stat-badge" id="targetFraction">Find: —</div>
       </section>
+      <div id="denominatorHelpPopup" className="capture-denominator-popup" aria-hidden="true">
+        <div className="capture-denominator-popup__card" role="dialog" aria-modal="false" aria-label="Denominator help">
+          <h3>Denominator</h3>
+          <p id="denominatorHelpText">The denominator is the bottom number. It tells how many equal parts make one whole.</p>
+          <button id="denominatorHelpClose" type="button" className="btn btn--secondary">Got it</button>
+        </div>
+      </div>
 
       <section className="game-body">
         <section className="game-panel" aria-live="polite">

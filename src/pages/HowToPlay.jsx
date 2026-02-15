@@ -88,6 +88,25 @@ export default function HowToPlay() {
         </div>
       </header>
 
+      <section className="tutorial-banner" aria-label="Benny tutorial animation">
+        <div className="tutorial-banner__arena">
+          <div className="tutorial-banner__benny" aria-hidden="true">
+            <div className="benny-base">
+              <div className="benny-shape">
+                <div className="back" />
+                <div className="leg-left" />
+                <div className="leg-right" />
+                <div className="head" />
+              </div>
+            </div>
+          </div>
+          <div className="tutorial-banner__bug bug-1" aria-hidden="true">x÷?</div>
+          <div className="tutorial-banner__bug bug-2" aria-hidden="true">2/?</div>
+          <div className="tutorial-banner__bug bug-3" aria-hidden="true">??</div>
+          <p className="tutorial-banner__caption">Benny is tracking Syntax Bugs...</p>
+        </div>
+      </section>
+
       <main className="campfire-scene" aria-label="Campfire scene">
         <section className="campfire-stage" aria-label="Campfire characters">
           <div className="exit-door" aria-hidden="true">
@@ -154,15 +173,55 @@ export default function HowToPlay() {
           </div>
         </section>
 
-        <section className="instructions" aria-label="Quick tips">
-          <h2>Quick Tips</h2>
-          <ol>
-            <li>Math Pup: Answer math Problems to unlock fun mini game and other unlockable features</li>
-            <li>Capture: solve the fraction prompt and pop the right bubble. Pop enough bubbles and unlock a fun mini game.</li>
-            <li>Deci-What?: Identify spelled out numbers with decimals. type in numeric value. Complete puzzle to unlock fun mini game </li>
-            <li>Ma+h 5yn+h3: Solve algebra problems to unlock mini game.</li>
-            <li>Benny Dash: Make progress in games listed above to unlock fun platformer game. </li>
-          </ol>
+        <section className="instructions" aria-label="Benny tutorial">
+          <h2>Benny&apos;s Tutorial</h2>
+          <p className="tutorial-lead">
+            Math Pop is a basic math hangout for parents and kids. Team up,
+            solve math, and help Benny clear out the dev&apos;s Syntax Bugs.
+          </p>
+
+          <div className="tutorial-block">
+            <h3>How Math Pop Works</h3>
+            <ol>
+              <li>Pick a game and choose a difficulty.</li>
+              <li>Solve each problem before the bugs get away.</li>
+              <li>Build points to trigger mini-games and clear more Syntax Bugs.</li>
+              <li>Use retries and hints to learn the method, then keep moving.</li>
+            </ol>
+          </div>
+
+          <div className="tutorial-block">
+            <h3>Game Modes</h3>
+            <ul>
+              <li><strong>Math Pup:</strong> Core warm-up math and unlockable Benny upgrades.</li>
+              <li><strong>Capture The Fraction:</strong> Pop the bubble with the correct fraction answer.</li>
+              <li><strong>Deci-What?:</strong> Translate decimal words into number form.</li>
+              <li><strong>Ma+h5Yn+h3:</strong> Algebra challenge mode with speed pressure.</li>
+            </ul>
+          </div>
+
+          <div className="tutorial-block">
+            <h3>How To Unlock Benny Dash</h3>
+            <ol>
+              <li>Play the math games above and stack points + completions.</li>
+              <li>Keep unlocking features and mini-games as you progress.</li>
+              <li>Once enough progress is saved, jump into <strong>Benny Dash</strong> from Games.</li>
+            </ol>
+          </div>
+
+          <div className="tutorial-block">
+            <h3>Profile Page</h3>
+            <ul>
+              <li>Check total points, accuracy, streaks, and best scores.</li>
+              <li>Review each game&apos;s stats and your unlock progress.</li>
+              <li>Manage Benny tiers, color unlocks, and jukebox settings.</li>
+            </ul>
+          </div>
+
+          <blockquote className="queen-line">
+            <p><strong>Syntax Bug Queen:</strong> &quot;Good luck silly goober...... nah nah boo boo.&quot;</p>
+          </blockquote>
+
           <Link id="backLink" to="/" className="back-link">Back Home</Link>
         </section>
       </main>

@@ -66,7 +66,7 @@ const BENNY_TIERS = [
   { id: 2, name: 'Greater Signs', power: 'Greater-than blast', points: 3000, streak: 0, requires: ['Easy25'] },
   { id: 3, name: 'Arrow Blaster', power: 'Arrow keys + space', points: 6000, streak: 5, requires: MEDIUM_LEVELS },
   { id: 4, name: 'Playful Benny', power: 'Benny jumps on target', points: 12000, streak: 6 },
-  { id: 5, name: 'Your a Wizard, Benny', power: 'Pi wand blast', points: 24000, streak: 8 },
+  { id: 5, name: "You're a Wizard, Benny", power: 'Pi wand blast', points: 24000, streak: 8 },
   { id: 6, name: 'Nuclear Gauge', power: 'Gamma / neutron beam', points: 36000, streak: 10 },
   { id: 7, name: 'Nurse Benny', power: 'Crash cart charge', points: 48000, streak: 12 },
   { id: 8, name: 'Dogko RKO', power: 'Dogko finisher', points: 60000, streak: 14 },
@@ -253,7 +253,7 @@ export default function Profile() {
       totalPoints: Math.max(0, remaining),
       tierUnlocks: [...tierUnlocks, tier.id]
     };
-    const msg = 'Congragulations Mr or Ms. Big Spendah';
+    const msg = 'Congratulations, Mr. or Ms. Big Spender';
     if (typeof window !== 'undefined' && typeof window.showUnifyMessage === 'function') {
       window.showUnifyMessage({ text: msg, topic: 'tiers' });
     } else {

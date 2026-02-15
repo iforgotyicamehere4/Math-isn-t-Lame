@@ -35,7 +35,7 @@ export default function App() {
   useEffect(() => {
     window.showUnifyMessage = (payload) => {
       const next = typeof payload === 'string' ? { text: payload } : (payload || {});
-      const text = next.text || 'Congragulations Mr or Ms. Big Spendah';
+      const text = next.text || 'Congratulations, Mr. or Ms. Big Spender';
       const topic = next.topic || '';
       setUnifyNotice({ open: true, text, topic });
       if (unifyTimerRef.current) clearTimeout(unifyTimerRef.current);

@@ -20,6 +20,9 @@ const targetEl = document.getElementById("targetFraction");
 const inputEl = document.getElementById("fractionInput");
 const statusEl = document.getElementById("status");
 const hintEl = document.getElementById("hint"); // optional
+const denominatorHelpPopup = document.getElementById("denominatorHelpPopup");
+const denominatorHelpText = document.getElementById("denominatorHelpText");
+const denominatorHelpClose = document.getElementById("denominatorHelpClose");
 
 let bubbles = [];
 let animationId = null;
@@ -37,17 +40,19 @@ let miniGameDone = false;
 let roundTimer = null;
 let roundStartTimestamp = 0;    // performance.now() when the current round timer started
 let roundRemainingMs = 0;       // ms remaining for the current round
+let retryUsedThisRound = false;
+let reviewPauseTimer = null;
+let reviewPauseToken = 0;
 
 const recentTargets = [];
 const RECENT_LIMIT = 8;
-const MINI_TRIGGER_SCORE = 300;
 const MINI_POINTS_PER_CIRCLE = 900;
 const MINI_POTTY_BONUS = 200;
 const MINI_SHOT_COOLDOWN = 240;
 const MINI_DURATION_MS = 25000;
 const MINI_SPAWN_INTERVAL_MS = 900;
-const MINI_TARGET_COUNT = { easy: 6, medium: 8, mathanomical: 10 };
-const MINI_MAX_COUNT = { easy: 8, medium: 11, mathanomical: 14 };
+let easy25Deck = [];
+let easy25DeckIndex = 0;
 
 const BENNY_COLORS = [
   { id: 'solid-01', name: 'Sky', type: 'solid', primary: '#7dd3fc' },
@@ -136,6 +141,11 @@ const BROKEN_PHRASES = [
   'x<=>/y',
   '∫ no dx'
 ];
+
+let targetFractionClickHandler = null;
+let denominatorCloseHandler = null;
+let denominatorEscHandler = null;
+let denominatorBackdropHandler = null;
 
 function currentUser() {
   return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -285,17 +295,64 @@ function parseFractionInput(text) {
 function currentLevel() {
   return (levelSelect && levelSelect.value) || "easy";
 }
+const LEVEL_CONFIG = {
+  easy: {
+    choiceCount: 3,
+    roundTimeMs: 90000,
+    fallDurationSeconds: 90,
+    miniTriggerScore: 1200,
+    miniTargetCount: 6,
+    miniMaxCount: 8,
+    miniSpeed: 170
+  },
+  easy25: {
+    choiceCount: 3,
+    roundTimeMs: 90000,
+    fallDurationSeconds: 90,
+    miniTriggerScore: 1300,
+    miniTargetCount: 7,
+    miniMaxCount: 9,
+    miniSpeed: 190
+  },
+  medium25: {
+    choiceCount: 4,
+    roundTimeMs: 45000,
+    fallDurationSeconds: 46,
+    miniTriggerScore: 1600,
+    miniTargetCount: 8,
+    miniMaxCount: 11,
+    miniSpeed: 225
+  },
+  medium: {
+    choiceCount: 4,
+    roundTimeMs: 45000,
+    fallDurationSeconds: 46,
+    miniTriggerScore: 1600,
+    miniTargetCount: 8,
+    miniMaxCount: 11,
+    miniSpeed: 225
+  },
+  mathanomical: {
+    choiceCount: 5,
+    roundTimeMs: 120000,
+    fallDurationSeconds: 180,
+    miniTriggerScore: 2000,
+    miniTargetCount: 10,
+    miniMaxCount: 14,
+    miniSpeed: 280
+  }
+};
+function getLevelConfig(level) {
+  return LEVEL_CONFIG[level] || LEVEL_CONFIG.easy;
+}
 // mathanomical mixed numbers config - user requested 1 1/8 up to 10 9/10
 const LEVEL_RANGES = {
   easy: { min: 1, max: 25 },
+  easy25: { minDen: 2, maxDen: 19, maxNum: 20 },
+  medium25: { minDen: 2, maxDen: 12, maxNum: 20 },
   medium: { min: 2, max: 20 }, // denominators for medium
   mathanomical: { minWhole: 1, maxWhole: 10, minDen: 8, maxDen: 10 },
 };
-// Round timers (ms) - mathanomical = 2 minutes now
-const ROUND_TIMES = { easy: 10000, medium: 45000, mathanomical: 120000 };
-// Visual fall durations (seconds) - slow down mathanomical (increase seconds) to slow pace
-// Previously 92s; we'll set to 180s here to slow it noticeably (you can adjust)
-const FALL_DURATION_SECONDS = { easy: 14, medium: 46, mathanomical: 180 };
 
 // ---------- Bubble ----------
 class Bubble {
@@ -456,7 +513,7 @@ function roundRect(context, x, y, width, height, radius) {
 function computePxPerSec(level) {
   syncCanvasSize();
   const distance = (canvas ? canvas.height : 600) + 80;
-  const secs = FALL_DURATION_SECONDS[level] || 14;
+  const secs = getLevelConfig(level).fallDurationSeconds || 14;
   return distance / Math.max(0.001, secs);
 }
 
@@ -660,8 +717,204 @@ function generateMediumProblem(choiceCount = 4) {
   return { type: "medium", display, correct: simplifiedResult, hint, choices: shuffleArr(choices).map(simplify) };
 }
 
+function pickImproperBasicForMedium25() {
+  const cfg = LEVEL_RANGES.medium25;
+  for (let tries = 0; tries < 80; tries++) {
+    const den = randInt(cfg.minDen, cfg.maxDen);
+    const maxNumForDen = Math.min(cfg.maxNum, den + 9);
+    const num = randInt(den + 1, Math.max(den + 1, maxNumForDen));
+    const fr = simplify(num, den);
+    if (!fr) continue;
+    if (fr.num <= fr.den) continue;
+    if (fr.num > cfg.maxNum) continue;
+    return fr;
+  }
+  return { num: 7, den: 4 };
+}
+
+function generateMedium25Problem(choiceCount = 4) {
+  const op = Math.random() < 0.5 ? "+" : "-";
+  const A = pickImproperBasicForMedium25();
+  const B = pickImproperBasicForMedium25();
+  if (!A || !B) return generateMedium25Problem(choiceCount);
+
+  let rawRes = op === "+" ? addFractions(A, B) : subFractions(A, B);
+  if (!rawRes) return generateMedium25Problem(choiceCount);
+  if (rawRes.num < 0) {
+    rawRes = op === "+" ? addFractions(B, A) : subFractions(B, A);
+    if (!rawRes) return generateMedium25Problem(choiceCount);
+    if (rawRes.num < 0) rawRes.num = Math.abs(rawRes.num);
+  }
+  const simplifiedResult = simplify(rawRes.num, rawRes.den);
+  if (!simplifiedResult) return generateMedium25Problem(choiceCount);
+
+  const display = `${formatDisplay(A)} ${op} ${formatDisplay(B)}`;
+  const choices = [simplifiedResult];
+  let attempts = 0;
+  while (choices.length < choiceCount && attempts++ < 500) {
+    const t = Math.random();
+    let cand = null;
+    if (t < 0.34) {
+      const wrongNum = op === "+" ? A.num + B.num : Math.max(1, A.num - B.num);
+      cand = simplify(wrongNum, Math.max(A.den, B.den));
+    } else if (t < 0.67) {
+      const n = Math.max(1, simplifiedResult.num + randInt(-3, 3));
+      const d = Math.max(1, simplifiedResult.den + randInt(-2, 2));
+      cand = simplify(n, d);
+    } else {
+      cand = simplify(
+        Math.max(1, simplifiedResult.den + randInt(-1, 2)),
+        Math.max(1, simplifiedResult.num + randInt(1, 3))
+      );
+    }
+    if (!cand) continue;
+    if (!choices.some(c => fractionsEqual(c, cand))) choices.push(cand);
+  }
+
+  const fallback = [{ num: 3, den: 2 }, { num: 5, den: 3 }, { num: 7, den: 4 }, { num: 9, den: 5 }];
+  for (const f of fallback) {
+    if (choices.length >= choiceCount) break;
+    if (!choices.some(c => fractionsEqual(c, f))) choices.push(f);
+  }
+  const finalChoices = shuffleArr(choices).slice(0, choiceCount).map((c) => simplify(c.num, c.den)).filter(Boolean);
+  ensureCorrectIncluded(finalChoices, simplifiedResult);
+  const common = lcm(A.den, B.den);
+  const hint = `Hint: Make denominator ${common}, then ${op === "+" ? "add" : "subtract"} top numbers and simplify.`;
+  return { type: "medium25", display, correct: simplifiedResult, hint, choices: finalChoices };
+}
+
+function buildEasy25Pool() {
+  const cfg = LEVEL_RANGES.easy25;
+  const pool = [];
+  const seen = new Set();
+  for (let den = cfg.minDen; den <= cfg.maxDen; den++) {
+    for (let num = den + 1; num <= cfg.maxNum; num++) {
+      const normalized = simplify(num, den);
+      if (!normalized || normalized.num <= normalized.den) continue;
+      if (normalized.num > cfg.maxNum || normalized.den > cfg.maxDen) continue;
+      // Keep "basic" by preferring already-simplified improper fractions (like 7/4).
+      if (gcd(normalized.num, normalized.den) !== 1) continue;
+      const key = `${normalized.num}/${normalized.den}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pool.push({ num: normalized.num, den: normalized.den });
+    }
+  }
+  return pool;
+}
+
+function isAllowedEasy25Fraction(fr) {
+  const cfg = LEVEL_RANGES.easy25;
+  if (!fr) return false;
+  return fr.num > fr.den && fr.num <= cfg.maxNum && fr.den <= cfg.maxDen;
+}
+
+function nextEasy25Target() {
+  if (easy25Deck.length === 0 || easy25DeckIndex >= easy25Deck.length) {
+    easy25Deck = shuffleArr(buildEasy25Pool());
+    easy25DeckIndex = 0;
+  }
+  const target = easy25Deck[easy25DeckIndex];
+  easy25DeckIndex += 1;
+  return target;
+}
+
+function generateEasy25Problem(choiceCount = 3) {
+  const target = nextEasy25Target() || { num: 7, den: 4 };
+  const correct = simplify(target.num, target.den);
+  if (!correct || !isAllowedEasy25Fraction(correct)) return generateEasy25Problem(choiceCount);
+
+  const choices = [correct];
+  let requiredLookalike = null;
+  const whole = Math.trunc(correct.num / correct.den);
+  const rem = Math.abs(correct.num % correct.den);
+  if (rem > 0) {
+    const lookalikeSpecs = [
+      { whole, rem: rem + 1 <= correct.den - 1 ? rem + 1 : rem - 1 },
+      { whole: whole + 1, rem },
+      { whole: Math.max(1, whole - 1), rem }
+    ];
+    for (const spec of lookalikeSpecs) {
+      if (!spec || spec.rem <= 0 || spec.rem >= correct.den) continue;
+      const improper = spec.whole * correct.den + spec.rem;
+      const cand = simplify(improper, correct.den);
+      if (!cand || !isAllowedEasy25Fraction(cand)) continue;
+      if (!choices.some(c => fractionsEqual(c, cand))) {
+        choices.push(cand);
+        requiredLookalike = cand;
+        break;
+      }
+    }
+  }
+
+  let attempts = 0;
+  while (choices.length < choiceCount && attempts++ < 600) {
+    const t = Math.random();
+    let cand = null;
+    if (t < 0.34) {
+      const n = Math.max(target.den + 1, Math.min(LEVEL_RANGES.easy25.maxNum, target.num + randInt(-2, 2) || target.num + 1));
+      cand = simplify(n, target.den);
+    } else if (t < 0.67) {
+      const whole = Math.max(1, Math.trunc(correct.num / correct.den) + randInt(-1, 1));
+      const rem = Math.abs(correct.num % correct.den) || 1;
+      const badRem = ((rem + randInt(1, correct.den - 1)) % correct.den) || 1;
+      cand = simplify(whole * correct.den + badRem, correct.den);
+    } else {
+      let badDen = Math.max(2, Math.min(LEVEL_RANGES.easy25.maxDen, correct.den + randInt(-2, 2)));
+      if (badDen === correct.den) badDen = badDen > 2 ? badDen - 1 : badDen + 1;
+      const whole = Math.max(1, Math.trunc(correct.num / correct.den));
+      const rem = Math.min(badDen - 1, Math.max(1, Math.abs(correct.num % correct.den)));
+      cand = simplify(whole * badDen + rem, badDen);
+    }
+    if (!cand || !isAllowedEasy25Fraction(cand)) continue;
+    if (!choices.some(c => fractionsEqual(c, cand))) choices.push(cand);
+  }
+
+  const fallback = [
+    simplify(Math.min(LEVEL_RANGES.easy25.maxNum, target.num + 1), target.den),
+    simplify(Math.min(LEVEL_RANGES.easy25.maxNum, target.num + 2), target.den),
+    simplify(Math.min(LEVEL_RANGES.easy25.maxNum, target.num + target.den), target.den)
+  ].filter(Boolean).filter((cand) => isAllowedEasy25Fraction(cand));
+
+  for (const f of fallback) {
+    if (choices.length >= choiceCount) break;
+    if (!choices.some(c => fractionsEqual(c, f))) choices.push(f);
+  }
+
+  // Build final choices deterministically so required lookalike (if any) is preserved.
+  const finalChoices = [correct];
+  if (requiredLookalike && !finalChoices.some(c => fractionsEqual(c, requiredLookalike))) {
+    finalChoices.push(requiredLookalike);
+  }
+  const extras = shuffleArr(choices).filter((cand) => !finalChoices.some(c => fractionsEqual(c, cand)));
+  for (const cand of extras) {
+    if (finalChoices.length >= choiceCount) break;
+    finalChoices.push(cand);
+  }
+  while (finalChoices.length < choiceCount) {
+    const f = simplify(Math.min(LEVEL_RANGES.easy25.maxNum, target.num + randInt(1, 3)), target.den);
+    if (f && isAllowedEasy25Fraction(f) && !finalChoices.some(c => fractionsEqual(c, f))) {
+      finalChoices.push(f);
+    } else {
+      break;
+    }
+  }
+  const slicedChoices = shuffleArr(finalChoices).slice(0, choiceCount);
+  ensureCorrectIncluded(slicedChoices, correct);
+  const hint = 'Hint: Divide numerator by denominator. Whole number is the quotient; remainder stays over denominator.';
+  return {
+    type: "easy25",
+    display: `${target.num}/${target.den}`,
+    correct,
+    hint,
+    choices: slicedChoices.map((c) => simplify(c.num, c.den)).filter(Boolean)
+  };
+}
+
 function generateProblemForLevel(level, choiceCount) {
   if (level === "easy") return generateEasyProblem(choiceCount);
+  if (level === "easy25") return generateEasy25Problem(choiceCount);
+  if (level === "medium25") return generateMedium25Problem(choiceCount);
   if (level === "medium") return generateMediumProblem(choiceCount);
   return generateMathanomicalProblem(choiceCount);
 }
@@ -673,6 +926,59 @@ function updateHud() {
 }
 function setStatus(msg) { if (statusEl) statusEl.textContent = msg; }
 function setHint(msg) { if (hintEl) hintEl.textContent = msg; }
+function renderTargetFraction(displayText) {
+  if (!targetEl) return;
+  const raw = String(displayText || "—");
+  const withOps = raw.replace(/\s*([+-])\s*/g, '&nbsp;<span class="capture-op-token">$1</span>&nbsp;');
+  const marked = withOps.replace(/(\d+)\s*\/\s*(\d+)/g, (_m, num, den) => (
+    `<span class="capture-frac-token">${num}/<button type="button" class="capture-denominator-btn" data-denominator="${den}" aria-label="Denominator ${den}. Tap for meaning">${den}</button></span>`
+  ));
+  targetEl.innerHTML = `Find: <span class="capture-target-expression">${marked}</span>`;
+}
+function showDenominatorHelp(denominator) {
+  if (!denominatorHelpPopup || !denominatorHelpText) return;
+  denominatorHelpText.textContent = `Denominator ${denominator}: the bottom number. It tells how many equal parts make one whole.`;
+  denominatorHelpPopup.classList.add('show');
+  denominatorHelpPopup.setAttribute('aria-hidden', 'false');
+}
+function hideDenominatorHelp() {
+  if (!denominatorHelpPopup) return;
+  denominatorHelpPopup.classList.remove('show');
+  denominatorHelpPopup.setAttribute('aria-hidden', 'true');
+}
+function extractFractionsFromPrompt(promptDisplay) {
+  const text = String(promptDisplay || "");
+  const matches = Array.from(text.matchAll(/(\d+)\s*\/\s*(\d+)/g));
+  return matches.map((m) => ({
+    num: parseInt(m[1], 10),
+    den: parseInt(m[2], 10)
+  })).filter((f) => Number.isFinite(f.num) && Number.isFinite(f.den) && f.den !== 0);
+}
+function buildCorrectiveHint(promptDisplay) {
+  const text = String(promptDisplay || "this fraction");
+  const parts = extractFractionsFromPrompt(text);
+  const hasPlus = text.includes("+");
+  const hasMinus = text.includes("-");
+  const hasOp = hasPlus || hasMinus;
+  const opWord = hasPlus ? "add" : "subtract";
+
+  if (hasOp && parts.length >= 2) {
+    const a = parts[0];
+    const b = parts[1];
+    const lcd = lcm(a.den, b.den);
+    return `Try this on ${text}: 1) if there is a whole number, change it to an improper fraction first. 2) Find one shared denominator for ${a.den} and ${b.den}: ${lcd}. 3) Rewrite both fractions with denominator ${lcd}. 4) ${opWord} the top numbers only. 5) Simplify at the end.`;
+  }
+
+  if (parts.length >= 1) {
+    const f = parts[0];
+    if (f.num >= f.den) {
+      return `Try this on ${text}: 1) divide ${f.num} by ${f.den}. 2) The big number is the whole part. 3) The leftover is the new top number. 4) Keep ${f.den} as the denominator.`;
+    }
+    return `Try this on ${text}: 1) find a number that divides both ${f.num} and ${f.den}. 2) divide top and bottom by that same number. 3) stop when no bigger shared divisor is left.`;
+  }
+
+  return `Try this on ${text}: 1) make denominators match, 2) solve the top numbers, 3) simplify at the end.`;
+}
 function getActiveBennyTier() {
   const stats = loadProfileStats();
   return Number(stats.activeTier) || 1;
@@ -691,6 +997,9 @@ function awardPoints(points) {
 function startGame() {
   if (!canvas || !ctx) return;
   syncCanvasSize();
+  clearReviewPauseTimer();
+  retryUsedThisRound = false;
+  reviewPauseToken += 1;
   score = 0;
   streak = 0;
   miniGameActive = false;
@@ -719,18 +1028,43 @@ function clearRoundTimeout() {
   roundStartTimestamp = 0;
 }
 
+function clearReviewPauseTimer() {
+  if (reviewPauseTimer) {
+    clearTimeout(reviewPauseTimer);
+    reviewPauseTimer = null;
+  }
+}
+
+function handleRoundTimeout() {
+  if (!roundActive) return;
+  roundActive = false;
+  streak = 0;
+  updateHud();
+  setStatus("Time's up!");
+  clearRoundTimeout();
+  setTimeout(startRound, 900);
+}
+
 function startRound() {
   if (miniGameActive) return;
+  clearReviewPauseTimer();
+  retryUsedThisRound = false;
+  if (gamePaused) gamePaused = false;
+  if (inputEl) inputEl.disabled = false;
+  if (pauseBtn) {
+    pauseBtn.disabled = false;
+    pauseBtn.textContent = "Pause";
+  }
   clearRoundTimeout();
   roundActive = true;
 
   const level = currentLevel();
-  const choiceCount = level === "easy" ? 3 : level === "medium" ? 4 : 5;
+  const choiceCount = getLevelConfig(level).choiceCount || 3;
 
   currentProblem = generateProblemForLevel(level, choiceCount);
 
   setStatus("Syntax Bugs incoming. Solve to survive.");
-  if (targetEl) targetEl.textContent = `Find: ${currentProblem.display}`;
+  renderTargetFraction(currentProblem.display);
   if (hintEl) setHint(currentProblem.hint || "");
 
   // build validated choices
@@ -755,17 +1089,9 @@ function startRound() {
   });
 
   // initialize timer values and start the round timeout
-  roundRemainingMs = ROUND_TIMES[level] || 10000;
+  roundRemainingMs = getLevelConfig(level).roundTimeMs || 10000;
   roundStartTimestamp = performance.now();
-  roundTimer = setTimeout(() => {
-    if (!roundActive) return;
-    roundActive = false;
-    streak = 0;
-    updateHud();
-    setStatus("Time's up!");
-    clearRoundTimeout();
-    setTimeout(startRound, 900);
-  }, roundRemainingMs);
+  roundTimer = setTimeout(handleRoundTimeout, roundRemainingMs);
 }
 
 function handleBubbleHitBottom() {
@@ -783,30 +1109,69 @@ function handleSelection(fraction) {
   if (miniGameActive) return;
   if (!roundActive || !gameStarted) return;
   clearRoundTimeout();
+  const correctFraction = simplify(currentProblem?.correct?.num, currentProblem?.correct?.den) || currentProblem?.correct;
+  const wasCorrect = fractionsEqual(fraction, correctFraction);
   const stats = loadProfileStats();
   const gameStats = ensureGameStats(stats, 'capture');
   stats.totalAttempted += 1;
   gameStats.attempted += 1;
-  if (fractionsEqual(fraction, currentProblem.correct)) {
-    score += 10;
+  if (wasCorrect) {
+    score += 100;
     streak += 1;
     setStatus("Nice! New round starting.");
     stats.totalCorrect += 1;
     gameStats.correct += 1;
-    stats.totalPoints += 10;
-    gameStats.points += 10;
+    stats.totalPoints += 100;
+    gameStats.points += 100;
   } else {
     score = Math.max(0, score - 5);
     streak = 0;
-    setStatus("Not quite — try the next set.");
+    if (!retryUsedThisRound) {
+      retryUsedThisRound = true;
+      roundActive = false;
+      gamePaused = true;
+      if (inputEl) inputEl.disabled = true;
+      if (pauseBtn) pauseBtn.disabled = true;
+      setStatus("Nice try. Read this, then you get one more chance in 20 seconds.");
+      setHint(buildCorrectiveHint(currentProblem?.display || "Target"));
+      const token = ++reviewPauseToken;
+      clearReviewPauseTimer();
+      reviewPauseTimer = setTimeout(() => {
+        reviewPauseTimer = null;
+        if (!gameStarted || miniGameActive || token !== reviewPauseToken) return;
+        gamePaused = false;
+        roundActive = true;
+        if (inputEl) inputEl.disabled = false;
+        if (pauseBtn) {
+          pauseBtn.disabled = false;
+          pauseBtn.textContent = "Pause";
+        }
+        roundRemainingMs = getLevelConfig(currentLevel()).roundTimeMs || 10000;
+        roundStartTimestamp = performance.now();
+        roundTimer = setTimeout(handleRoundTimeout, roundRemainingMs);
+        setStatus("Second chance: answer the same question.");
+        if (!animationId) {
+          lastTimestamp = null;
+          animationId = requestAnimationFrame(loop);
+        }
+      }, 20000);
+    } else {
+      setStatus("Dont worry about it keep trying, eventually things click");
+      setHint(`Use the same steps on the next one. Focus on the denominator first.`);
+      roundActive = false;
+    }
   }
   updateHud();
-  maybeTriggerMiniGame();
+  if (wasCorrect) maybeTriggerMiniGame();
   gameStats.streakRecord = Math.max(gameStats.streakRecord, streak);
   gameStats.bestScore = Math.max(gameStats.bestScore, score);
   saveProfileStats(stats);
-  roundActive = false;
-  setTimeout(startRound, 700);
+  if (wasCorrect) {
+    roundActive = false;
+    setTimeout(startRound, 700);
+  } else if (retryUsedThisRound && !gamePaused) {
+    setTimeout(startRound, 1700);
+  }
 }
 
 // ---------- Pause/resume preserving remaining time ----------
@@ -842,33 +1207,22 @@ function togglePause() {
 
   if (roundActive && (!roundTimer) && roundRemainingMs > 0) {
     roundStartTimestamp = performance.now();
-    roundTimer = setTimeout(() => {
-      if (!roundActive) return;
-      roundActive = false;
-      streak = 0;
-      updateHud();
-      setStatus("Time's up!");
-      clearRoundTimeout();
-      setTimeout(startRound, 900);
-    }, roundRemainingMs);
+    roundTimer = setTimeout(handleRoundTimeout, roundRemainingMs);
   }
 }
 
 function getMiniCircleCount(level) {
-  if (level === 'easy') return 6;
-  if (level === 'medium') return 8;
-  return 10;
+  return getLevelConfig(level).miniTargetCount || 6;
 }
 
 function getMiniCircleSpeed(level) {
-  if (level === 'easy') return 170;
-  if (level === 'medium') return 225;
-  return 280;
+  return getLevelConfig(level).miniSpeed || 170;
 }
 
 function maybeTriggerMiniGame() {
   if (miniGameActive || miniGameDone || gamePaused) return;
-  if (score < MINI_TRIGGER_SCORE) return;
+  const requiredScore = getLevelConfig(currentLevel()).miniTriggerScore || 120;
+  if (score < requiredScore) return;
   startMiniGame();
 }
 
@@ -972,8 +1326,8 @@ function updateMiniGame(deltaSec) {
   });
 
   const level = currentLevel();
-  const targetCount = MINI_TARGET_COUNT[level] || 6;
-  const maxCount = MINI_MAX_COUNT[level] || 9;
+  const targetCount = getLevelConfig(level).miniTargetCount || 6;
+  const maxCount = getLevelConfig(level).miniMaxCount || 9;
   if (miniCircles.length < targetCount && performance.now() - miniLastSpawnAt > MINI_SPAWN_INTERVAL_MS) {
     miniCircles.push(spawnMiniCircle(getMiniCircleSpeed(level)));
     miniLastSpawnAt = performance.now();
@@ -1284,6 +1638,30 @@ window.addEventListener('keyup', keyupHandler);
 updateHud();
 setStatus("Press Start to begin. Syntax Bug alert.");
 
+if (targetEl) {
+  targetFractionClickHandler = (e) => {
+    const btn = e.target.closest('.capture-denominator-btn');
+    if (!btn) return;
+    const den = btn.getAttribute('data-denominator') || '';
+    showDenominatorHelp(den);
+  };
+  targetEl.addEventListener('click', targetFractionClickHandler);
+}
+if (denominatorHelpClose) {
+  denominatorCloseHandler = () => hideDenominatorHelp();
+  denominatorHelpClose.addEventListener('click', denominatorCloseHandler);
+}
+if (denominatorHelpPopup) {
+  denominatorBackdropHandler = (e) => {
+    if (e.target === denominatorHelpPopup) hideDenominatorHelp();
+  };
+  denominatorHelpPopup.addEventListener('click', denominatorBackdropHandler);
+}
+denominatorEscHandler = (e) => {
+  if (e.key === 'Escape') hideDenominatorHelp();
+};
+window.addEventListener('keydown', denominatorEscHandler);
+
 // ---------- helpers ----------
 function layOutBubbleX(count) {
   syncCanvasSize();
@@ -1291,10 +1669,28 @@ function layOutBubbleX(count) {
   return Array.from({ length: count }, (_, i) => gap * (i + 1));
 }
 
+window.__CaptureTestHooks = {
+  getLevelConfig,
+  generateProblemForLevel,
+  simplify,
+  fractionsEqual
+};
+
 window.__CaptureCleanup = () => {
   window.removeEventListener("resize", resizeHandler);
   window.removeEventListener('keydown', keydownHandler);
+  window.removeEventListener('keydown', denominatorEscHandler);
   window.removeEventListener('keyup', keyupHandler);
+  if (targetEl && targetFractionClickHandler) {
+    targetEl.removeEventListener('click', targetFractionClickHandler);
+  }
+  if (denominatorHelpClose && denominatorCloseHandler) {
+    denominatorHelpClose.removeEventListener('click', denominatorCloseHandler);
+  }
+  if (denominatorHelpPopup && denominatorBackdropHandler) {
+    denominatorHelpPopup.removeEventListener('click', denominatorBackdropHandler);
+  }
+  clearReviewPauseTimer();
   if (roundTimer) {
     clearTimeout(roundTimer);
     roundTimer = null;

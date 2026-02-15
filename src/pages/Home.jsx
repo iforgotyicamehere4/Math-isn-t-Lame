@@ -202,8 +202,45 @@ const HOME_QUOTES = [
     author: 'Quarraisha Abdool Karim',
     country: 'South Africa',
     translationKey: 'quote.abdool_karim'
+  },
+  {
+    id: 'benny',
+    phrase: 'BARK BARK',
+    quote: 'Nobody actually knows what it means… But legend says it translates to: "Math is Lit." (We asked Benny. He just barked again.)',
+    author: 'Benny',
+    country: 'Math Pop Dev',
+    translationKey: 'quote.benny'
   }
 ];
+
+const QUOTE_PRONUNCIATIONS = {
+  euclid: 'YOO-klid',
+  gauss: 'karl FREE-drikh GOWSS',
+  poincare: 'ahn-REE pwan-kah-RAY',
+  russell: 'BER-trand RUSS-uhl',
+  galileo: 'gal-uh-LAY-oh gal-uh-LAY',
+  mirzakhani: 'mah-ree-YAHM meer-zah-KHAH-nee',
+  ramanujan: 'sree-nee-VAH-sah rah-MAH-noo-juhn',
+  kovalevskaya: 'soh-FEE-yah koh-vah-LEHV-skah-yah',
+  banach: 'STEH-fahn BAH-nakh',
+  euler: 'LAY-on-hart OY-ler',
+  brouwer: 'LOW-ee EEE JAY BROW-er',
+  erdos: 'POWL AIR-dush',
+  fields: 'john CHARLZ FEELDZ',
+  ito: 'kee-YOH-shee EE-toh',
+  hua: 'hwah LWOH-gung',
+  avila: 'ar-TOOR AH-vee-lah',
+  tao: 'TEH-rens TOW',
+  adem: 'hoh-SEH ah-DEM',
+  hypatia: 'hy-PAY-shuh',
+  'rey-pastor': 'HOO-lyoh RAY pas-TOR',
+  arf: 'jah-HEET ARF',
+  lindenstrauss: 'EH-lohn LIN-den-shtrouse',
+  'katherine-johnson': 'KATH-er-in JOHN-suhn',
+  'mittag-leffler': 'MAG-nus GUS-tah MIT-tahg LEFF-ler',
+  'abdool-karim': 'kwah-RY-shah ab-DOOL kah-REEM',
+  benny: 'BEN-ee'
+};
 
 const LETTER_PATTERNS = {
   A: ['01110', '10001', '11111', '10001', '10001'],
@@ -360,6 +397,7 @@ export default function Home() {
     return { quote: HOME_QUOTES[idx], quoteIndex: idx };
   });
   const homeQuote = homeQuoteSelection.quote;
+  const quotePronunciation = QUOTE_PRONUNCIATIONS[homeQuote.id] || homeQuote.author;
   const [phraseAnimate, setPhraseAnimate] = useState(false);
 
   // Signup modal state
@@ -391,8 +429,9 @@ export default function Home() {
     disclaimerText: "By signing up you agree that Math isn't Lame.",
     quotePhrase: homeQuote.phrase,
     quoteText: homeQuote.quote,
-    quoteByline: `${homeQuote.country} — ${homeQuote.author}`
-  }), [homeQuote]);
+    quoteByline: `${homeQuote.country} — ${homeQuote.author}`,
+    quotePronunciation: `Pronunciation: ${quotePronunciation}`
+  }), [homeQuote, quotePronunciation]);
   const { translated: tr } = useAutoTranslate(homeStrings, true);
 
   // Keep body class in sync with app state
@@ -717,6 +756,7 @@ export default function Home() {
         </div>
         <blockquote className="quote-text">{tr.quoteText || homeStrings.quoteText}</blockquote>
         <p className="quote-byline">{tr.quoteByline || homeStrings.quoteByline}</p>
+        <p className="quote-pronunciation">{tr.quotePronunciation || homeStrings.quotePronunciation}</p>
       </section>
 
       {/* Modal */}

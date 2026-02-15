@@ -616,6 +616,90 @@
   display: flex;
   justify-content: center;
 }
+.tutorial-banner {
+  display: flex;
+  justify-content: center;
+  margin: 2px auto 10px;
+  z-index: 2;
+}
+.tutorial-banner__arena {
+  position: relative;
+  width: min(880px, 92vw);
+  height: 160px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(8, 16, 52, 0.7), rgba(11, 34, 76, 0.55));
+  border: 1px solid rgba(140, 210, 255, 0.22);
+  box-shadow: 0 10px 26px rgba(3, 8, 25, 0.35);
+  overflow: hidden;
+}
+.tutorial-banner__benny {
+  position: absolute;
+  left: 12%;
+  bottom: 16px;
+  width: 72px;
+  height: 72px;
+  animation: tutorialBennyPatrol 6s ease-in-out infinite;
+}
+.tutorial-banner__benny .benny-base {
+  width: 72px;
+  height: 72px;
+}
+.tutorial-banner__benny .benny-shape {
+  transform: scale(1);
+}
+.tutorial-banner__bug {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #e7f7ff;
+  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,0.2), rgba(107, 62, 255, 0.65));
+  border: 1px solid rgba(170, 210, 255, 0.55);
+  box-shadow: 0 10px 20px rgba(7, 11, 33, 0.45);
+}
+.tutorial-banner__bug.bug-1 {
+  left: 46%;
+  top: 24px;
+  animation: tutorialBugFloat 2.5s ease-in-out infinite;
+}
+.tutorial-banner__bug.bug-2 {
+  left: 63%;
+  top: 62px;
+  animation: tutorialBugFloat 3.1s ease-in-out infinite reverse;
+}
+.tutorial-banner__bug.bug-3 {
+  left: 78%;
+  top: 22px;
+  animation: tutorialBugFloat 2.2s ease-in-out infinite;
+}
+.tutorial-banner__caption {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  margin: 0;
+  font-size: 0.92rem;
+  color: #b7f7ff;
+  font-weight: 700;
+}
+@keyframes tutorialBennyPatrol {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    transform: translateX(180px) translateY(-6px);
+  }
+}
+@keyframes tutorialBugFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
 .chair-ring {
   display: none;
 }
@@ -813,7 +897,9 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: min(360px, 36vw);
+  width: min(640px, 66vw);
+  max-height: 78vh;
+  overflow: auto;
   background: rgba(12, 28, 80, 0.72);
   padding: 16px;
   border-radius: 14px;
@@ -825,11 +911,48 @@
   margin: 0 0 8px;
   color: #b7f7ff;
 }
+.instructions h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  color: #ffd695;
+}
 .instructions ol {
   list-style: decimal;
   padding-left: 1.1rem;
   margin: 0;
   color: #c7d7ea;
+}
+.instructions ul {
+  list-style: disc;
+  padding-left: 1.1rem;
+  margin: 0;
+  color: #c7d7ea;
+}
+.instructions li {
+  margin-bottom: 4px;
+}
+.tutorial-lead {
+  margin: 0 0 10px;
+  color: #dcf3ff;
+  font-weight: 600;
+}
+.tutorial-block {
+  margin: 0 0 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(6, 16, 46, 0.52);
+  border: 1px solid rgba(160, 210, 255, 0.25);
+}
+.queen-line {
+  margin: 8px 0 10px;
+  padding: 10px;
+  border-left: 4px solid #ff9a9a;
+  border-radius: 8px;
+  background: rgba(62, 12, 44, 0.42);
+  color: #ffe3ff;
+}
+.queen-line p {
+  margin: 0;
 }
 .instructions .back-link {
   color: #a6d7ff;
@@ -1271,6 +1394,25 @@
   }
 }
 @media (max-width: 900px) {
+  .tutorial-banner__arena {
+    height: 128px;
+  }
+  .tutorial-banner__benny {
+    width: 60px;
+    height: 60px;
+  }
+  .tutorial-banner__benny .benny-base {
+    width: 60px;
+    height: 60px;
+  }
+  .tutorial-banner__bug {
+    width: 48px;
+    height: 48px;
+    font-size: 0.85rem;
+  }
+  .tutorial-banner__caption {
+    font-size: 0.82rem;
+  }
   .booiiii-duo {
     --duo-scale: 0.62;
     left: 50%;
@@ -1283,10 +1425,34 @@
     height: 180px;
   }
   .instructions {
-    width: min(320px, 70vw);
+    width: min(520px, 84vw);
+    max-height: 66vh;
   }
 }
 @media (max-width: 520px) {
+  .tutorial-banner {
+    margin: 2px auto 6px;
+  }
+  .tutorial-banner__arena {
+    height: 108px;
+  }
+  .tutorial-banner__benny {
+    left: 8%;
+    bottom: 10px;
+    animation-duration: 5.2s;
+  }
+  .tutorial-banner__bug.bug-1 {
+    left: 44%;
+  }
+  .tutorial-banner__bug.bug-2 {
+    left: 60%;
+  }
+  .tutorial-banner__bug.bug-3 {
+    left: 74%;
+  }
+  .tutorial-banner__caption {
+    display: none;
+  }
   /* Aggressive mobile scaling for header */
   .hero-card.small {
     font-size: 12px;
@@ -1344,6 +1510,7 @@
     top: auto;
     transform: translateX(-50%);
     width: 90%;
+    max-height: 52vh;
     margin: 0;
     padding: 10px;
     border-radius: 10px;
@@ -1411,6 +1578,7 @@
 
   .instructions {
     width: 94%;
+    max-height: 48vh;
     padding: 8px;
     font-size: 0.65rem;
   }

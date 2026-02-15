@@ -477,6 +477,81 @@ export default function Home() {
   }), [homeQuote, quotePronunciation]);
   const { translated: tr } = useAutoTranslate(homeStrings, true);
 
+  const phraseLayout = useMemo(() => {
+    const viewport = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const stageWidth = Math.max(260, Math.min(viewport - 30, 980));
+    let maxChars = viewport <= 420 ? 9 : viewport <= 720 ? 12 : 18;
+    let rows = buildPhraseRows(homeQuote.phrase, maxChars);
+    let cols = rows[0]?.length || 1;
+    let cellSize = Math.floor(stageWidth / cols);
+
+    while ((cellSize < 5 || rows.length > 18) && maxChars > 6) {
+      maxChars -= 1;
+      rows = buildPhraseRows(homeQuote.phrase, maxChars);
+      cols = rows[0]?.length || 1;
+      cellSize = Math.floor(stageWidth / cols);
+    }
+
+    cellSize = Math.max(4, Math.min(viewport <= 520 ? 16 : 20, cellSize));
+    const width = cols * cellSize;
+    const height = rows.length * cellSize;
+    const stageHeight = Math.max(viewport <= 520 ? 220 : 250, height + 22);
+    const variant = homeQuoteSelection.quoteIndex % 25;
+    const duration = 1100 + (variant % 5) * 220;
+    const stagger = 6 + (variant % 7) * 4;
+    const easePresets = [
+      'cubic-bezier(0.2,0.9,0.25,1)',
+      'cubic-bezier(0.4,0,0.2,1)',
+      'cubic-bezier(0.18,0.84,0.28,1)',
+      'cubic-bezier(0.34,1.56,0.64,1)',
+      'cubic-bezier(0.07,0.82,0.17,1)'
+    ];
+
+    const targets = collectTargets(rows);
+    const compactRows = buildCompactRows(homeQuote.phrase, maxChars);
+    const compactTargets = collectTargets(compactRows);
+    const usePostLayout = viewport <= 720
+      && compactTargets.length === targets.length
+      && compactRows.join('') !== rows.join('');
+
+    const total = targets.length || 1;
+    const mappedTargets = targets.map((target, order) => {
+      const start = getStartPoint(variant, order, total, target, stageWidth, stageHeight, cellSize);
+      const compactTarget = compactTargets[order] || target;
+      const delay = Math.floor(order * stagger);
+      const startRotate = (variant * 19 + order * 7) % 100 - 50;
+      const startScale = 0.75 + ((order + variant) % 5) * 0.08;
+      return {
+        key: `${target.r}-${target.c}`,
+        endX: target.c * cellSize,
+        endY: target.r * cellSize,
+        startX: start.x,
+        startY: start.y,
+        delay,
+        duration,
+        ease: easePresets[variant % easePresets.length],
+        rotate: `${startRotate}deg`,
+        scale: String(startScale),
+        postX: compactTarget.c * cellSize,
+        postY: compactTarget.r * cellSize
+      };
+    });
+
+    const maxDelay = mappedTargets.reduce((m, t) => Math.max(m, t.delay), 0);
+    const postLayoutDelayMs = duration + maxDelay + 220;
+
+    return {
+      cellSize,
+      width,
+      height,
+      stageHeight,
+      variant,
+      targets: mappedTargets,
+      usePostLayout,
+      postLayoutDelayMs
+    };
+  }, [homeQuote.phrase, homeQuoteSelection.quoteIndex]);
+
   // Keep body class in sync with app state
   useEffect(() => {
     document.body.classList.toggle('high-contrast', !!highContrast);
@@ -609,82 +684,6 @@ export default function Home() {
     // quick reload to refresh UI
     window.location.reload();
   }
-
-  const phraseLayout = useMemo(() => {
-    const viewport = typeof window !== 'undefined' ? window.innerWidth : 1024;
-    const stageWidth = Math.max(260, Math.min(viewport - 30, 980));
-    let maxChars = viewport <= 420 ? 9 : viewport <= 720 ? 12 : 18;
-    let rows = buildPhraseRows(homeQuote.phrase, maxChars);
-    let cols = rows[0]?.length || 1;
-    let cellSize = Math.floor(stageWidth / cols);
-
-    while ((cellSize < 5 || rows.length > 18) && maxChars > 6) {
-      maxChars -= 1;
-      rows = buildPhraseRows(homeQuote.phrase, maxChars);
-      cols = rows[0]?.length || 1;
-      cellSize = Math.floor(stageWidth / cols);
-    }
-
-    cellSize = Math.max(4, Math.min(viewport <= 520 ? 16 : 20, cellSize));
-    const width = cols * cellSize;
-    const height = rows.length * cellSize;
-    const stageHeight = Math.max(viewport <= 520 ? 220 : 250, height + 22);
-    const variant = homeQuoteSelection.quoteIndex % 25;
-    const duration = 1100 + (variant % 5) * 220;
-    const stagger = 6 + (variant % 7) * 4;
-    const easePresets = [
-      'cubic-bezier(0.2,0.9,0.25,1)',
-      'cubic-bezier(0.4,0,0.2,1)',
-      'cubic-bezier(0.18,0.84,0.28,1)',
-      'cubic-bezier(0.34,1.56,0.64,1)',
-      'cubic-bezier(0.07,0.82,0.17,1)'
-    ];
-
-    const targets = collectTargets(rows);
-    const compactRows = buildCompactRows(homeQuote.phrase, maxChars);
-    const compactTargets = collectTargets(compactRows);
-    const usePostLayout = viewport <= 720
-      && compactTargets.length === targets.length
-      && compactRows.join('') !== rows.join('');
-
-    const total = targets.length || 1;
-    const mappedTargets = targets.map((target, order) => {
-      const start = getStartPoint(variant, order, total, target, stageWidth, stageHeight, cellSize);
-      const compactTarget = compactTargets[order] || target;
-      const delay = Math.floor(order * stagger);
-      const startRotate = (variant * 19 + order * 7) % 100 - 50;
-      const startScale = 0.75 + ((order + variant) % 5) * 0.08;
-      return {
-        key: `${target.r}-${target.c}`,
-        endX: target.c * cellSize,
-        endY: target.r * cellSize,
-        startX: start.x,
-        startY: start.y,
-        delay,
-        duration,
-        ease: easePresets[variant % easePresets.length],
-        rotate: `${startRotate}deg`,
-        scale: String(startScale),
-        postX: compactTarget.c * cellSize,
-        postY: compactTarget.r * cellSize
-      };
-    });
-
-    const maxDelay = mappedTargets.reduce((m, t) => Math.max(m, t.delay), 0);
-    const postLayoutDelayMs = duration + maxDelay + 220;
-
-    return {
-      cellSize,
-      width,
-      height,
-      stageHeight,
-      variant,
-      targets: mappedTargets,
-      usePostLayout,
-      postLayoutDelayMs
-    };
-  }, [homeQuote.phrase, homeQuoteSelection.quoteIndex]);
-
 
   return (
     <div className="background">

@@ -11,7 +11,7 @@ export default function BennyWorld() {
     toggleId: 'bwMusicToggle',
     popupId: 'bwNowPlaying',
     statusId: 'bwStatus',
-    interactionSelectors: ['#bennyWorldArea', '#bwJump', '#bwGlide', '#bwPlane', '#bwFire'],
+    interactionSelectors: ['#bennyWorldArea', '#bwJump', '#bwGlide', '#bwFire'],
     startChecked: true,
     enableHeadsetControls: false
   });
@@ -72,10 +72,9 @@ export default function BennyWorld() {
         
         {/* Action buttons - right side */}
         <div className="bw-actions">
-          <button className="bw-move bw-action-btn" id="bwFire" type="button" aria-label="Go Play">Go Play</button>
           <button className="bw-move bw-action-btn" id="bwJump" type="button" aria-label="Jump">Jump</button>
+          <button className="bw-move bw-action-btn" id="bwFire" type="button" aria-label="Go Play">Go Play</button>
           <button className="bw-move bw-action-btn" id="bwGlide" type="button" aria-label="Glide">Glide</button>
-          <button className="bw-move bw-action-btn" id="bwPlane" type="button" aria-label="Desk Plane">Desk Plane</button>
         </div>
       </div>
       <div id="bwNowPlaying" className="bw-music-popup" aria-live="polite" />

@@ -422,7 +422,7 @@ export default function Profile() {
           );
         })}
       </div>
-      <p className="jukebox-filename">Files: <code>/public/audio/jukebox/*.mp3</code></p>
+      <p className="jukebox-filename">Bark Bark music helps me focus</p>
     </>
   );
 
@@ -440,7 +440,7 @@ export default function Profile() {
       </header>
 
       <section className="profile-mobile-grid" aria-label="Mobile game stats">
-        <div className="profile-box benny-colors-box">
+        <div className="profile-box">
           <div className="box-header">
             <h2>Total Points</h2>
             <select
@@ -454,7 +454,7 @@ export default function Profile() {
           </div>
           <p className="metric">{getGameStats(mobileSelections.points).points || 0}</p>
         </div>
-        <div className="profile-box benny-powers-box">
+        <div className="profile-box">
           <div className="box-header">
             <h2>Total Correct</h2>
             <select
@@ -468,7 +468,7 @@ export default function Profile() {
           </div>
           <p className="metric">{getGameStats(mobileSelections.correct).correct || 0}</p>
         </div>
-        <div className="profile-box">
+        <div className="profile-box benny-colors-box">
           <div className="box-header">
             <h2>Total Attempted</h2>
             <select
@@ -559,7 +559,7 @@ export default function Profile() {
             <p className="profile-subtitle">Only Math Pup</p>
           )}
         </div>
-        <div className="profile-box">
+        <div className="profile-box benny-powers-box">
           <div className="box-header">
             <h2>Benny Powers</h2>
             <select
@@ -572,32 +572,53 @@ export default function Profile() {
             </select>
           </div>
           {mobileSelections.tiers === 'mathpup' ? (
-            <div className="tier-track">
-              {BENNY_TIERS.map((tier) => {
-                const unlocked = tierUnlocked(tier);
-                const canBuy = canPurchaseTier(tier);
-                return (
-                  <div
-                    key={tier.id}
-                    className={`tier-card ${unlocked ? 'unlocked' : 'locked'}${activeTier === tier.id ? ' active' : ''}`}
-                  >
-                    <h3>Tier {tier.id}</h3>
-                    <p className="tier-name">{tier.name}</p>
-                    {renderTierPower(tier)}
-                    {!unlocked && !canBuy && (
-                      <p className="tier-locked-badge">Locked</p>
-                    )}
-                    {!unlocked && canBuy && (
-                      <button type="button" className="tier-buy" onClick={() => purchaseTier(tier)}>
-                        Buy
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <>
+              <p className="profile-subtitle">Power shop uses your total points from Math Pup, Capture, Deci-What, and Ma+h5Yn+h3.</p>
+              <div className="tier-track">
+                {BENNY_TIERS.map((tier) => {
+                  const unlocked = tierUnlocked(tier);
+                  const reqsMet = tierRequirementsMet(tier);
+                  const canBuy = canPurchaseTier(tier);
+                  return (
+                    <div
+                      key={tier.id}
+                      className={`tier-card ${unlocked ? 'unlocked' : 'locked'}${activeTier === tier.id ? ' active' : ''}`}
+                      role={unlocked ? 'button' : undefined}
+                      tabIndex={unlocked ? 0 : -1}
+                      onClick={() => activateTier(tier)}
+                      onKeyDown={(e) => {
+                        if (unlocked && (e.key === 'Enter' || e.key === ' ')) activateTier(tier);
+                      }}
+                    >
+                      <h3>Tier {tier.id}</h3>
+                      <p className="tier-name">{tier.name}</p>
+                      {renderTierPower(tier)}
+                      <p className="tier-req">Points: {tier.points}</p>
+                      {tier.streak > 0 && <p className="tier-req">Pup streak: {tier.streak}</p>}
+                      {tier.requires && tier.requires.length > 0 && (
+                        <p className="tier-req tier-requires" aria-label="Level requirements">
+                          Requires: {tier.requires.join(', ')}
+                        </p>
+                      )}
+                      {!unlocked && !reqsMet && tier.requires && (
+                        <p className="tier-locked-reason">Complete required levels first</p>
+                      )}
+                      {!unlocked && reqsMet && <span className="tier-ticket">Ticket price: {tier.points} pts</span>}
+                      {!unlocked && !canBuy && (
+                        <p className="tier-locked-badge">Locked</p>
+                      )}
+                      {!unlocked && canBuy && (
+                        <button type="button" className="tier-buy" onClick={() => purchaseTier(tier)}>
+                          Buy
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           ) : (
-            <p className="profile-subtitle">Only Math Pup</p>
+            <p className="profile-subtitle">Benny powers are in Math Pup.</p>
           )}
         </div>
         <div className="profile-box jukebox-box">
@@ -606,7 +627,7 @@ export default function Profile() {
           </div>
           {renderJukebox()}
         </div>
-        <div className="profile-box">
+        <div className="profile-box benny-delete-box">
           <div className="box-header">
             <h2>Delete Dash Save</h2>
           </div>
@@ -677,6 +698,7 @@ export default function Profile() {
 
           <div className="profile-card benny-tiers">
             <h2>Benny Tiers</h2>
+            <p className="profile-subtitle">Power purchases use your total points from Math Pup, Capture, Deci-What, and Ma+h5Yn+h3.</p>
             <div className="tier-track">
               {BENNY_TIERS.map((tier) => {
                 const unlocked = tierUnlocked(tier);

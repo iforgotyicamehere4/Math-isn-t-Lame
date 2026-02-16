@@ -341,6 +341,18 @@ window.__BennyWorldBabylonCleanup = null;
   let freezeUntil = 0;
   let nextEnemyWaveDistance = 500;
   const bennyShotCooldownMs = 220;
+  const tierPowerNames = {
+    1: 'Subtraction eyes',
+    2: 'Greater-than blast',
+    3: 'Arrow blaster',
+    4: 'Playful pounce',
+    5: 'Pi wand blast',
+    6: 'Gamma / neutron beam',
+    7: 'Crash cart charge',
+    8: 'Dogko finisher',
+    9: 'Mythic finisher',
+    10: 'Mathtality'
+  };
   
   // Black hole and crumbling floor state
   let blackHoleActive = false;
@@ -704,13 +716,29 @@ window.__BennyWorldBabylonCleanup = null;
     return 5000;
   }
 
+  function getUnlockedTierSet() {
+    const key = `mathpop_profile_stats_${currentUser()}`;
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+      const rawUnlocks = Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : [];
+      const unlocks = new Set(
+        rawUnlocks
+          .map((v) => Number(v))
+          .filter((v) => Number.isFinite(v) && v >= 1 && v <= 10)
+      );
+      unlocks.add(1);
+      return unlocks;
+    } catch {
+      return new Set([1]);
+    }
+  }
+
   function activeTier() {
     const key = `mathpop_profile_stats_${currentUser()}`;
     try {
       const parsed = JSON.parse(localStorage.getItem(key) || '{}');
-      const unlocks = new Set(Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : []);
-      unlocks.add(1);
       const tier = Math.max(1, Math.min(10, Math.floor(Number(parsed.activeTier) || 1)));
+      const unlocks = getUnlockedTierSet();
       return unlocks.has(tier) ? tier : 1;
     } catch {
       return 1;
@@ -719,6 +747,113 @@ window.__BennyWorldBabylonCleanup = null;
 
   function hitsNeededForTier() {
     return Math.max(1, 11 - activeTier());
+  }
+
+  function getShotPowerConfig() {
+    const tier = activeTier();
+    const cfg = {
+      tier,
+      powerName: tierPowerNames[tier] || tierPowerNames[1],
+      cooldown: bennyShotCooldownMs,
+      shotCount: 1,
+      spread: 0,
+      speed: 7.2,
+      damage: 1,
+      splashRadius: 0,
+      splashDamage: 0,
+      pierce: 0,
+      freezeMs: 0,
+      killBonus: 0,
+      clearChance: 0,
+      symbol: '−',
+      shotClass: 'shot-subtraction'
+    };
+
+    if (tier === 2) {
+      cfg.symbol = '>';
+      cfg.damage = 2;
+      cfg.cooldown = 210;
+      cfg.shotClass = 'shot-greater';
+    } else if (tier === 3) {
+      cfg.symbol = '−';
+      cfg.shotCount = 3;
+      cfg.spread = 0.2;
+      cfg.cooldown = 200;
+      cfg.shotClass = 'shot-subtraction';
+    } else if (tier === 4) {
+      cfg.symbol = '−';
+      cfg.shotCount = 2;
+      cfg.spread = 0.14;
+      cfg.damage = 2;
+      cfg.cooldown = 190;
+      cfg.shotClass = 'shot-subtraction';
+    } else if (tier === 5) {
+      cfg.symbol = 'π';
+      cfg.shotCount = 3;
+      cfg.spread = 0.18;
+      cfg.damage = 2;
+      cfg.splashRadius = 46;
+      cfg.splashDamage = 1;
+      cfg.cooldown = 180;
+      cfg.shotClass = 'shot-wizard';
+    } else if (tier === 6) {
+      cfg.symbol = '~';
+      cfg.shotCount = 3;
+      cfg.spread = 0.2;
+      cfg.damage = 3;
+      cfg.splashRadius = 56;
+      cfg.splashDamage = 2;
+      cfg.freezeMs = 1400;
+      cfg.cooldown = 170;
+      cfg.shotClass = 'shot-gamma';
+    } else if (tier === 7) {
+      cfg.symbol = '✚';
+      cfg.shotCount = 4;
+      cfg.spread = 0.22;
+      cfg.damage = 3;
+      cfg.splashRadius = 64;
+      cfg.splashDamage = 2;
+      cfg.killBonus = 10;
+      cfg.cooldown = 165;
+      cfg.shotClass = 'shot-nurse';
+    } else if (tier === 8) {
+      cfg.symbol = '🐾';
+      cfg.shotCount = 4;
+      cfg.spread = 0.24;
+      cfg.damage = 4;
+      cfg.splashRadius = 70;
+      cfg.splashDamage = 3;
+      cfg.killBonus = 20;
+      cfg.clearChance = 0.12;
+      cfg.cooldown = 160;
+      cfg.shotClass = 'shot-dogko';
+    } else if (tier === 9) {
+      cfg.symbol = '✦';
+      cfg.shotCount = 5;
+      cfg.spread = 0.26;
+      cfg.damage = 4;
+      cfg.splashRadius = 78;
+      cfg.splashDamage = 3;
+      cfg.pierce = 2;
+      cfg.killBonus = 30;
+      cfg.clearChance = 0.2;
+      cfg.cooldown = 150;
+      cfg.shotClass = 'shot-mythic';
+    } else if (tier >= 10) {
+      cfg.symbol = '⚡';
+      cfg.shotCount = 6;
+      cfg.spread = 0.28;
+      cfg.damage = 5;
+      cfg.splashRadius = 90;
+      cfg.splashDamage = 4;
+      cfg.pierce = 4;
+      cfg.killBonus = 40;
+      cfg.clearChance = 0.35;
+      cfg.cooldown = 140;
+      cfg.shotClass = 'shot-mathtality';
+    }
+
+    return cfg;
   }
 
   function spawnAirEnemy(type, x, baseY) {
@@ -764,14 +899,76 @@ window.__BennyWorldBabylonCleanup = null;
     });
   }
 
-  function fireBennyShot() {
-    const now = performance.now();
-    if (now - lastBennyShotAt < bennyShotCooldownMs) return;
-    lastBennyShotAt = now;
+  function removeEnemy(enemy) {
+    if (!enemy) return;
+    if (enemy.el) enemy.el.remove();
+    const idx = airEnemies.indexOf(enemy);
+    if (idx >= 0) airEnemies.splice(idx, 1);
+  }
+
+  function awardEnemyElimination(enemy, killBonus = 0) {
+    points += 120 + Math.max(0, killBonus);
+    setMessage(`${enemy.type === 'syntax' ? 'Syntax Error' : 'Bug'} eliminated!`, 900);
+    removeEnemy(enemy);
+  }
+
+  function applySplashDamage(shot, centerEnemy) {
+    if (!shot.splashRadius || !shot.splashDamage) return;
+    const cx = centerEnemy.x + centerEnemy.w * 0.5;
+    const cy = centerEnemy.y + centerEnemy.h * 0.5;
+    airEnemies.slice().forEach((enemy) => {
+      if (enemy === centerEnemy) return;
+      const ex = enemy.x + enemy.w * 0.5;
+      const ey = enemy.y + enemy.h * 0.5;
+      const dist = Math.hypot(ex - cx, ey - cy);
+      if (dist > shot.splashRadius) return;
+      enemy.hp -= shot.splashDamage;
+      if (enemy.hp <= 0) {
+        awardEnemyElimination(enemy, shot.killBonus || 0);
+      }
+    });
+  }
+
+  function clearAllAirEnemies(reasonText, killBonus = 0) {
+    if (!airEnemies.length) return 0;
+    const toClear = airEnemies.slice();
+    toClear.forEach((enemy) => {
+      points += 120 + Math.max(0, killBonus);
+      if (enemy.el) enemy.el.remove();
+    });
+    airEnemies.length = 0;
+    if (reasonText) setMessage(reasonText, 1000);
+    return toClear.length;
+  }
+
+  function spawnShot(cfg, direction) {
     const el = document.createElement('div');
     el.className = 'bw-shot';
-    el.textContent = activeTier() >= 6 ? '✦' : '•';
+    if (cfg.shotClass) el.classList.add(cfg.shotClass);
+    el.textContent = cfg.symbol;
     area.appendChild(el);
+    bennyShots.push({
+      el,
+      x: bennyState.x + 18,
+      y: bennyState.y + 16,
+      vx: Math.cos(direction) * cfg.speed,
+      vy: Math.sin(direction) * cfg.speed,
+      damage: cfg.damage,
+      splashRadius: cfg.splashRadius,
+      splashDamage: cfg.splashDamage,
+      pierceLeft: cfg.pierce,
+      freezeMs: cfg.freezeMs,
+      killBonus: cfg.killBonus,
+      clearChance: cfg.clearChance
+    });
+  }
+
+  function fireBennyShot() {
+    const cfg = getShotPowerConfig();
+    const now = performance.now();
+    if (now - lastBennyShotAt < cfg.cooldown) return;
+    lastBennyShotAt = now;
+
     let target = null;
     let nearest = Infinity;
     airEnemies.forEach((enemy) => {
@@ -783,17 +980,21 @@ window.__BennyWorldBabylonCleanup = null;
         target = enemy;
       }
     });
-    const dir = target
+
+    const baseDir = target
       ? Math.atan2((target.y + target.h * 0.5) - (bennyState.y + 18), (target.x + target.w * 0.5) - (bennyState.x + 18))
       : (benny.classList.contains('bw-benny--left') ? Math.PI : 0);
-    bennyShots.push({
-      el,
-      x: bennyState.x + 18,
-      y: bennyState.y + 16,
-      vx: Math.cos(dir) * 7.2,
-      vy: Math.sin(dir) * 7.2,
-      damage: 1
-    });
+
+    const count = Math.max(1, Math.floor(cfg.shotCount));
+    if (count === 1) {
+      spawnShot(cfg, baseDir);
+    } else {
+      const offsetCenter = (count - 1) / 2;
+      for (let i = 0; i < count; i += 1) {
+        const offset = (i - offsetCenter) * cfg.spread;
+        spawnShot(cfg, baseDir + offset);
+      }
+    }
   }
 
   function spawnDistanceEnemyWave() {
@@ -1390,14 +1591,28 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       if (hitEnemy) {
         hitEnemy.hp -= shot.damage;
         if (hitEnemy.hp <= 0) {
-          points += 120;
-          setMessage(`${hitEnemy.type === 'syntax' ? 'Syntax Error' : 'Bug'} eliminated!`, 900);
-          hitEnemy.el.remove();
-          const idx = airEnemies.indexOf(hitEnemy);
-          if (idx >= 0) airEnemies.splice(idx, 1);
+          awardEnemyElimination(hitEnemy, shot.killBonus || 0);
         }
-        shot.el.remove();
-        return false;
+        if (shot.splashRadius > 0 && shot.splashDamage > 0) {
+          applySplashDamage(shot, hitEnemy);
+        }
+        if (shot.freezeMs > 0) {
+          freezeUntil = Math.max(freezeUntil, now + shot.freezeMs);
+        }
+        if (shot.clearChance > 0 && Math.random() < shot.clearChance) {
+          const cleared = clearAllAirEnemies('Power wipe! Screen cleared.', shot.killBonus || 0);
+          if (cleared > 0) {
+            shot.el.remove();
+            return false;
+          }
+        }
+
+        if (shot.pierceLeft > 0) {
+          shot.pierceLeft -= 1;
+        } else {
+          shot.el.remove();
+          return false;
+        }
       }
       const out = shot.x < cameraOffset - 120 || shot.x > cameraOffset + rect.width + 120 || shot.y < -120 || shot.y > rect.height + 120;
       if (out) {
@@ -1608,6 +1823,8 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     setTheme();
     if (levelLabel) levelLabel.textContent = `Level ${levelIndex + 1}`;
     buildLevel();
+    const activePower = getShotPowerConfig().powerName;
+    setMessage(`Active power: ${activePower}`, 1200);
     saveProgress('auto');
   }
 
@@ -1647,7 +1864,6 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         keys.jump = true;
         triggerFlip();
         triggerBossPulse();
-        fireBennyShot();
         if (registerPress(upPresses)) {
           pendingSuperJump = true;
         }
@@ -1658,7 +1874,6 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         }
       }
       if (e.key === 'Shift') keys.glide = true;
-      if (e.key === 'f' || e.key === 'F') fireBennyShot();
     };
     const up = (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
@@ -1681,7 +1896,6 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       keys[key] = pressed;
       if (key === 'jump') triggerFlip();
       if (key === 'jump') triggerBossPulse();
-      if (key === 'jump') fireBennyShot();
     };
     const onUp = (e) => {
       e.preventDefault();

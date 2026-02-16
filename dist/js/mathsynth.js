@@ -26,6 +26,7 @@
   
   // Mobile popup elements
   let mobilePopup = null;
+  let mobilePopupInstruction = null;
   let mobilePopupProblem = null;
   let mobilePopupInput = null;
   let mobilePopupSubmit = null;
@@ -161,6 +162,9 @@
   // Selected cell tracking
   let selectedCellIndex = null;
   let selectedCellElement = null;
+  let correctiveLockUntil = 0;
+  let correctiveLockCellIndex = null;
+  let correctiveCountdownTimer = null;
 
   let unlockedCount = clamp(parseInt(window.localStorage.getItem(unlockKey), 10) || 3, 1, schemes.length);
   let selectedIndex = clamp(parseInt(window.localStorage.getItem(colorKey), 10) || 0, 0, schemes.length - 1);
@@ -171,12 +175,15 @@
       { equation: 'x + 4 = 7', answer: 3, context: 'Retail pricing' },
       { equation: 'x + 12 = 20', answer: 8, context: 'Cooking portions' },
       { equation: 'x - 5 = 9', answer: 14, context: 'Construction measurement' },
+      { equation: 'x + 9 = 2', answer: -7, context: 'Temperature drop' },
       { equation: '2x = 18', answer: 9, context: 'Manufacturing batches' },
       { equation: 'x + 6 = 15', answer: 9, context: 'Classroom supplies' },
       { equation: '3x = 21', answer: 7, context: 'Sports drills' },
+      { equation: 'x - 4 = -10', answer: -6, context: 'Sea-level depth' },
       { equation: 'x - 3 = 4', answer: 7, context: 'Gardening rows' },
       { equation: 'x + 9 = 16', answer: 7, context: 'Delivery stops' },
       { equation: '4x = 28', answer: 7, context: 'Music beats' },
+      { equation: '5x = -25', answer: -5, context: 'Direction vectors' },
       { equation: 'x + 2 = 11', answer: 9, context: 'Library checkouts' },
       { equation: 'x - 8 = 5', answer: 13, context: 'Travel miles' },
       { equation: '5x = 45', answer: 9, context: 'Catering trays' }
@@ -185,12 +192,15 @@
       { equation: '3x + 4 = 25', answer: 7, context: 'Carpentry cuts' },
       { equation: '5x - 10 = 35', answer: 9, context: 'Fitness reps' },
       { equation: '2x + 7 = 31', answer: 12, context: 'Marketing clicks' },
+      { equation: '4x + 6 = -10', answer: -4, context: 'Thermal controls' },
       { equation: '4x - 6 = 22', answer: 7, context: 'Engineering specs' },
       { equation: '6x + 3 = 45', answer: 7, context: 'Medical dosage' },
       { equation: '7x - 14 = 28', answer: 6, context: 'Shipping crates' },
+      { equation: '9x - 18 = -45', answer: -3, context: 'Subzero calibration' },
       { equation: '9x - 18 = 36', answer: 6, context: 'Game scores' },
       { equation: '8x + 12 = 60', answer: 6, context: 'Factory output' },
       { equation: '12x - 24 = 72', answer: 8, context: 'Energy usage' },
+      { equation: '10x + 15 = -5', answer: -2, context: 'Balancing debt' },
       { equation: '10x + 15 = 95', answer: 8, context: 'Fashion orders' },
       { equation: '11x - 33 = 55', answer: 8, context: 'IT tickets' },
       { equation: '14x + 7 = 119', answer: 8, context: 'Inventory packs' }
@@ -199,17 +209,35 @@
       { equation: '(3x + 6) / 3 = 12', answer: 10, context: 'Architecture scale' },
       { equation: '5(x - 4) = 35', answer: 11, context: 'Robotics timing' },
       { equation: '(4x - 8) / 2 = 10', answer: 7, context: 'Chemistry mix' },
+      { equation: '(2x - 6) / 2 = -5', answer: -2, context: 'Ocean pressure' },
       { equation: '2(x + 9) = 34', answer: 8, context: 'Film editing' },
       { equation: '(7x + 14) / 7 = 9', answer: 7, context: 'Aviation checks' },
       { equation: '6x - 3x = 24', answer: 8, context: 'Finance totals' },
+      { equation: '3(x - 4) + 6 = -9', answer: -1, context: 'Signal offsets' },
       { equation: '(9x - 18) / 3 = 12', answer: 6, context: 'Music mixing' },
       { equation: '4(x + 2) - 6 = 22', answer: 5, context: 'Pharmacy counts' },
       { equation: '(8x + 4) / 4 = 11', answer: 5, context: 'Agriculture yield' },
+      { equation: '(6x + 12) / 3 = -4', answer: -4, context: 'Wind vector model' },
       { equation: '3(x - 5) + 9 = 24', answer: 10, context: 'Construction crew' },
       { equation: '(12x - 6) / 3 = 22', answer: 6, context: 'Game design' },
       { equation: '2(x + 7) + 6 = 32', answer: 6, context: 'Space mission' }
     ]
   };
+
+  const DIVERSE_CONTEXTS = [
+    'Budget planning',
+    'Distance tracking',
+    'Classroom supplies',
+    'Team scoring',
+    'Temperature shifts',
+    'Inventory counts',
+    'Workout reps',
+    'Travel timing',
+    'Project milestones',
+    'Kitchen prep',
+    'Garden rows',
+    'Music rhythm'
+  ];
 
   const best = readBest();
   renderBest(best);
@@ -221,6 +249,7 @@
   startBtn.addEventListener('click', startGame);
 
   const resetGame = () => {
+    clearCorrectionLock();
     stopTimer();
     running = false;
     stopArena();
@@ -254,6 +283,7 @@
   // Answer section event handlers
   function handleAnswerSubmit() {
     if (selectedCellIndex === null || !running) return;
+    if (isCorrectionLocked()) return;
     const cell = board.children[selectedCellIndex];
     if (cell) {
       checkAnswer(cell, answerInput.value);
@@ -269,6 +299,124 @@
     }
   });
 
+  function isCorrectionLocked() {
+    return correctiveLockUntil > Date.now();
+  }
+
+  function clearCorrectionLock() {
+    correctiveLockUntil = 0;
+    correctiveLockCellIndex = null;
+    if (correctiveCountdownTimer) {
+      window.clearInterval(correctiveCountdownTimer);
+      correctiveCountdownTimer = null;
+    }
+    if (answerInput) answerInput.disabled = false;
+    if (answerSubmit) answerSubmit.disabled = false;
+    if (mobilePopupInput) mobilePopupInput.disabled = false;
+    if (mobilePopupSubmit) mobilePopupSubmit.disabled = false;
+    if (mobilePopupClose) mobilePopupClose.disabled = false;
+  }
+
+  function buildSimpleTip(data) {
+    const eq = String(data?.equation || '');
+    const addSubMatch = eq.match(/^x\s*([+-])\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (addSubMatch) {
+      const sign = addSubMatch[1];
+      const amount = Math.abs(Number(addSubMatch[2]));
+      if (sign === '+') return `x is the mystery number. Move +${amount} away first.`;
+      return `x is the mystery number. Move -${amount} away first.`;
+    }
+    if (/^\d+x\s*=\s*-?\d+$/.test(eq)) return 'x has a number friend. Divide both sides by that number.';
+    if (eq.includes('/')) return 'First clear the slash line.';
+    if (/\d+\(x/.test(eq) || /\(\d*x/.test(eq)) return 'Do the outside step first, then inside.';
+    if (/=.+x/.test(eq)) return 'Put all x terms on one side.';
+    if (/\d+x/.test(eq)) return 'First move plus or minus. Then divide.';
+    return 'Take one tiny step at a time to find x.';
+  }
+
+  function buildCorrectiveHelp(data) {
+    const eq = String(data?.equation || '');
+    const addSubMatch = eq.match(/^x\s*([+-])\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (addSubMatch) {
+      const sign = addSubMatch[1];
+      const amount = Math.abs(Number(addSubMatch[2]));
+      const right = Number(addSubMatch[3]);
+      if (sign === '+') {
+        return `Step 1: subtract ${amount} on BOTH sides. Step 2: now x is alone.`;
+      }
+      return `Step 1: add ${amount} on BOTH sides. Step 2: now x is alone.`;
+    }
+
+    const multOnlyMatch = eq.match(/^(-?\d+)x\s*=\s*(-?\d+)$/);
+    if (multOnlyMatch) {
+      const a = Number(multOnlyMatch[1]);
+      return `Step 1: divide BOTH sides by ${a}. Step 2: now x is alone.`;
+    }
+
+    const multPlusMatch = eq.match(/^(-?\d+)x\s*([+-])\s*(\d+)\s*=\s*(-?\d+)$/);
+    if (multPlusMatch) {
+      const a = Number(multPlusMatch[1]);
+      const sign = multPlusMatch[2];
+      const b = Number(multPlusMatch[3]);
+      if (sign === '+') {
+        return `Step 1: subtract ${b} on BOTH sides. Step 2: divide BOTH sides by ${a}.`;
+      }
+      return `Step 1: add ${b} on BOTH sides. Step 2: divide BOTH sides by ${a}.`;
+    }
+
+    if (eq.includes('/')) {
+      return 'Step 1: clear the slash by multiplying both sides by the bottom number. Step 2: keep x by itself.';
+    }
+    if (/\d+\(x/.test(eq) || /\(\d*x/.test(eq)) {
+      return 'Step 1: undo the outside multiply first. Step 2: then solve what is inside the parentheses.';
+    }
+    if (/=.+x/.test(eq)) {
+      return 'Step 1: move x terms to one side. Step 2: move plain numbers to the other side. Step 3: divide.';
+    }
+    if (/\d+x/.test(eq)) {
+      return 'Step 1: move plus/minus number away from x. Step 2: divide by the x number friend.';
+    }
+    return 'Do the same move to both sides until x is by itself.';
+  }
+
+  function beginCorrectionLock(cell, data) {
+    clearCorrectionLock();
+    correctiveLockUntil = Date.now() + 30000;
+    correctiveLockCellIndex = Number(cell.dataset.index);
+    const helpText = buildCorrectiveHelp(data);
+    if (answerInput) answerInput.disabled = true;
+    if (answerSubmit) answerSubmit.disabled = true;
+    if (mobilePopupInput) mobilePopupInput.disabled = true;
+    if (mobilePopupSubmit) mobilePopupSubmit.disabled = true;
+    if (mobilePopupClose) mobilePopupClose.disabled = true;
+
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((correctiveLockUntil - Date.now()) / 1000));
+      if (left > 0) {
+        feedbackEl.textContent = `Read this for ${left}s. ${helpText}`;
+        if (mobilePopupInstruction) {
+          mobilePopupInstruction.textContent = `Read this for ${left}s. ${helpText}`;
+        }
+      } else {
+        clearCorrectionLock();
+        feedbackEl.textContent = 'Now try the same problem again.';
+        if (mobilePopupInstruction) {
+          mobilePopupInstruction.textContent = 'Try the same problem again.';
+        }
+        if (mobilePopupInput) {
+          mobilePopupInput.focus();
+          mobilePopupInput.select();
+        }
+        if (answerInput) {
+          answerInput.focus();
+          answerInput.select();
+        }
+      }
+    };
+    tick();
+    correctiveCountdownTimer = window.setInterval(tick, 250);
+  }
+
   // Mobile popup functions
   function createMobilePopup() {
     if (mobilePopup) return;
@@ -280,7 +428,7 @@
       <div class="popup-content">
         <div class="popup-instruction">Solve each equation for x</div>
         <div class="popup-problem"></div>
-        <input type="text" class="popup-input" inputmode="numeric" placeholder="Type answer" />
+        <input type="text" class="popup-input" inputmode="decimal" placeholder="Type answer" />
         <button class="popup-submit">Submit</button>
         <div class="popup-quote">
           "What's the next right choice?"
@@ -291,6 +439,7 @@
     
     document.body.appendChild(mobilePopup);
     
+    mobilePopupInstruction = mobilePopup.querySelector('.popup-instruction');
     mobilePopupProblem = mobilePopup.querySelector('.popup-problem');
     mobilePopupInput = mobilePopup.querySelector('.popup-input');
     mobilePopupSubmit = mobilePopup.querySelector('.popup-submit');
@@ -321,19 +470,26 @@
   function showMobilePopup(cellIndex, cellData) {
     if (!mobilePopup) createMobilePopup();
     
+    if (isCorrectionLocked() && correctiveLockCellIndex !== cellIndex) return;
     selectedCellIndex = cellIndex;
     selectedCellElement = cellIndex !== null ? board.children[cellIndex] : null;
     
     if (cellData) {
+      if (mobilePopupInstruction) {
+        mobilePopupInstruction.textContent = `Tip: ${buildSimpleTip(cellData)}`;
+      }
       mobilePopupProblem.textContent = cellData.equation;
-      mobilePopupInput.value = '';
+      if (!isCorrectionLocked()) mobilePopupInput.value = '';
       mobilePopup.classList.add('active');
-      setTimeout(() => mobilePopupInput.focus(), 100);
+      if (!isCorrectionLocked()) {
+        setTimeout(() => mobilePopupInput.focus(), 100);
+      }
     }
   }
   
   function hideMobilePopup() {
     if (!mobilePopup) return;
+    if (isCorrectionLocked()) return;
     mobilePopup.classList.remove('active');
     selectedCellIndex = null;
     selectedCellElement = null;
@@ -341,11 +497,12 @@
   
   function handleMobileSubmit() {
     if (selectedCellIndex === null || !running) return;
+    if (isCorrectionLocked()) return;
     const cell = board.children[selectedCellIndex];
     if (cell) {
       const value = mobilePopupInput.value;
-      checkAnswer(cell, value);
-      hideMobilePopup();
+      const result = checkAnswer(cell, value);
+      if (result && result.correct) hideMobilePopup();
     }
   }
   
@@ -355,6 +512,10 @@
 
   function showAnswerSection(cellIndex, cellData) {
     if (!answerSection || !problemValue || !answerInput) return;
+    if (isCorrectionLocked() && correctiveLockCellIndex !== cellIndex) {
+      feedbackEl.textContent = 'Finish the 30-second help on the current problem first.';
+      return;
+    }
     
     selectedCellIndex = cellIndex;
     selectedCellElement = cellIndex !== null ? board.children[cellIndex] : null;
@@ -367,8 +528,9 @@
       
       problemValue.textContent = cellData.equation;
       answerSection.style.display = 'block';
-      answerInput.value = '';
-      answerInput.focus();
+      if (!isCorrectionLocked()) answerInput.value = '';
+      feedbackEl.textContent = `Tip: ${buildSimpleTip(cellData)}`;
+      if (!isCorrectionLocked()) answerInput.focus();
     } else {
       hideAnswerSection();
     }
@@ -376,12 +538,14 @@
   
   function hideAnswerSection() {
     if (!answerSection) return;
+    if (isCorrectionLocked()) return;
     answerSection.style.display = 'none';
     selectedCellIndex = null;
     selectedCellElement = null;
   }
 
   function startGame() {
+    clearCorrectionLock();
     stopTimer();
     stopArena();
     stopShapeBattle(true);
@@ -481,9 +645,10 @@
   function checkAnswer(cell, answerValue) {
     const idx = Number(cell.dataset.index);
     const data = puzzle[idx];
-    if (!data || data.solved || !running) return;
+    if (!data || data.solved || !running) return { correct: false };
+    if (isCorrectionLocked() && correctiveLockCellIndex === idx) return { correct: false };
     const value = Number(answerValue);
-    if (!Number.isFinite(value)) return;
+    if (!Number.isFinite(value)) return { correct: false };
 
     const stats = loadProfileStats();
     const gameStats = ensureGameStats(stats, 'mathsynth');
@@ -491,6 +656,7 @@
     gameStats.attempted += 1;
 
     if (value === data.answer) {
+      clearCorrectionLock();
       data.solved = true;
       solved += 1;
       solvedEquations.push(data);
@@ -512,15 +678,19 @@
       if (solved === total) {
         finishGame();
       }
+      gameStats.bestScore = gameStats.bestScore === null ? score : Math.min(gameStats.bestScore, score);
+      saveProfileStats(stats);
+      return { correct: true };
     } else {
       score += 1;
       scoreEl.textContent = `${score}`;
       cell.classList.add('wrong');
-      feedbackEl.textContent = 'Not quite. Try again.';
+      beginCorrectionLock(cell, data);
       window.setTimeout(() => cell.classList.remove('wrong'), 220);
+      gameStats.bestScore = gameStats.bestScore === null ? score : Math.min(gameStats.bestScore, score);
+      saveProfileStats(stats);
+      return { correct: false };
     }
-    gameStats.bestScore = gameStats.bestScore === null ? score : Math.min(gameStats.bestScore, score);
-    saveProfileStats(stats);
   }
 
   function finishGame() {
@@ -1789,8 +1959,159 @@
     return { cols: 7, rows: 6 };
   }
 
+  function randNonZero(min, max) {
+    let value = 0;
+    while (value === 0) value = rand(min, max);
+    return value;
+  }
+
+  function pickContext(seed) {
+    return DIVERSE_CONTEXTS[seed % DIVERSE_CONTEXTS.length];
+  }
+
+  function pushUniqueEquation(list, seen, equation, answer, context) {
+    if (!Number.isFinite(answer)) return;
+    if (!Number.isInteger(answer)) return;
+    const eq = String(equation || '').trim();
+    if (!eq || seen.has(eq)) return;
+    seen.add(eq);
+    list.push({ equation: eq, answer, context });
+  }
+
+  function generateEasyEquations(count, seen) {
+    const out = [];
+    let guard = 0;
+    while (out.length < count && guard < count * 40) {
+      guard += 1;
+      const x = rand(-20, 20);
+      const a = rand(2, 12);
+      const b = rand(-18, 18);
+      const t = rand(0, 5);
+      if (t === 0) {
+        // x + b = c
+        pushUniqueEquation(out, seen, `x + ${b} = ${x + b}`, x, pickContext(guard));
+      } else if (t === 1) {
+        // x - b = c
+        pushUniqueEquation(out, seen, `x - ${b} = ${x - b}`, x, pickContext(guard));
+      } else if (t === 2) {
+        // ax = c
+        pushUniqueEquation(out, seen, `${a}x = ${a * x}`, x, pickContext(guard));
+      } else if (t === 3) {
+        // x / a = c (ensure integer c)
+        const c = rand(-12, 12);
+        pushUniqueEquation(out, seen, `x / ${a} = ${c}`, a * c, pickContext(guard));
+      } else if (t === 4) {
+        // x + b = -c form
+        const c = rand(1, 20);
+        pushUniqueEquation(out, seen, `x + ${b} = ${-c}`, -c - b, pickContext(guard));
+      } else {
+        // x - b = -c form
+        const c = rand(1, 20);
+        pushUniqueEquation(out, seen, `x - ${b} = ${-c}`, -c + b, pickContext(guard));
+      }
+    }
+    return out;
+  }
+
+  function generateMediumEquations(count, seen) {
+    const out = [];
+    let guard = 0;
+    while (out.length < count && guard < count * 50) {
+      guard += 1;
+      const x = rand(-18, 18);
+      const a = randNonZero(2, 14);
+      const b = rand(-30, 30);
+      const c = rand(-20, 20);
+      const t = rand(0, 5);
+      if (t === 0) {
+        // ax + b = n
+        pushUniqueEquation(out, seen, `${a}x + ${b} = ${a * x + b}`, x, pickContext(guard));
+      } else if (t === 1) {
+        // ax - b = n
+        pushUniqueEquation(out, seen, `${a}x - ${Math.abs(b)} = ${a * x - Math.abs(b)}`, x, pickContext(guard));
+      } else if (t === 2) {
+        // (x / a) + b = c (x chosen from a * k)
+        const k = rand(-12, 12);
+        pushUniqueEquation(out, seen, `x / ${a} + ${b} = ${k + b}`, a * k, pickContext(guard));
+      } else if (t === 3) {
+        // b - ax = n
+        pushUniqueEquation(out, seen, `${b} - ${a}x = ${b - a * x}`, x, pickContext(guard));
+      } else if (t === 4) {
+        // ax + b = cx + d
+        const cCoef = randNonZero(1, 9);
+        if (a === cCoef) continue;
+        const d = a * x + b - cCoef * x;
+        pushUniqueEquation(out, seen, `${a}x + ${b} = ${cCoef}x + ${d}`, x, pickContext(guard));
+      } else {
+        // ax - b = cx + d
+        const cCoef = randNonZero(1, 9);
+        if (a === cCoef) continue;
+        const d = a * x - Math.abs(b) - cCoef * x;
+        pushUniqueEquation(out, seen, `${a}x - ${Math.abs(b)} = ${cCoef}x + ${d}`, x, pickContext(guard));
+      }
+    }
+    return out;
+  }
+
+  function generateMathanomicalEquations(count, seen) {
+    const out = [];
+    let guard = 0;
+    while (out.length < count && guard < count * 60) {
+      guard += 1;
+      const x = rand(-15, 15);
+      const a = randNonZero(2, 12);
+      const b = rand(-24, 24);
+      const c = randNonZero(2, 9);
+      const d = rand(-20, 20);
+      const t = rand(0, 6);
+      if (t === 0) {
+        // (ax + b) / c = n
+        const n = a * x + b;
+        if (n % c !== 0) continue;
+        pushUniqueEquation(out, seen, `(${a}x + ${b}) / ${c} = ${n / c}`, x, pickContext(guard));
+      } else if (t === 1) {
+        // a(x + b) = n
+        pushUniqueEquation(out, seen, `${a}(x + ${b}) = ${a * (x + b)}`, x, pickContext(guard));
+      } else if (t === 2) {
+        // a(x - b) + d = n
+        pushUniqueEquation(out, seen, `${a}(x - ${b}) + ${d} = ${a * (x - b) + d}`, x, pickContext(guard));
+      } else if (t === 3) {
+        // (ax + b) / c + d = n
+        const n = a * x + b;
+        if (n % c !== 0) continue;
+        pushUniqueEquation(out, seen, `(${a}x + ${b}) / ${c} + ${d} = ${n / c + d}`, x, pickContext(guard));
+      } else if (t === 4) {
+        // p(ax + b) = q
+        const p = randNonZero(2, 7);
+        pushUniqueEquation(out, seen, `${p}(${a}x + ${b}) = ${p * (a * x + b)}`, x, pickContext(guard));
+      } else if (t === 5) {
+        // ax + b = (x + c) * d
+        const right = (x + c) * d;
+        const leftB = right - a * x;
+        pushUniqueEquation(out, seen, `${a}x + ${leftB} = (x + ${c}) * ${d}`, x, pickContext(guard));
+      } else {
+        // (ax - b) / c = x + d
+        const left = a * x - b;
+        const right = x + d;
+        if (left !== right * c) continue;
+        pushUniqueEquation(out, seen, `(${a}x - ${b}) / ${c} = x + ${d}`, x, pickContext(guard));
+      }
+    }
+    return out;
+  }
+
   function getEquationPool(level) {
-    return EQUATION_BANK[level] || EQUATION_BANK.easy;
+    const base = (EQUATION_BANK[level] || EQUATION_BANK.easy).slice();
+    const seen = new Set(base.map((item) => item.equation));
+    let generated = [];
+    if (level === 'easy') {
+      generated = generateEasyEquations(45, seen);
+    } else if (level === 'medium') {
+      generated = generateMediumEquations(55, seen);
+    } else {
+      generated = generateMathanomicalEquations(65, seen);
+    }
+    return base.concat(generated);
   }
 
   function unlockNextColor() {

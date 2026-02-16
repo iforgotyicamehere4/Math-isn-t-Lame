@@ -4,9 +4,9 @@ import '../styles/game.css';
 import { JUKEBOX_SONGS } from '../data/jukeboxSongs';
 
 // Import scripts using Vite's asset handling for proper bundling
-import mathScript from '../../public/js/math.js?url';
-import timerScript from '../../public/js/mathpup-timer.js?url';
-import gameScript from '../../public/js/game.js?url';
+import mathScript from '/js/math.js?url';
+import timerScript from '/js/mathpup-timer.js?url';
+import gameScript from '/js/game.js?url';
 
 export default function Game() {
   if (typeof window !== 'undefined' && window.performance) {
@@ -146,7 +146,7 @@ export default function Game() {
             <input
               id="mobileAnswer"
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               placeholder="Type answer"
               autoComplete="off"
             />

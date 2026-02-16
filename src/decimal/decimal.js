@@ -105,6 +105,10 @@ export default function initDecimal() {
   let updatePreviewHandler = null;
   let pauseHandler = null;
   let nextLevelAfterWin = null;
+  let correctiveLockUntil = 0;
+  let correctiveLockAxis = null;
+  let correctiveLockIndex = null;
+  let correctiveCountdownTimer = null;
 
   function currentUser() {
     return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -684,6 +688,7 @@ export default function initDecimal() {
     if (allowAdd && !allowMulDiv) {
       const terms = randInt(2, 4);
       let expr = `${randInt(1, 9)}.${randInt(0, 9)}`;
+      if (Math.random() < 0.35) expr = `0-${expr}`;
       for (let i = 1; i < terms; i++) {
         const op = Math.random() < 0.5 ? '+' : '-';
         const n = `${randInt(1, 9)}.${randInt(0, 9)}`;
@@ -694,6 +699,7 @@ export default function initDecimal() {
 
     const terms = randInt(2, 4);
     let expr = buildTermWithMulDiv().expr;
+    if (Math.random() < 0.35) expr = `0-${expr}`;
     for (let i = 1; i < terms; i++) {
       const op = Math.random() < 0.5 ? '+' : '-';
       const term = buildTermWithMulDiv().expr;
@@ -1204,9 +1210,7 @@ export default function initDecimal() {
     promptEl.textContent = `Solve row ${row+1}: ${expr}`;
     const lvl = normalizeLevelValue();
     const hintText = buildHintForExpression(expr, lvl);
-    if (!maybeRevealAnswer(expr, lvl)) {
-      if (hintEl) hintEl.textContent = hintText;
-    }
+    if (hintEl) hintEl.textContent = hintText;
     drawGrid();
   }
 
@@ -1219,9 +1223,7 @@ export default function initDecimal() {
     promptEl.textContent = `Solve column ${col+1}: ${expr}`;
     const lvl = normalizeLevelValue();
     const hintText = buildHintForExpression(expr, lvl);
-    if (!maybeRevealAnswer(expr, lvl)) {
-      if (hintEl) hintEl.textContent = hintText;
-    }
+    if (hintEl) hintEl.textContent = hintText;
     drawGrid();
   }
 
@@ -1236,6 +1238,7 @@ export default function initDecimal() {
 
   function trySolveSelectedRow(inputStr) {
     if (selectedRow === null) return;
+    if (isCorrectiveLocked()) return false;
     let rowExpr = getPromptExpression() || selectedRowExpr || grid[selectedRow].map(cell => cell ? cell.ch : '').join('');
     rowExpr = rowExpr.replace(/^[+\-*/]+/, '').replace(/[+\-*/]+$/, '');
     const lvl = normalizeLevelValue();
@@ -1257,7 +1260,7 @@ export default function initDecimal() {
         return true;
       }
       streak = 0;
-      feedbackEl.textContent = `Incorrect — expected ${displayNumber(parsed)}`;
+      startCorrectiveLock(cleaned, lvl, 'row', selectedRow);
       recordAttempt(false, 0);
       return false;
     }
@@ -1278,13 +1281,14 @@ export default function initDecimal() {
       return true;
     }
     streak = 0;
-    feedbackEl.textContent = `Incorrect — expected ${displayNumber(value)}`;
+    startCorrectiveLock(rowExpr, lvl, 'row', selectedRow);
     recordAttempt(false, 0);
     return false;
   }
 
   function trySolveSelectedCol(inputStr) {
     if (selectedCol === null) return;
+    if (isCorrectiveLocked()) return false;
     let colExpr = getPromptExpression() || selectedColExpr || grid.map(r => r[selectedCol] ? r[selectedCol].ch : '').join('');
     colExpr = colExpr.replace(/^[+\-*/]+/, '').replace(/[+\-*/]+$/, '');
     const lvl = normalizeLevelValue();
@@ -1306,7 +1310,7 @@ export default function initDecimal() {
         return true;
       }
       streak = 0;
-      feedbackEl.textContent = `Incorrect — expected ${displayNumber(parsed)}`;
+      startCorrectiveLock(cleaned, lvl, 'col', selectedCol);
       recordAttempt(false, 0);
       return false;
     }
@@ -1327,7 +1331,7 @@ export default function initDecimal() {
       return true;
     }
     streak = 0;
-    feedbackEl.textContent = `Incorrect — expected ${displayNumber(value)}`;
+    startCorrectiveLock(colExpr, lvl, 'col', selectedCol);
     recordAttempt(false, 0);
     return false;
   }
@@ -1378,19 +1382,85 @@ export default function initDecimal() {
     return cleaned;
   }
 
-  function maybeRevealAnswer(expr, level) {
-    if (answerRevealRemaining <= 0) return false;
-    if (Math.random() > 0.18) return false;
-    const cleaned = normalizeExpression(expr, level);
-    let answer = null;
-    if (level === 'easy') answer = parseEasyRowPhrase(cleaned);
-    else answer = evaluateExpression(cleaned, level === 'medium' ? ['+','-'] : ['+','-','*','/']);
-    if (answer === null) return false;
-    answerRevealRemaining -= 1;
-    if (hintEl) {
-      hintEl.textContent = `Answer reveal (${3 - answerRevealRemaining}/3): ${displayNumber(answer)}`;
+  function isCorrectiveLocked() {
+    return correctiveLockUntil > Date.now();
+  }
+
+  function clearCorrectiveLock() {
+    correctiveLockUntil = 0;
+    correctiveLockAxis = null;
+    correctiveLockIndex = null;
+    if (correctiveCountdownTimer) {
+      clearInterval(correctiveCountdownTimer);
+      correctiveCountdownTimer = null;
     }
-    return true;
+    if (inputEl) inputEl.disabled = false;
+  }
+
+  function buildCorrectiveHelpForExpression(expr, level) {
+    const cleaned = normalizeExpression(expr || '', level);
+    if (!cleaned) return 'Look at the numbers, do one small step, then type your answer.';
+    if (level === 'easy') {
+      if (cleaned.includes('&')) {
+        const [wholePart = '', decimalPart = ''] = cleaned.split('&');
+        return `Say "${wholePart}" first. Then say "${decimalPart}". Put them together as one decimal number.`;
+      }
+      if (cleaned.includes('.')) {
+        const [wholePart = '', decimalPart = ''] = cleaned.split('.');
+        return `Read "${wholePart}" as the whole number. The digits "${decimalPart}" stay after the dot.`;
+      }
+      return 'Read the word number slowly, then write that same number with digits.';
+    }
+    const tokens = cleaned.match(/(\d+\.\d+|\d+|[+\-*/])/g) || [];
+    const operator = tokens.find((t) => '+-*/'.includes(t));
+    if (operator === '+') {
+      return 'Adding means count up. Start at the first number and move forward in tiny steps.';
+    }
+    if (operator === '-') {
+      return 'Subtracting means count back. Start at the first number and take away in tiny steps.';
+    }
+    if (operator === '*') {
+      return 'Multiply means equal groups. Add the same number again and again.';
+    }
+    if (operator === '/') {
+      return 'Divide means share equally. Split the first number into same-size groups.';
+    }
+    return 'Do one operation at a time, then use that result for the next step.';
+  }
+
+  function startCorrectiveLock(expr, level, axis, index) {
+    clearCorrectiveLock();
+    correctiveLockUntil = Date.now() + 30000;
+    correctiveLockAxis = axis;
+    correctiveLockIndex = index;
+    if (inputEl) {
+      inputEl.value = '';
+      inputEl.disabled = true;
+    }
+    const helpText = buildCorrectiveHelpForExpression(expr, level);
+    const unit = axis === 'col' ? 'column' : 'row';
+    const unitNum = Number.isInteger(index) ? index + 1 : '?';
+    if (promptEl) {
+      promptEl.textContent = `Try ${unit} ${unitNum} again after help: ${expr}`;
+    }
+    const render = () => {
+      const left = Math.max(0, Math.ceil((correctiveLockUntil - Date.now()) / 1000));
+      if (left <= 0) {
+        clearCorrectiveLock();
+        if (feedbackEl) feedbackEl.textContent = `Try ${unit} ${unitNum} again now.`;
+        if (hintEl) hintEl.textContent = `Tip: ${buildHintForExpression(expr, level)}`;
+        if (inputEl) inputEl.disabled = false;
+        return;
+      }
+      if (feedbackEl) feedbackEl.textContent = `Read this help for ${left}s, then try the same problem again.`;
+      if (hintEl) hintEl.textContent = `Help: ${helpText}`;
+    };
+    render();
+    correctiveCountdownTimer = setInterval(render, 250);
+  }
+
+  function maybeRevealAnswer(expr, level) {
+    return false;
   }
 
   function buildHintForExpression(expr, level) {
@@ -1453,6 +1523,13 @@ export default function initDecimal() {
       if (!inputKeydownHandler) {
         inputKeydownHandler = (e) => {
           if (e.key === 'Enter') {
+            if (isCorrectiveLocked()) {
+              const left = Math.max(0, Math.ceil((correctiveLockUntil - Date.now()) / 1000));
+              const unit = correctiveLockAxis === 'col' ? 'column' : 'row';
+              const unitNum = Number.isInteger(correctiveLockIndex) ? correctiveLockIndex + 1 : '?';
+              feedbackEl.textContent = `Keep reading help for ${unit} ${unitNum}. You can answer in ${left}s.`;
+              return;
+            }
             const txt = inputEl.value.trim();
             inputEl.value = '';
             if (!txt) return;
@@ -1471,6 +1548,12 @@ export default function initDecimal() {
 
   function canvasClickHandler(e) {
     if (!canvas) return;
+    if (isCorrectiveLocked()) {
+      const unit = correctiveLockAxis === 'col' ? 'column' : 'row';
+      const unitNum = Number.isInteger(correctiveLockIndex) ? correctiveLockIndex + 1 : '?';
+      feedbackEl.textContent = `Finish the 30-second help, then retry ${unit} ${unitNum}.`;
+      return;
+    }
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
@@ -1672,8 +1755,13 @@ export default function initDecimal() {
         const term = builder();
         if (!term) { i--; continue; }
         if (i === 0) {
-          expr = term.expr;
-          total = term.value;
+          if (Math.random() < 0.35) {
+            expr = `0-${term.expr}`;
+            total = -term.value;
+          } else {
+            expr = term.expr;
+            total = term.value;
+          }
         } else {
           const op = Math.random() < 0.5 ? '+' : '-';
           expr += op + term.expr;
@@ -1730,6 +1818,7 @@ export default function initDecimal() {
   }
 
   function startGame() {
+    clearCorrectiveLock();
     running = true; paused = false; score = 0; streak = 0; selectedRow = null; selectedCol = null;
     applyLevelConfig();
     setBackgroundPattern();
@@ -1753,6 +1842,7 @@ export default function initDecimal() {
   }
 
   function stopGame() {
+    clearCorrectiveLock();
     running = false; paused = false;
     stopGravity(); clearRoundTimer();
     stopMiniRound();
@@ -1762,6 +1852,7 @@ export default function initDecimal() {
   }
 
   function gameOver() {
+    clearCorrectiveLock();
     running = false; stopGravity(); clearRoundTimer();
     stopMiniRound();
     promptEl.textContent = 'Game Over';
@@ -1774,6 +1865,7 @@ export default function initDecimal() {
   }
 
   function winGame() {
+    clearCorrectiveLock();
     running = false;
     stopGravity();
     clearRoundTimer();
@@ -1801,6 +1893,7 @@ export default function initDecimal() {
 
   function togglePause() {
     if (!running) return;
+    clearCorrectiveLock();
     paused = !paused;
     if (paused) {
       pauseBtn.textContent = 'Resume';

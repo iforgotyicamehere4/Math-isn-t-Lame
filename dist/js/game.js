@@ -111,12 +111,64 @@ window.__MathPupStateReset = true;
     return String(expr).replace(/([+\-*/])/g, ' $1 ').replace(/\s+/g, ' ').trim();
   }
 
+  function buildAdditionTip(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return 'Tip: add in small steps.';
+    const absA = Math.abs(a);
+    const absB = Math.abs(b);
+    const big = absA >= absB ? a : b;
+    const small = absA >= absB ? b : a;
+    const smallAbs = Math.abs(small);
+
+    if (a >= 0 && b >= 0) {
+      const base = `Tip: start at ${big} and count ${smallAbs} more.`;
+      if (smallAbs <= 3) return base;
+      const gap = (10 - (Math.abs(big) % 10)) % 10;
+      if (gap > 0 && gap < smallAbs) {
+        return `${base} Make a 10 first if you can.`;
+      }
+      return `${base} Break ${smallAbs} into smaller parts.`;
+    }
+
+    if (a < 0 && b < 0) {
+      return 'Tip: two negative numbers stay negative. Add the big parts, then keep one minus sign.';
+    }
+
+    return 'Tip: adding a negative means move left on the number line. Compare the big parts, then keep the sign of the bigger part.';
+  }
+
+  function buildAdditionHelp(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+      return 'Help: go slow. Count one step at a time.';
+    }
+    const absA = Math.abs(a);
+    const absB = Math.abs(b);
+    const big = absA >= absB ? a : b;
+    const small = absA >= absB ? b : a;
+    const smallAbs = Math.abs(small);
+
+    if (a >= 0 && b >= 0) {
+      const countWords = [];
+      const steps = Math.min(smallAbs, 6);
+      for (let i = 1; i <= steps; i += 1) {
+        countWords.push(String(big + i));
+      }
+      if (smallAbs <= 6) {
+        return `Help: start at ${big}. Count up ${smallAbs}: ${countWords.join(', ')}.`;
+      }
+      return `Help: start at ${big}. Count up ${smallAbs} one by one.`;
+    }
+    if (a < 0 && b < 0) {
+      return `Help: both have a minus sign. Add ${Math.abs(a)} and ${Math.abs(b)}. Keep one minus sign.`;
+    }
+    return 'Help: one number has a minus sign. Minus means move left on the number line.';
+  }
+
   function buildHint(problem) {
     if (!problem) return '';
     const a = problem.a;
     const b = problem.b;
     const op = problem.op;
-    if (op === '+') return `Hint: start at ${a} and count ${b} more.`;
+    if (op === '+') return buildAdditionTip(a, b);
     if (op === '-') return `Hint: think "${b} + ? = ${a}".`;
     if (op === '*') return `Hint: ${a} groups of ${b} (add ${b} ${a} times).`;
     if (op === '/') return `Hint: think "${b} x ? = ${a}".`;
@@ -129,6 +181,63 @@ window.__MathPupStateReset = true;
     }
     return 'Hint: use order of operations (x and / before + and -).';
   }
+
+  function buildCorrectiveHint(problem, userAnswer, expected) {
+    if (!problem) return 'Try again. Do one step at a time.';
+    const a = Number(problem.a);
+    const b = Number(problem.b);
+    const op = problem.op;
+    const typed = Number(userAnswer);
+    const signLine = (() => {
+      if (!Number.isFinite(typed) || !Number.isFinite(expected)) {
+        return 'Type only numbers (and minus if needed).';
+      }
+      if (expected < 0 && typed >= 0) {
+        return 'Use a minus sign in front.';
+      }
+      if (expected >= 0 && typed < 0) {
+        return 'No minus sign is needed.';
+      }
+      return '';
+    })();
+
+    if (op === '+') {
+      const core = buildAdditionHelp(a, b);
+      return signLine ? `${core} ${signLine}` : core;
+    }
+    if (op === '-') {
+      const core = b < 0
+        ? `Subtracting a negative means add ${Math.abs(b)}. Start at ${a}, then move right ${Math.abs(b)} steps.`
+        : `Start at ${a}. Take away ${b}. If ${b} is bigger than ${a}, the answer is negative.`;
+      return signLine ? `${core} ${signLine}` : core;
+    }
+    if (op === '*') {
+      const core = `Multiply: ${a} groups of ${b}.`;
+      return signLine ? `${core} ${signLine}` : core;
+    }
+    if (op === '/') {
+      const core = `Divide ${a} by ${b}. Check with ${b} x answer = ${a}.`;
+      return signLine ? `${core} ${signLine}` : core;
+    }
+
+    const expr = formatExpression(problem.expr || '');
+    if (!expr) return signLine || 'Use order of operations, then check your sign.';
+    const mulDivStep = (() => {
+      const match = String(problem.expr || '').match(/(-?\d+)\s*([*/])\s*(-?\d+)/);
+      if (!match) return '';
+      const left = Number(match[1]);
+      const oper = match[2];
+      const right = Number(match[3]);
+      const stepVal = computeAnswer(`${left}${oper}${right}`);
+      if (!Number.isFinite(stepVal)) return '';
+      return `First do ${left} ${oper} ${right}.`;
+    })();
+    const core = mulDivStep
+      ? `${mulDivStep} Then finish the rest left to right.`
+      : 'Do x and / first. Then do + and -.';
+    return signLine ? `${core} ${signLine}` : core;
+  }
+
   function getPlayBounds() {
     const nav = document.querySelector('.app-nav');
     const navHeight = nav ? nav.getBoundingClientRect().height : 60;
@@ -240,10 +349,8 @@ window.__MathPupStateReset = true;
           const a = randInt(1, 20);
           const b = randInt(1, 20);
           const op = Math.random() < 0.5 ? '+' : '-';
-          const aa = op === '-' && a < b ? b : a;
-          const bb = op === '-' && a < b ? a : b;
-          const expr = `${aa}${op}${bb}`;
-          pushProblem(expr, aa, bb, op);
+          const expr = `${a}${op}${b}`;
+          pushProblem(expr, a, b, op);
         }
         return shuffle(problems);
       }
@@ -251,12 +358,10 @@ window.__MathPupStateReset = true;
       if (levelName === 'Easy25') {
         while (problems.length < 100) {
           const a = randInt(25, 50);
-          const b = randInt(1, 25);
+          const b = randInt(1, 50);
           const op = Math.random() < 0.5 ? '+' : '-';
-          const aa = op === '-' && a < b ? b : a;
-          const bb = op === '-' && a < b ? a : b;
-          const expr = `${aa}${op}${bb}`;
-          pushProblem(expr, aa, bb, op);
+          const expr = `${a}${op}${b}`;
+          pushProblem(expr, a, b, op);
         }
         return shuffle(problems);
       }
@@ -264,17 +369,15 @@ window.__MathPupStateReset = true;
       if (levelName === 'Easy50') {
         while (problems.length < 100) {
           const a = randInt(75, 100);
-          let b = randInt(10, 99);
+          let b = randInt(10, 110);
           if (Math.random() < 0.5) {
             const tens = Math.floor(b / 10);
             const ones = b % 10;
             b = ones * 10 + tens;
           }
           const op = Math.random() < 0.5 ? '+' : '-';
-          const aa = op === '-' && a < b ? b : a;
-          const bb = op === '-' && a < b ? a : b;
-          const expr = `${aa}${op}${bb}`;
-          pushProblem(expr, aa, bb, op);
+          const expr = `${a}${op}${b}`;
+          pushProblem(expr, a, b, op);
         }
         return shuffle(problems);
       }
@@ -384,7 +487,6 @@ window.__MathPupStateReset = true;
         } else {
           a = operands[randInt(0, operands.length - 1)];
           b = operands[randInt(0, operands.length - 1)];
-          if (op === '-' && a < b) [a, b] = [b, a];
           const expr = `${a}${op}${b}`;
           ans = computeAnswer(expr);
         }
@@ -395,7 +497,7 @@ window.__MathPupStateReset = true;
           if (Math.random() < 0.5) a = twoDigits[randInt(0, twoDigits.length - 1)];
           else b = twoDigits[randInt(0, twoDigits.length - 1)];
           if (op === '+') ans = a + b;
-          if (op === '-') { if (a < b) [a,b] = [b,a]; ans = a - b; }
+          if (op === '-') ans = a - b;
           if (op === '*') ans = a * b;
           if (op === '/') {
             const divisors = operands.filter(x => x !== 0 && a % x === 0);
@@ -544,6 +646,8 @@ window.__MathPupStateReset = true;
   let typedBuffer = '';
   let roundToken = 0;
   let nextRoundTimeout = null;
+  let correctivePauseTimeout = null;
+  let correctivePauseToken = 0;
   let timerLevelName = null;
   let miniGameActive = false;
   let miniGameFrame = null;
@@ -556,6 +660,7 @@ window.__MathPupStateReset = true;
   let problemTimeRemaining = 0;
   let problemSecondsLeft = 0;
   let problemStartAt = null;
+  let retryUsedThisRound = false;
   let miniZombies = [];
   let miniShots = [];
   let zombieIdCounter = 0;
@@ -1155,6 +1260,13 @@ window.__MathPupStateReset = true;
     if (nextRoundTimeout) {
       clearTimeout(nextRoundTimeout);
       nextRoundTimeout = null;
+    }
+  }
+
+  function clearCorrectivePauseTimeout() {
+    if (correctivePauseTimeout) {
+      clearTimeout(correctivePauseTimeout);
+      correctivePauseTimeout = null;
     }
   }
 
@@ -1877,6 +1989,7 @@ window.__MathPupStateReset = true;
   function startRound(levelName) {
     clearRoundTimers();
     clearNextRoundTimeout();
+    clearCorrectivePauseTimeout();
     if (!running || miniGameActive || levelExpired || roundActive) return;
     const ops = levelOperatorMap[levelName] || engine.config.operators;
     const prevOps = engine.config.operators;
@@ -1901,8 +2014,9 @@ window.__MathPupStateReset = true;
       }
       typedBuffer = '';
       typedContainer.textContent = '';
+      retryUsedThisRound = false;
       statusEl.textContent = 'Answer the problem!';
-      setHint('');
+      setHint(problem.op === '+' ? buildHint(problem) : '');
     } catch (err) {
       console.error('Problem generation error', err);
       engine.config.operators = prevOps;
@@ -1928,19 +2042,52 @@ window.__MathPupStateReset = true;
     const elapsedMs = problemStartAt ? performance.now() - problemStartAt : PROBLEM_TIME_MS;
     const numericAnswer = Number(answerStr);
     const res = engine.answer(numericAnswer);
+    const expected = Number.isFinite(activeProblem.answer)
+      ? activeProblem.answer
+      : computeAnswer(activeProblem.expr || `${activeProblem.a}${activeProblem.op}${activeProblem.b}`);
+
+    // First miss: keep same problem, teach for 30s, then give one retry.
+    if (!res.correct && !retryUsedThisRound) {
+      retryUsedThisRound = true;
+      engine.currentProblem = activeProblem;
+      recordProblemTiming(levelName, activeProblem, elapsedMs, 'incorrect');
+      clearCorrectivePauseTimeout();
+      const token = ++correctivePauseToken;
+      statusEl.textContent = 'Read this help for 30 seconds, then try the same problem again.';
+      setHint(buildCorrectiveHint(activeProblem, answerStr, expected));
+      correctivePauseTimeout = setTimeout(() => {
+        if (!running || miniGameActive || levelExpired) return;
+        if (token !== correctivePauseToken) return;
+        if (!engine.currentProblem) return;
+        roundActive = true;
+        timerLevelName = levelName;
+        problemStartAt = performance.now();
+        problemSecondsLeft = Math.ceil(PROBLEM_TIME_MS / 1000);
+        problemTimeRemaining = problemSecondsLeft * 1000;
+        updateTimerDisplay();
+        if (window.mathPupTimer && typeof window.mathPupTimer.startRound === 'function') {
+          window.mathPupTimer.startRound(levelName);
+        }
+        statusEl.textContent = 'Second chance: try this same problem.';
+      }, 30000);
+      return;
+    }
+
+    clearCorrectivePauseTimeout();
     recordProblemTiming(levelName, activeProblem, elapsedMs, res.correct ? 'correct' : 'incorrect');
     if (res.correct) {
       score += res.pointsEarned;
       statusEl.textContent = `Correct! +${res.pointsEarned}`;
       setHint('');
+      retryUsedThisRound = false;
       pupStreak = Math.min(pupStreak + 1, 999);
     } else {
       statusEl.textContent = 'Incorrect';
-      const expected = Number.isFinite(activeProblem.answer)
-        ? activeProblem.answer
-        : computeAnswer(activeProblem.expr || `${activeProblem.a}${activeProblem.op}${activeProblem.b}`);
-      const hint = buildHint(activeProblem);
-      setHint(`${hint} Correct answer: ${formatAnswer(expected)}.`);
+      const correctiveHint = buildCorrectiveHint(activeProblem, answerStr, expected);
+      const enteredText = Number.isFinite(Number(answerStr))
+        ? `You entered: ${formatAnswer(Number(answerStr))}. `
+        : 'You entered: not a number. ';
+      setHint(`${enteredText}${correctiveHint}`);
       pupStreak = 0;
     }
 
@@ -2044,7 +2191,14 @@ window.__MathPupStateReset = true;
       return;
     }
     if (/^[0-9\-]$/.test(e.key)) {
-      typedBuffer += e.key;
+      const normalizeSignedIntegerInput = window.__MathPupNormalizeSignedIntegerInput
+        || ((raw) => {
+          const cleaned = String(raw || '').replace(/[^\d-]/g, '');
+          const sign = cleaned.startsWith('-') ? '-' : '';
+          const digits = cleaned.replace(/-/g, '');
+          return sign + digits;
+        });
+      typedBuffer = normalizeSignedIntegerInput(`${typedBuffer}${e.key}`);
       typedContainer.textContent = typedBuffer;
       e.preventDefault();
     }
@@ -2156,6 +2310,12 @@ window.__MathPupStateReset = true;
     mobileAnswerBtn.addEventListener('click', submitMobileAnswer);
   }
   if (mobileAnswer) {
+    const normalizeSignedIntegerInput = (raw) => {
+      const cleaned = String(raw || '').replace(/[^\d-]/g, '');
+      const sign = cleaned.startsWith('-') ? '-' : '';
+      const digits = cleaned.replace(/-/g, '');
+      return sign + digits;
+    };
     mobileAnswer.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         submitMobileAnswer();
@@ -2163,14 +2323,24 @@ window.__MathPupStateReset = true;
       }
     });
     mobileAnswer.addEventListener('input', () => {
-      mobileAnswer.value = mobileAnswer.value.replace(/[^0-9-]/g, '');
+      mobileAnswer.value = normalizeSignedIntegerInput(mobileAnswer.value);
     });
+    if (!window.__MathPupNormalizeSignedIntegerInput) {
+      window.__MathPupNormalizeSignedIntegerInput = normalizeSignedIntegerInput;
+    }
   }
 
   // Number keyboard functionality
   const keyboardDisplay = document.getElementById('keyboardDisplay');
   const keyboardButtons = document.querySelectorAll('#numberKeyboard .keyboard-grid button');
   let keyboardBuffer = '';
+  const normalizeSignedIntegerInput = window.__MathPupNormalizeSignedIntegerInput
+    || ((raw) => {
+      const cleaned = String(raw || '').replace(/[^\d-]/g, '');
+      const sign = cleaned.startsWith('-') ? '-' : '';
+      const digits = cleaned.replace(/-/g, '');
+      return sign + digits;
+    });
 
   function updateKeyboardDisplay() {
     if (keyboardDisplay) {
@@ -2190,7 +2360,7 @@ window.__MathPupStateReset = true;
       } else {
         const key = btn.getAttribute('data-key');
         if (key) {
-          keyboardBuffer += key;
+          keyboardBuffer = normalizeSignedIntegerInput(`${keyboardBuffer}${key}`);
           if (keyboardBuffer.length > 12) {
             keyboardBuffer = keyboardBuffer.slice(0, 12);
           }
@@ -2222,6 +2392,8 @@ window.__MathPupStateReset = true;
     }
     running = true;
     levelExpired = false;
+    clearCorrectivePauseTimeout();
+    retryUsedThisRound = false;
     score = 0;
     pupStreak = 0;
     scoreEl.textContent = 'Score: ' + score;
@@ -2244,6 +2416,7 @@ window.__MathPupStateReset = true;
     roundActive = false;
     clearRoundTimers();
     clearNextRoundTimeout();
+    clearCorrectivePauseTimeout();
     clearLevelTimer();
     statusEl.textContent = 'Paused';
     pauseBtn.disabled = true;
@@ -2266,6 +2439,7 @@ window.__MathPupStateReset = true;
     running = false;
     roundActive = false;
     clearRoundTimers();
+    clearCorrectivePauseTimeout();
     clearLevelTimer();
     pauseBackgroundMusic();
     statusEl.textContent = 'Game Over';
@@ -2292,6 +2466,7 @@ window.__MathPupStateReset = true;
     clearLevelTimer();
     clearMiniGame();
     clearNextRoundTimeout();
+    clearCorrectivePauseTimeout();
     pauseBackgroundMusic();
     if (musicPopupTimer) {
       clearTimeout(musicPopupTimer);

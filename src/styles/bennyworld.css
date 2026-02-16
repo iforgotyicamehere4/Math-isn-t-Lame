@@ -944,18 +944,52 @@ bi.benny-world {
 
 .bw-shot {
   position: absolute;
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #22d3ee, #7c3aed);
-  color: #0b0a2b;
+  background: transparent;
+  color: #ffef7a;
   font-weight: 900;
-  font-size: 1.1rem;
-  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.35);
+  font-size: 1.2rem;
+  text-shadow: 0 0 6px rgba(255, 235, 120, 0.9);
   user-select: none;
   touch-action: none;
+}
+
+.bw-shot.shot-greater {
+  color: #baf7ff;
+  text-shadow: 0 0 8px rgba(124, 244, 255, 0.9);
+}
+
+.bw-shot.shot-wizard {
+  color: #f2b6ff;
+  text-shadow: 0 0 10px rgba(242, 182, 255, 0.95);
+}
+
+.bw-shot.shot-gamma {
+  color: #7cf4ff;
+  text-shadow: 0 0 10px rgba(124, 244, 255, 0.95), 0 0 18px rgba(59, 130, 246, 0.7);
+}
+
+.bw-shot.shot-nurse {
+  color: #b9ffd8;
+  text-shadow: 0 0 9px rgba(153, 246, 228, 0.95);
+}
+
+.bw-shot.shot-dogko {
+  color: #ffe8a3;
+  text-shadow: 0 0 9px rgba(253, 224, 71, 0.95);
+}
+
+.bw-shot.shot-mythic {
+  color: #ffffff;
+  text-shadow: 0 0 11px rgba(186, 230, 253, 0.95);
+}
+
+.bw-shot.shot-mathtality {
+  color: #f8ffe6;
+  text-shadow: 0 0 12px rgba(190, 242, 100, 0.95), 0 0 18px rgba(250, 204, 21, 0.65);
 }
 
 .bw-air-enemy {
@@ -1236,17 +1270,42 @@ bi.benny-world {
 }
 
 .bw-actions {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(84px, 1fr));
+  grid-template-areas:
+    "jump fire"
+    "glide glide";
+  gap: 10px 12px;
+  justify-items: center;
+  align-items: center;
   flex: 0 0 auto;
+  width: min(46vw, 220px);
+}
+
+#bwJump {
+  grid-area: jump;
+}
+
+#bwFire {
+  grid-area: fire;
+}
+
+#bwGlide {
+  grid-area: glide;
+  justify-self: center;
 }
 
 .bw-action-btn {
-  /* 10% bigger than before - was min-width: 80px, now 88px */
-  min-width: 88px !important;
-  padding: 14px 18px !important;
+  width: 96px !important;
+  min-width: 96px !important;
+  height: 52px !important;
+  padding: 0 12px !important;
   font-size: 1.05rem !important;
   border-radius: 14px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .bw-move {
@@ -1277,7 +1336,8 @@ bi.benny-world {
   }
 
   .bw-actions {
-    display: flex !important;
+    display: grid !important;
+    width: min(52vw, 220px);
   }
 }
 
@@ -1321,13 +1381,14 @@ bi.benny-world {
   }
 
   .bw-actions {
-    display: flex !important;
+    display: grid !important;
   }
 
   .bw-action-btn {
-    /* 10% bigger on mobile too */
-    min-width: 88px !important;
-    padding: 14px 18px !important;
+    width: 96px !important;
+    min-width: 96px !important;
+    height: 52px !important;
+    padding: 0 12px !important;
     font-size: 1.05rem !important;
     border-radius: 14px !important;
   }
@@ -1403,6 +1464,11 @@ bi.benny-world {
     padding: 8px 10px;
     font-size: 0.8rem;
     border-radius: 10px;
+  }
+
+  .bw-actions {
+    width: min(56vw, 200px);
+    gap: 8px 10px;
   }
 }
 

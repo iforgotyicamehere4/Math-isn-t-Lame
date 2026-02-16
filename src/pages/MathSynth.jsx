@@ -144,6 +144,7 @@ export default function MathSynth() {
                 type="text" 
                 id="mathSynthAnswer" 
                 className="answer-input" 
+                inputMode="decimal"
                 placeholder="x = ?" 
                 enterKeyHint="enter"
                 autoComplete="off"

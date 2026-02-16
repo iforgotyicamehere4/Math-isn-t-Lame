@@ -518,11 +518,21 @@
     align-items: stretch;
     justify-content: space-between;
   }
+  .profile-mobile-grid .benny-powers-box {
+    aspect-ratio: auto;
+    min-height: 230px;
+    overflow: visible;
+  }
   .profile-mobile-grid .jukebox-box {
     grid-column: 1 / -1;
     aspect-ratio: auto;
     min-height: 240px;
     padding-bottom: 10px;
+  }
+  .profile-mobile-grid .benny-delete-box {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(92%, 280px);
   }
   .profile-mobile-grid .jukebox-list {
     max-height: 210px;
@@ -537,8 +547,20 @@
     min-height: 120px;
   }
   .profile-mobile-grid .benny-colors {
+    display: grid;
+    grid-template-columns: repeat(5, 22px);
+    grid-auto-rows: 22px;
     gap: 6px;
-    padding-bottom: 4px;
+    width: 100%;
+    max-width: none;
+    flex: 1 1 auto;
+    align-content: start;
+    justify-content: start;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    padding-bottom: 0;
+    scroll-snap-type: none;
     min-height: 32px;
   }
   .profile-mobile-grid .benny-color {

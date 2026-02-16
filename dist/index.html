@@ -29,19 +29,23 @@
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/Math-isn-t-Lame/manifest.json" />
-    <script type="module" crossorigin src="/Math-isn-t-Lame/assets/index-dQTRprkP.js"></script>
+    <script type="module" crossorigin src="/Math-isn-t-Lame/assets/index-B3nCyNi9.js"></script>
     <link rel="modulepreload" crossorigin href="/Math-isn-t-Lame/assets/vendor-CV00cFDn.js">
-    <link rel="stylesheet" crossorigin href="/Math-isn-t-Lame/assets/index-DKMvqnIc.css">
+    <link rel="stylesheet" crossorigin href="/Math-isn-t-Lame/assets/index-DpUXEJqg.css">
   </head>
   <body>
     <div id="root"></div>
 
     <!-- Service Worker Registration -->
     <script>
-      if ("serviceWorker" in navigator) {
+      const isLocalDev =
+        location.hostname === "localhost" ||
+        location.hostname === "127.0.0.1" ||
+        location.hostname === "::1";
+      if ("serviceWorker" in navigator && !isLocalDev) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("/service-worker.js")
+            .register("/Math-isn-t-Lame/service-worker.js")
             .then((reg) => {
               console.log("[App] Service Worker registered:", reg);
             })

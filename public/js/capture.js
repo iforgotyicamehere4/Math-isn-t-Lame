@@ -274,7 +274,8 @@ function parseFractionInput(text) {
     const n = parseInt(mixedMatch[2], 10);
     const d = parseInt(mixedMatch[3], 10);
     if (!Number.isFinite(whole) || !Number.isFinite(n) || !Number.isFinite(d) || d === 0) return null;
-    return simplify(whole * d + n, d);
+    const sign = whole < 0 ? -1 : 1;
+    return simplify(whole * d + sign * n, d);
   }
   const fracMatch = text.match(/^(-?\d+)\s*\/\s*(\d+)$/);
   if (fracMatch) {
@@ -551,15 +552,6 @@ function generateMathanomicalProblem(choiceCount = 5) {
 
   if (!rawRes) return generateMathanomicalProblem(choiceCount);
 
-  if (rawRes.num < 0) {
-    // try swap
-    [a, b] = [b, a];
-    A = a.toImproper(); B = b.toImproper();
-    rawRes = op === "+" ? addFractions(A, B) : subFractions(A, B);
-    if (!rawRes) return generateMathanomicalProblem(choiceCount);
-    if (rawRes.num < 0) rawRes.num = Math.abs(rawRes.num);
-  }
-
   const simplifiedResult = simplify(rawRes.num, rawRes.den);
   if (!simplifiedResult) return generateMathanomicalProblem(choiceCount);
 
@@ -620,6 +612,7 @@ function generateMathanomicalProblem(choiceCount = 5) {
 
   return {
     type: "mathanomical",
+    op,
     display,
     correct: simplifiedResult,
     hint,
@@ -679,12 +672,6 @@ function generateMediumProblem(choiceCount = 4) {
   if (!A || !B) return generateMediumProblem(choiceCount);
   let rawRes = op === "+" ? addFractions(A, B) : subFractions(A, B);
   if (!rawRes) return generateMediumProblem(choiceCount);
-  if (rawRes.num < 0) {
-    // swap to try to make positive
-    rawRes = op === "+" ? addFractions(B, A) : subFractions(B, A);
-    if (!rawRes) return generateMediumProblem(choiceCount);
-    if (rawRes.num < 0) rawRes.num = Math.abs(rawRes.num);
-  }
   const simplifiedResult = simplify(rawRes.num, rawRes.den);
   if (!simplifiedResult) return generateMediumProblem(choiceCount);
   const display = `${formatDisplay(A)} ${op} ${formatDisplay(B)}`;
@@ -714,7 +701,7 @@ function generateMediumProblem(choiceCount = 4) {
   ensureCorrectIncluded(choices, simplifiedResult);
   const common = lcm(A.den, B.den);
   const hint = `Hint: Convert to common denominator (${common}), then ${op === "+" ? "add" : "subtract"} numerators and simplify.`;
-  return { type: "medium", display, correct: simplifiedResult, hint, choices: shuffleArr(choices).map(simplify) };
+  return { type: "medium", op, display, correct: simplifiedResult, hint, choices: shuffleArr(choices).map(simplify) };
 }
 
 function pickImproperBasicForMedium25() {
@@ -740,11 +727,6 @@ function generateMedium25Problem(choiceCount = 4) {
 
   let rawRes = op === "+" ? addFractions(A, B) : subFractions(A, B);
   if (!rawRes) return generateMedium25Problem(choiceCount);
-  if (rawRes.num < 0) {
-    rawRes = op === "+" ? addFractions(B, A) : subFractions(B, A);
-    if (!rawRes) return generateMedium25Problem(choiceCount);
-    if (rawRes.num < 0) rawRes.num = Math.abs(rawRes.num);
-  }
   const simplifiedResult = simplify(rawRes.num, rawRes.den);
   if (!simplifiedResult) return generateMedium25Problem(choiceCount);
 
@@ -780,7 +762,7 @@ function generateMedium25Problem(choiceCount = 4) {
   ensureCorrectIncluded(finalChoices, simplifiedResult);
   const common = lcm(A.den, B.den);
   const hint = `Hint: Make denominator ${common}, then ${op === "+" ? "add" : "subtract"} top numbers and simplify.`;
-  return { type: "medium25", display, correct: simplifiedResult, hint, choices: finalChoices };
+  return { type: "medium25", op, display, correct: simplifiedResult, hint, choices: finalChoices };
 }
 
 function buildEasy25Pool() {
@@ -930,7 +912,7 @@ function renderTargetFraction(displayText) {
   if (!targetEl) return;
   const raw = String(displayText || "—");
   const withOps = raw.replace(/\s*([+-])\s*/g, '&nbsp;<span class="capture-op-token">$1</span>&nbsp;');
-  const marked = withOps.replace(/(\d+)\s*\/\s*(\d+)/g, (_m, num, den) => (
+  const marked = withOps.replace(/(-?\d+)\s*\/\s*(\d+)/g, (_m, num, den) => (
     `<span class="capture-frac-token">${num}/<button type="button" class="capture-denominator-btn" data-denominator="${den}" aria-label="Denominator ${den}. Tap for meaning">${den}</button></span>`
   ));
   targetEl.innerHTML = `Find: <span class="capture-target-expression">${marked}</span>`;
@@ -948,25 +930,30 @@ function hideDenominatorHelp() {
 }
 function extractFractionsFromPrompt(promptDisplay) {
   const text = String(promptDisplay || "");
-  const matches = Array.from(text.matchAll(/(\d+)\s*\/\s*(\d+)/g));
+  const matches = Array.from(text.matchAll(/(-?\d+)\s*\/\s*(\d+)/g));
   return matches.map((m) => ({
     num: parseInt(m[1], 10),
     den: parseInt(m[2], 10)
   })).filter((f) => Number.isFinite(f.num) && Number.isFinite(f.den) && f.den !== 0);
 }
-function buildCorrectiveHint(promptDisplay) {
-  const text = String(promptDisplay || "this fraction");
+function detectPromptOperation(promptDisplay) {
+  const text = String(promptDisplay || "");
+  const spaced = text.match(/\s([+-])\s/);
+  if (spaced) return spaced[1];
+  return null;
+}
+function buildCorrectiveHint(problem) {
+  const text = String(problem?.display || "this fraction");
   const parts = extractFractionsFromPrompt(text);
-  const hasPlus = text.includes("+");
-  const hasMinus = text.includes("-");
-  const hasOp = hasPlus || hasMinus;
-  const opWord = hasPlus ? "add" : "subtract";
+  const op = problem?.op || detectPromptOperation(text);
+  const hasOp = op === "+" || op === "-";
+  const opWord = op === "-" ? "subtract" : "add";
 
   if (hasOp && parts.length >= 2) {
     const a = parts[0];
     const b = parts[1];
     const lcd = lcm(a.den, b.den);
-    return `Try this on ${text}: 1) if there is a whole number, change it to an improper fraction first. 2) Find one shared denominator for ${a.den} and ${b.den}: ${lcd}. 3) Rewrite both fractions with denominator ${lcd}. 4) ${opWord} the top numbers only. 5) Simplify at the end.`;
+    return `Try this on ${text}: 1) if there is a whole number, change it to an improper fraction first. 2) Find one shared denominator for ${a.den} and ${b.den}: ${lcd}. 3) Rewrite both fractions with denominator ${lcd}. 4) ${opWord} only the top numbers. 5) Keep the same denominator. 6) Simplify at the end.`;
   }
 
   if (parts.length >= 1) {
@@ -1133,7 +1120,7 @@ function handleSelection(fraction) {
       if (inputEl) inputEl.disabled = true;
       if (pauseBtn) pauseBtn.disabled = true;
       setStatus("Nice try. Read this, then you get one more chance in 20 seconds.");
-      setHint(buildCorrectiveHint(currentProblem?.display || "Target"));
+      setHint(buildCorrectiveHint(currentProblem));
       const token = ++reviewPauseToken;
       clearReviewPauseTimer();
       reviewPauseTimer = setTimeout(() => {

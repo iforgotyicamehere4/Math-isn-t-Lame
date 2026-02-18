@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import '../styles/decimal.css';
 import initDecimal from '../decimal/decimal.js';
 import useGameMusic from '../hooks/useGameMusic';
+import { attachContinueTracker } from '../utils/continueProgress';
 
 export default function Decimal() {
   useGameMusic({
@@ -24,6 +25,54 @@ export default function Decimal() {
     return () => {
       if (window.__DecimalCleanup) window.__DecimalCleanup();
     };
+  }, []);
+
+  useEffect(() => {
+    const cleanup = attachContinueTracker({
+      route: '/decimal',
+      isReady: () => Boolean(document.getElementById('level') && document.getElementById('start')),
+      readState: () => {
+        const level = document.getElementById('level')?.value || 'easy20';
+        const pauseBtn = document.getElementById('pause');
+        const score = document.getElementById('score')?.textContent || '0';
+        const streak = document.getElementById('streak')?.textContent || '0';
+        const timer = document.getElementById('timer')?.textContent || '0.0';
+        const prompt = document.getElementById('prompt')?.textContent || '';
+        const answerInput = document.getElementById('answerInput')?.value || '';
+        return {
+          level,
+          score,
+          streak,
+          timer,
+          prompt,
+          answerInput,
+          wasRunning: Boolean(pauseBtn && !pauseBtn.disabled),
+          wasPaused: String(pauseBtn?.textContent || '').trim().toLowerCase() === 'resume'
+        };
+      },
+      applyState: (saved) => {
+        const levelEl = document.getElementById('level');
+        const startBtn = document.getElementById('start');
+        const pauseBtn = document.getElementById('pause');
+        const answerInput = document.getElementById('answerInput');
+        if (!levelEl || !startBtn) return false;
+        if (saved?.level) {
+          levelEl.value = saved.level;
+          levelEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (answerInput && typeof saved?.answerInput === 'string') answerInput.value = saved.answerInput;
+        if (saved?.wasRunning || saved?.wasPaused) {
+          window.setTimeout(() => {
+            startBtn.click();
+            if (saved?.wasPaused && pauseBtn && String(pauseBtn.textContent || '').trim().toLowerCase() === 'pause') {
+              window.setTimeout(() => pauseBtn.click(), 220);
+            }
+          }, 120);
+        }
+        return true;
+      }
+    });
+    return cleanup;
   }, []);
 
   return (

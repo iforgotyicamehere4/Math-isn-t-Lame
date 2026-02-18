@@ -1,8 +1,9 @@
- import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/mathsynth.css';
 import useScriptOnce from '../hooks/useScriptOnce';
 import useGameMusic from '../hooks/useGameMusic';
+import { attachContinueTracker } from '../utils/continueProgress';
 
 const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
@@ -55,6 +56,50 @@ export default function MathSynth() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isInitialized) return () => {};
+    const cleanup = attachContinueTracker({
+      route: '/mathsynth',
+      isReady: () => Boolean(document.getElementById('mathSynthLevel') && document.getElementById('startMathSynth')),
+      readState: () => {
+        const level = document.getElementById('mathSynthLevel')?.value || 'easy';
+        const score = document.getElementById('mathSynthScore')?.textContent || '0';
+        const timer = document.getElementById('mathSynthTimer')?.textContent || '0';
+        const prompt = document.getElementById('mathSynthPrompt')?.textContent || '';
+        const answer = document.getElementById('mathSynthAnswer')?.value || '';
+        const isRunning = Number(timer) > 0 || /solve|puzzle/i.test(prompt);
+        return {
+          level,
+          score,
+          timer,
+          prompt,
+          answer,
+          wasRunning: isRunning
+        };
+      },
+      applyState: (saved) => {
+        const levelEl = document.getElementById('mathSynthLevel');
+        const startBtn = document.getElementById('startMathSynth');
+        const answer = document.getElementById('mathSynthAnswer');
+        if (!levelEl || !startBtn) return false;
+        if (saved?.level) {
+          levelEl.value = saved.level;
+          levelEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (saved?.wasRunning) {
+          window.setTimeout(() => startBtn.click(), 120);
+        }
+        if (answer && typeof saved?.answer === 'string') {
+          window.setTimeout(() => {
+            answer.value = saved.answer;
+          }, 250);
+        }
+        return true;
+      }
+    });
+    return cleanup;
+  }, [isInitialized]);
 
   if (error) {
     return (

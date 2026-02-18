@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/game.css';
 import { JUKEBOX_SONGS } from '../data/jukeboxSongs';
+import { attachContinueTracker } from '../utils/continueProgress';
 
 // Import scripts using Vite's asset handling for proper bundling
 import mathScript from '/js/math.js?url';
@@ -101,6 +102,48 @@ export default function Game() {
       window.MathPup = null;
       window.__MathPopJukeboxSongs = null;
     };
+  }, []);
+
+  useEffect(() => {
+    const cleanup = attachContinueTracker({
+      route: '/game',
+      isReady: () => Boolean(document.getElementById('levelSelect') && document.getElementById('startBtn')),
+      readState: () => {
+        const level = document.getElementById('levelSelect')?.value || 'Easy';
+        const pauseBtn = document.getElementById('pauseBtn');
+        const status = document.getElementById('status')?.textContent || '';
+        const score = document.getElementById('score')?.textContent || 'Score: 0';
+        const timer = document.getElementById('timer')?.textContent || 'Time: —';
+        return {
+          level,
+          status,
+          score,
+          timer,
+          wasRunning: Boolean(pauseBtn && !pauseBtn.disabled),
+          wasPaused: status === 'Paused'
+        };
+      },
+      applyState: (saved) => {
+        const levelSelect = document.getElementById('levelSelect');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        if (!levelSelect || !startBtn) return false;
+        if (saved?.level) {
+          levelSelect.value = saved.level;
+          levelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (saved?.wasRunning || saved?.wasPaused) {
+          window.setTimeout(() => {
+            startBtn.click();
+            if (saved?.wasPaused && pauseBtn && !pauseBtn.disabled) {
+              window.setTimeout(() => pauseBtn.click(), 240);
+            }
+          }, 120);
+        }
+        return true;
+      }
+    });
+    return cleanup;
   }, []);
 
   return (

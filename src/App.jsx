@@ -14,6 +14,9 @@ import BennyWorld from './pages/BennyWorld';
 export default function App() {
  
   const location = useLocation();
+  const [startupLoading, setStartupLoading] = useState(true);
+  const [startupImageFailed, setStartupImageFailed] = useState(false);
+  const startupImageSrc = `${import.meta.env.BASE_URL}images/loading/benny-loading-screen.png`;
   const showAppNav = location.pathname !== '/' && location.pathname !== '/mathsynth' && location.pathname !== '/about';
   const isGamePage = ['/game', '/capture', '/decimal', '/bennyworld'].includes(location.pathname);
   const isListPage = location.pathname === '/list';
@@ -31,6 +34,13 @@ export default function App() {
   const unifyTimerRef = useRef(null);
   const unifyConfirmYesRef = useRef(null);
   const unifyConfirmNoRef = useRef(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setStartupLoading(false);
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const highContrast = localStorage.getItem('highContrast') === 'true';
@@ -82,6 +92,39 @@ export default function App() {
 
   return (
     <>
+      {startupLoading && (
+        <div
+          className={`startup-loading${startupImageFailed ? ' startup-loading--fallback' : ''}`}
+          role="status"
+          aria-live="polite"
+          aria-label="Loading Math Pop"
+        >
+          <img
+            className="startup-loading__image-backdrop"
+            src={startupImageSrc}
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            className="startup-loading__image"
+            src={startupImageSrc}
+            alt="Math Pop loading screen"
+            onError={() => setStartupImageFailed(true)}
+          />
+          <div className="startup-loading__stars" aria-hidden="true" />
+          <div className="startup-loading__logo" aria-hidden="true">
+            <span className="top">MATH</span>
+            <span className="bottom">POP</span>
+          </div>
+          <div className="startup-loading__plus" aria-hidden="true">+</div>
+          <div className="startup-loading__minus" aria-hidden="true">-</div>
+          <div className="startup-loading__dog" aria-hidden="true" />
+          <div className="startup-loading__bubble" aria-hidden="true">BARK BARK!</div>
+          <div className="startup-loading__bar" aria-hidden="true">
+            <span className="startup-loading__bar-fill" />
+          </div>
+        </div>
+      )}
       {showAppNav && (
         <nav className="app-nav">
           {!isGamePage && (

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import '../styles/capture.css';
 import useScriptOnce from '../hooks/useScriptOnce';
 import useGameMusic from '../hooks/useGameMusic';
+import { attachContinueTracker } from '../utils/continueProgress';
 
 const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
@@ -56,6 +57,53 @@ export default function Capture() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isInitialized) return () => {};
+    const cleanup = attachContinueTracker({
+      route: '/capture',
+      isReady: () => Boolean(document.getElementById('levelSelect') && document.getElementById('startBtn')),
+      readState: () => {
+        const level = document.getElementById('levelSelect')?.value || 'easy';
+        const pauseBtn = document.getElementById('pauseBtn');
+        const status = document.getElementById('status')?.textContent || '';
+        const score = document.getElementById('scoreDisplay')?.textContent || 'Score: 0';
+        const streak = document.getElementById('streakDisplay')?.textContent || 'Streak: x0';
+        const inputValue = document.getElementById('fractionInput')?.value || '';
+        return {
+          level,
+          status,
+          score,
+          streak,
+          inputValue,
+          wasRunning: Boolean(pauseBtn && !pauseBtn.disabled),
+          wasPaused: String(pauseBtn?.textContent || '').trim().toLowerCase() === 'resume'
+        };
+      },
+      applyState: (saved) => {
+        const levelSelect = document.getElementById('levelSelect');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const inputEl = document.getElementById('fractionInput');
+        if (!levelSelect || !startBtn) return false;
+        if (saved?.level) {
+          levelSelect.value = saved.level;
+          levelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (inputEl && typeof saved?.inputValue === 'string') inputEl.value = saved.inputValue;
+        if (saved?.wasRunning || saved?.wasPaused) {
+          window.setTimeout(() => {
+            startBtn.click();
+            if (saved?.wasPaused && pauseBtn && String(pauseBtn.textContent || '').trim().toLowerCase() === 'pause') {
+              window.setTimeout(() => pauseBtn.click(), 220);
+            }
+          }, 120);
+        }
+        return true;
+      }
+    });
+    return cleanup;
+  }, [isInitialized]);
 
   if (error) {
     return (

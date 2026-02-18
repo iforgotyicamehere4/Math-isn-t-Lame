@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAutoTranslate from '../hooks/useAutoTranslate';
+import { readContinueProgress, setContinueRequest } from '../utils/continueProgress';
 
 const HOME_QUOTES = [
   {
@@ -450,7 +451,7 @@ export default function Home() {
   const [dataAccept, setDataAccept] = useState(false);
 
   const [currentUser, setCurrentUserState] = useState(() => localStorage.getItem('mathpop_current_user') || null);
-  const [homeHighScore, setHomeHighScore] = useState(0);
+  const [continueProgress, setContinueProgress] = useState(null);
 
   const homeStrings = useMemo(() => ({
     navHowTo: 'How to Play',
@@ -460,9 +461,10 @@ export default function Home() {
     heroTagline: "Math isn't lame — it's an adventure!",
     signUp: 'Sign Up',
     signIn: 'Sign In',
+    continue: 'Continue',
+    continueEmpty: 'Play',
+    dailyChallenge: 'Daily Challenge',
     viewProfile: 'View Profile',
-    notSignedIn: 'Not signed in',
-    highScore: 'High Score',
     modalSignUp: 'Sign Up',
     modalSignIn: 'Sign In',
     username: 'Username',
@@ -575,12 +577,7 @@ export default function Home() {
   }, [phraseAnimate, phraseLayout.postLayoutDelayMs, phraseLayout.usePostLayout]);
 
   useEffect(() => {
-    if (currentUser) {
-      const hs = parseInt(localStorage.getItem('mathpop_highscore_' + currentUser) || '0', 10);
-      setHomeHighScore(Number.isNaN(hs) ? 0 : hs);
-    } else {
-      setHomeHighScore(0);
-    }
+    setContinueProgress(readContinueProgress(currentUser));
   }, [currentUser]);
 
   // Profile helpers
@@ -635,6 +632,13 @@ export default function Home() {
     } catch { /* fallback */ }
     // fallback to legacy game.html
     window.location.href = '/game';
+  }
+
+  function handleContinue() {
+    const saved = readContinueProgress(currentUser);
+    const route = saved?.route || '/game';
+    setContinueRequest(route, currentUser);
+    navigate(route);
   }
 
   // Modal signup
@@ -721,32 +725,40 @@ export default function Home() {
           
 
           <div className="hero-actions" id="heroActions">
-            <button
-              className="start-btn"
-              id="openSignUp"
-              onClick={() => {
-                setAuthMode('signup');
-                setShowModal(true);
-              }}
-            >
-              {tr.signUp || homeStrings.signUp}
-            </button>
-            <button
-              className="start-btn"
-              id="openSignIn"
-              style={{ marginLeft: 8 }}
-              onClick={() => {
-                setAuthMode('signin');
-                setShowModal(true);
-              }}
-            >
-              {tr.signIn || homeStrings.signIn}
-            </button>
-            <div id="homeHighScore" style={{ marginTop: 10, color: '#e9e2e2', fontWeight: 700 }}>
-              {currentUser
-                ? `${currentUser} — ${tr.highScore || homeStrings.highScore}: ${homeHighScore}`
-                : (tr.notSignedIn || homeStrings.notSignedIn)}
-            </div>
+            {currentUser ? (
+              <>
+                <button className="start-btn" id="continueGame" onClick={handleContinue}>
+                  {continueProgress ? (tr.continue || homeStrings.continue) : (tr.continueEmpty || homeStrings.continueEmpty)}
+                </button>
+                <button className="start-btn" style={{ marginLeft: 8 }} onClick={() => navigate('/game')}>
+                  {tr.dailyChallenge || homeStrings.dailyChallenge}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="start-btn"
+                  id="openSignUp"
+                  onClick={() => {
+                    setAuthMode('signup');
+                    setShowModal(true);
+                  }}
+                >
+                  {tr.signUp || homeStrings.signUp}
+                </button>
+                <button
+                  className="start-btn"
+                  id="openSignIn"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => {
+                    setAuthMode('signin');
+                    setShowModal(true);
+                  }}
+                >
+                  {tr.signIn || homeStrings.signIn}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>

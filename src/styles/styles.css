@@ -69,6 +69,295 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* App startup loading screen */
+.startup-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  grid-template-rows: 1fr auto auto auto;
+  justify-items: center;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 18px 40px;
+  background:
+    radial-gradient(120% 55% at 50% 100%, rgba(120, 58, 255, 0.4), transparent 65%),
+    linear-gradient(180deg, #24158f 0%, #1f1685 45%, #29147d 100%);
+  overflow: hidden;
+}
+
+.startup-loading__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  z-index: 1;
+}
+
+.startup-loading__image-backdrop {
+  position: absolute;
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+  object-fit: cover;
+  filter: blur(20px) saturate(1.1);
+  opacity: 0.6;
+  transform: scale(1.06);
+  z-index: 0;
+}
+
+.startup-loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(160, 190, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(160, 190, 255, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.7;
+  z-index: 0;
+}
+
+.startup-loading:not(.startup-loading--fallback) .startup-loading__stars,
+.startup-loading:not(.startup-loading--fallback) .startup-loading__logo,
+.startup-loading:not(.startup-loading--fallback) .startup-loading__plus,
+.startup-loading:not(.startup-loading--fallback) .startup-loading__minus,
+.startup-loading:not(.startup-loading--fallback) .startup-loading__dog,
+.startup-loading:not(.startup-loading--fallback) .startup-loading__bubble {
+  display: none;
+}
+
+.startup-loading:not(.startup-loading--fallback)::before {
+  display: none;
+}
+
+.startup-loading__stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.startup-loading__stars::before,
+.startup-loading__stars::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 220px 160px #fff, -190px 260px #fff, 120px 460px #fff;
+  transform: rotate(45deg);
+  opacity: 0.9;
+  animation: loadingTwinkle 2.2s ease-in-out infinite;
+}
+
+.startup-loading__stars::before {
+  top: 16%;
+  left: 14%;
+}
+
+.startup-loading__stars::after {
+  top: 22%;
+  right: 18%;
+  animation-delay: 0.6s;
+}
+
+.startup-loading__logo {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  margin-top: 12px;
+  text-align: center;
+  line-height: 0.9;
+}
+
+.startup-loading__logo .top,
+.startup-loading__logo .bottom {
+  letter-spacing: 0.04em;
+  text-shadow:
+    -3px -3px 0 #5f76ff,
+    3px -3px 0 #5f76ff,
+    -3px 3px 0 #5f76ff,
+    3px 3px 0 #5f76ff,
+    0 8px 18px rgba(9, 6, 32, 0.48);
+}
+
+.startup-loading__logo .top {
+  font-size: clamp(3.2rem, 12vw, 7rem);
+  color: #ffe55f;
+}
+
+.startup-loading__logo .bottom {
+  font-size: clamp(3rem, 11vw, 6.6rem);
+  color: #7de9ff;
+}
+
+.startup-loading__plus,
+.startup-loading__minus {
+  position: absolute;
+  z-index: 1;
+  color: #ffde47;
+  font-size: clamp(4rem, 9vw, 6rem);
+  text-shadow: 0 8px 22px rgba(21, 12, 63, 0.6);
+  animation: loadingBob 2.4s ease-in-out infinite;
+}
+
+.startup-loading__plus {
+  left: clamp(10px, 10vw, 150px);
+  top: 29%;
+  transform: rotate(-14deg);
+}
+
+.startup-loading__minus {
+  right: clamp(12px, 10vw, 170px);
+  top: 33%;
+  color: #b796ff;
+  transform: rotate(16deg);
+  animation-delay: 0.55s;
+}
+
+.startup-loading__dog {
+  position: relative;
+  z-index: 1;
+  width: min(78vw, 520px);
+  height: min(45vh, 360px);
+  border-radius: 54% 52% 16% 20% / 34% 42% 22% 24%;
+  background:
+    radial-gradient(90% 90% at 70% 40%, rgba(172, 103, 64, 0.95), transparent 56%),
+    radial-gradient(100% 100% at 35% 50%, rgba(244, 239, 235, 0.96), rgba(221, 210, 196, 0.92) 68%),
+    linear-gradient(165deg, rgba(177, 117, 79, 0.95) 15%, rgba(241, 235, 230, 0.96) 52%);
+  box-shadow:
+    inset -30px -28px 44px rgba(112, 66, 38, 0.24),
+    0 18px 34px rgba(5, 6, 32, 0.45);
+  transform: translateY(6px);
+  animation: loadingDogRise 900ms ease-out forwards;
+}
+
+.startup-loading__bubble {
+  position: relative;
+  z-index: 1;
+  margin-top: 4px;
+  padding: 10px 18px;
+  border-radius: 26px;
+  border: 4px solid #ffcf46;
+  background: #fff;
+  color: #d78a23;
+  font-size: clamp(1.1rem, 3.6vw, 2.2rem);
+  box-shadow: 0 10px 24px rgba(7, 8, 26, 0.4);
+  transform: rotate(-10deg);
+}
+
+.startup-loading__bar {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(20px, 5vh, 48px);
+  transform: translateX(-50%);
+  z-index: 2;
+  width: min(84vw, 460px);
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 20px rgba(8, 8, 28, 0.4);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.startup-loading__bar-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #57f4ff 0%, #90fff2 60%, #fff89a 100%);
+  transform-origin: left center;
+  animation: loadingBar 10s linear forwards;
+}
+
+@keyframes loadingBar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes loadingBob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
+  }
+}
+
+@keyframes loadingTwinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    scale: 0.8;
+  }
+  50% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes loadingDogRise {
+  from {
+    opacity: 0;
+    transform: translateY(34px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .startup-loading {
+    padding: 24px 14px 30px;
+    gap: 10px;
+  }
+
+  .startup-loading__image {
+    object-fit: contain;
+    object-position: center top;
+  }
+
+  .startup-loading__image-backdrop {
+    opacity: 0.72;
+  }
+
+  .startup-loading__plus {
+    top: 24%;
+  }
+
+  .startup-loading__minus {
+    top: 29%;
+  }
+
+  .startup-loading__dog {
+    width: 88vw;
+    height: 36vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-loading__plus,
+  .startup-loading__minus,
+  .startup-loading__bar-fill,
+  .startup-loading__stars::before,
+  .startup-loading__stars::after,
+  .startup-loading__dog {
+    animation: none;
+  }
+}
+
 /* Cartoon dog bone scrollbar styling */
 ::-webkit-scrollbar {
   width: 18px;

@@ -359,6 +359,17 @@ window.__BennyWorldBabylonCleanup = null;
   let blackHoleTimer = 0;
   let debrisInterval = null;
   const blackHoleDelay = 5000; // 5 seconds after level starts
+  const blackHolePartsOrder = ['core', 'fuelCell', 'lens'];
+  const blackHolePartMeta = {
+    core: { label: 'Core', token: 'C' },
+    fuelCell: { label: 'Fuel Cell', token: 'F' },
+    lens: { label: 'Lens', token: 'L' }
+  };
+  let blackHoleWindowIndex = 0;
+  let blackHolePartsCollected = { core: false, fuelCell: false, lens: false };
+  let blackHoleReady = false;
+  let blackHoleCooldownUntilLevel = 0;
+  let activeBlackHolePart = null;
 
   function currentUser() {
     return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -412,14 +423,22 @@ window.__BennyWorldBabylonCleanup = null;
 
   function saveProgress(mode = 'auto') {
     const payload = {
-      version: 1,
+      version: 2,
       savedAt: Date.now(),
       levelIndex: Math.max(0, Math.min(totalLevels - 1, Math.floor(levelIndex))),
       points: Math.max(0, Math.floor(points)),
       distance: Math.max(0, Math.floor(distance)),
       difficulty: ['easy', 'medium', 'mathanomical'].includes(difficulty) ? difficulty : 'easy',
       deskFuel: Math.max(0, Math.floor(deskFuel)),
-      bossWonThisLevel: Boolean(bossWonThisLevel)
+      bossWonThisLevel: Boolean(bossWonThisLevel),
+      blackHoleWindowIndex: Math.max(0, Math.floor(blackHoleWindowIndex)),
+      blackHolePartsCollected: {
+        core: Boolean(blackHolePartsCollected.core),
+        fuelCell: Boolean(blackHolePartsCollected.fuelCell),
+        lens: Boolean(blackHolePartsCollected.lens)
+      },
+      blackHoleReady: Boolean(blackHoleReady),
+      blackHoleCooldownUntilLevel: Math.max(0, Math.floor(blackHoleCooldownUntilLevel))
     };
     localStorage.setItem(progressKey(payload.difficulty), JSON.stringify(payload));
     if (mode === 'manual') {
@@ -444,6 +463,18 @@ window.__BennyWorldBabylonCleanup = null;
       difficulty = nextDifficulty;
       saveDeskFuel(Number(data.deskFuel) || 0);
       bossWonThisLevel = Boolean(data.bossWonThisLevel);
+      blackHoleWindowIndex = Math.max(0, Math.floor(Number(data.blackHoleWindowIndex) || 0));
+      const rawParts = data.blackHolePartsCollected || {};
+      blackHolePartsCollected = {
+        core: Boolean(rawParts.core),
+        fuelCell: Boolean(rawParts.fuelCell),
+        lens: Boolean(rawParts.lens)
+      };
+      blackHoleReady = Boolean(data.blackHoleReady);
+      blackHoleCooldownUntilLevel = Math.max(0, Math.floor(Number(data.blackHoleCooldownUntilLevel) || 0));
+      if (!data.blackHolePartsCollected && !data.blackHoleReady) {
+        resetBlackHolePartsForWindow(Math.floor(levelIndex / 10));
+      }
       if (difficultySelect) difficultySelect.value = nextDifficulty;
       // Migrate legacy single-slot save into difficulty-specific save slots.
       if (!raw && legacyRaw) {
@@ -487,6 +518,74 @@ window.__BennyWorldBabylonCleanup = null;
     setTimeout(() => {
       if (msgEl.textContent === text) msgEl.textContent = '';
     }, holdMs);
+  }
+
+  function getBlackHoleNeededPartForLevel(level) {
+    const localIndex = ((level % 10) + 10) % 10;
+    if (localIndex <= 3) return blackHolePartsOrder[0];
+    if (localIndex <= 6) return blackHolePartsOrder[1];
+    return blackHolePartsOrder[2];
+  }
+
+  function resetBlackHolePartsForWindow(windowIndex) {
+    blackHoleWindowIndex = Math.max(0, windowIndex);
+    blackHolePartsCollected = { core: false, fuelCell: false, lens: false };
+    blackHoleReady = false;
+  }
+
+  function syncBlackHoleWindowForLevel() {
+    const windowIndex = Math.floor(levelIndex / 10);
+    if (windowIndex !== blackHoleWindowIndex && !blackHoleReady) {
+      resetBlackHolePartsForWindow(windowIndex);
+    }
+  }
+
+  function allBlackHolePartsCollected() {
+    return blackHolePartsOrder.every((key) => blackHolePartsCollected[key]);
+  }
+
+  function blackHoleCooldownRemaining() {
+    return Math.max(0, blackHoleCooldownUntilLevel - levelIndex);
+  }
+
+  function canUseBlackHoleShortcut() {
+    return blackHoleReady && blackHoleCooldownRemaining() === 0 && !bossActive;
+  }
+
+  function clearBlackHolePartOnMap() {
+    if (!activeBlackHolePart) return;
+    if (activeBlackHolePart.el && activeBlackHolePart.el.parentNode) {
+      activeBlackHolePart.el.parentNode.removeChild(activeBlackHolePart.el);
+    }
+    activeBlackHolePart = null;
+  }
+
+  function collectBlackHolePart(partKey) {
+    if (!blackHolePartMeta[partKey] || blackHolePartsCollected[partKey]) return;
+    blackHolePartsCollected[partKey] = true;
+    clearBlackHolePartOnMap();
+    setMessage(`Collected ${blackHolePartMeta[partKey].label}!`, 1200);
+    if (allBlackHolePartsCollected()) {
+      blackHoleReady = true;
+      setMessage('Gravity shortcut ready! Touch the black hole.', 1800);
+    }
+  }
+
+  function triggerBlackHoleShortcut() {
+    if (!canUseBlackHoleShortcut()) return false;
+    const fromLevel = levelIndex;
+    const targetLevel = Math.min(totalLevels - 1, fromLevel + 10);
+    if (targetLevel <= fromLevel) return false;
+    blackHoleReady = false;
+    blackHolePartsCollected = { core: false, fuelCell: false, lens: false };
+    blackHoleCooldownUntilLevel = Math.min(totalLevels - 1, fromLevel + 20);
+    clearBlackHolePartOnMap();
+    levelIndex = targetLevel;
+    points += 200;
+    saveProgress('auto');
+    setMessage(`Gravity jump: Level ${fromLevel + 1} -> Level ${targetLevel + 1}`, 1800);
+    startLevel();
+    return true;
   }
 
   function triggerBlackHoleDeath() {
@@ -652,6 +751,8 @@ window.__BennyWorldBabylonCleanup = null;
     setBossMode(true);
     blackHoleActive = false;
     blackHoleTimer = 0;
+    clearBlackHolePartOnMap();
+    blackHole.style.display = 'none';
     stopDebrisFall();
     crumblingFloor.classList.remove('crumpling');
     area.classList.remove('shake');
@@ -699,7 +800,16 @@ window.__BennyWorldBabylonCleanup = null;
         const pct = Math.max(0, Math.ceil(ratio * 100));
         statusEl.textContent = `Desk Fuel: ${deskFuel} | Plane ${pct}%`;
       } else {
-        statusEl.textContent = `Run to the star! Desk Fuel: ${deskFuel}`;
+        const parts = blackHolePartsOrder
+          .map((key) => `${blackHolePartMeta[key].token}:${blackHolePartsCollected[key] ? 'Y' : 'N'}`)
+          .join(' ');
+        if (canUseBlackHoleShortcut()) {
+          statusEl.textContent = `Black Hole Ready! Parts ${parts} | Touch it for +10 levels`;
+        } else {
+          const cooldownLeft = blackHoleCooldownRemaining();
+          const cooldownText = cooldownLeft > 0 ? ` | BH recharge ${cooldownLeft}` : '';
+          statusEl.textContent = `Run to the star! Desk Fuel: ${deskFuel} | Parts ${parts}${cooldownText}`;
+        }
       }
     }
   }
@@ -895,7 +1005,9 @@ window.__BennyWorldBabylonCleanup = null;
       y: fromY,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      type: warning ? 'warning' : 'stop'
+      type: warning ? 'warning' : 'stop',
+      owner: enemy,
+      returned: false
     });
   }
 
@@ -1086,6 +1198,68 @@ window.__BennyWorldBabylonCleanup = null;
     obstacles.push({ x, y, w: size, h: size, vx: 0, vy: 1.2, el, type: 'falling-number' });
   }
 
+  function spawnBlackHolePartPickup(levelWidth, groundY, safePath = []) {
+    clearBlackHolePartOnMap();
+    if (blackHoleReady) return;
+    const neededPart = getBlackHoleNeededPartForLevel(levelIndex);
+    if (!neededPart || blackHolePartsCollected[neededPart]) return;
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const size = 26;
+    const label = blackHolePartMeta[neededPart];
+    const segmentByPart = {
+      core: [0.12, 0.38],
+      fuelCell: [0.4, 0.68],
+      lens: [0.7, 0.92]
+    };
+    const [segStart, segEnd] = segmentByPart[neededPart] || [0.15, 0.85];
+    const startX = levelWidth * segStart;
+    const endX = levelWidth * segEnd;
+    const safeCandidates = safePath.filter((p) => p.x >= startX && p.x <= endX);
+    const anchorPool = safeCandidates.length > 0 ? safeCandidates : safePath;
+    const anchor = anchorPool.length > 0
+      ? anchorPool[Math.floor(Math.random() * anchorPool.length)]
+      : { x: 160 + Math.random() * Math.max(1, levelWidth - 260), y: groundY - 120, w: 60 };
+
+    const preferDesktop = Math.random() < 0.6;
+    const desktopPlatforms = platforms.filter((p) => !p.el.classList.contains('ground') && !p.vx);
+    const nearbyDesktops = desktopPlatforms.filter((p) => Math.abs((p.x + p.w / 2) - anchor.x) <= 180);
+    const desktopPool = nearbyDesktops.length > 0 ? nearbyDesktops : desktopPlatforms;
+    const useDesktop = preferDesktop && desktopPlatforms.length > 0;
+    const chosenDesktop = useDesktop
+      ? desktopPool[Math.floor(Math.random() * desktopPool.length)]
+      : null;
+    const spawnX = useDesktop
+      ? chosenDesktop.x + Math.max(0, (chosenDesktop.w - size) / 2)
+      : clamp(anchor.x + (Math.random() - 0.5) * 180, 120, levelWidth - 120);
+    const spawnY = useDesktop
+      ? chosenDesktop.y - 30
+      : groundY - 34;
+
+    const el = document.createElement('div');
+    el.className = 'bw-blackhole-part';
+    el.textContent = label.token;
+    el.style.cssText = `
+      position: absolute;
+      width: ${size}px;
+      height: ${size}px;
+      line-height: ${size}px;
+      text-align: center;
+      font-weight: 800;
+      font-size: 13px;
+      border-radius: 50%;
+      color: #ffffff;
+      background: radial-gradient(circle at 30% 30%, #7dd3fc 0%, #1d4ed8 70%);
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.9);
+      z-index: 7;
+      pointer-events: none;
+    `;
+    area.appendChild(el);
+    activeBlackHolePart = { key: neededPart, x: spawnX, y: spawnY, w: size, h: size, el };
+    el.style.left = `${spawnX}px`;
+    el.style.top = `${spawnY}px`;
+  }
+
   function buildLevel() {
     // Save persistent FX/boss nodes before clearing
     const savedBlackHole = blackHole;
@@ -1094,6 +1268,7 @@ window.__BennyWorldBabylonCleanup = null;
     const savedBossArena = bossArena;
     
     area.innerHTML = '';
+    clearBlackHolePartOnMap();
     platforms = [];
     obstacles.splice(0, obstacles.length);
     airEnemies.forEach((enemy) => enemy.el.remove());
@@ -1200,6 +1375,17 @@ window.__BennyWorldBabylonCleanup = null;
     star.style.left = `${starX}px`;
     star.style.top = `${starY}px`;
 
+    if (bossActive) {
+      blackHole.style.display = 'none';
+    } else if (blackHoleReady) {
+      blackHole.style.display = 'block';
+      blackHole.style.opacity = canUseBlackHoleShortcut() ? '1' : '0.35';
+    } else {
+      blackHole.style.display = 'none';
+    }
+
+    spawnBlackHolePartPickup(levelWidth, groundY, safePath);
+
     benny.style.left = `${bennyState.x}px`;
     benny.style.top = `${groundY - 36}px`;
   }
@@ -1213,148 +1399,17 @@ window.__BennyWorldBabylonCleanup = null;
       blackHoleTimer = 0;
       crumblingFloor.classList.remove('crumpling');
       area.classList.remove('shake');
+      blackHole.style.display = 'none';
     }
 
-    // Automatic black hole timer - activates 5 seconds after level starts
-    if (!bossActive && !blackHoleActive) {
-      blackHoleTimer += 16.67; // Approximate frame time
-      
-      if (blackHoleTimer >= blackHoleDelay) {
-        blackHoleActive = true;
-        setMessage('The floor is crumbling! Run!', 2000);
-        crumblingFloor.classList.add('crumpling');
-        area.classList.add('shake');
-        startDebrisFall();
+    if (!bossActive) {
+      blackHoleActive = canUseBlackHoleShortcut();
+      blackHole.style.display = blackHoleReady ? 'block' : 'none';
+      blackHole.style.opacity = blackHoleActive ? '1' : '0.35';
+      const nearShortcut = blackHoleActive && bennyState.x < 100 && bennyState.y > groundY - 90;
+      if (nearShortcut) {
+        if (triggerBlackHoleShortcut()) return;
       }
-    }
-    
-// Black hole pull effect - only when black hole is active
-    if (blackHoleActive) {
-      // Calculate how long black hole has been active
-      const activeTime = blackHoleTimer - blackHoleDelay;
-      
-      // Get difficulty scale (0.5 for easy, 0.75 for medium, 1.0 for mathanomical)
-      const difficultyScale = getDifficultyScale();
-      
-      // Level multiplier - higher levels have stronger black hole
-      // Level 0 = 1x, Level 50 = 1.5x, Level 99 = 2x
-      const levelMultiplier = 1 + (levelIndex / 100);
-      
-      // Combined multiplier
-      const totalMultiplier = difficultyScale * levelMultiplier;
-      
-      // Pull range - MUST cover entire level width!
-      // Level width grows with levelIndex, so pull range must too
-      const rect = area.getBoundingClientRect();
-      const levelWidth = rect.width * (8 + levelIndex * 2);
-      const basePullRange = levelWidth * totalMultiplier; // Cover entire level!
-      const pullRangeExpansion = 0; // No expansion needed if we cover everything
-      
-      // Pull strength - scales with level and difficulty
-      // Starts at 0.25, goes to 0.4, multiplied by level/difficulty
-      const pullStrength = (0.25 + (activeTime / 30000) * 0.15) * totalMultiplier;
-      
-      // Black hole center (left side of screen)
-      const blackHoleX = 70;
-      const blackHoleY = groundY;
-      
-      // Pull ALL platforms/desks toward the black hole continuously (iterate backwards)
-      for (let index = platforms.length - 1; index >= 0; index--) {
-        const p = platforms[index];
-        
-        // Only affect non-ground platforms
-        if (!p.el.classList.contains('ground')) {
-          const dx = blackHoleX - p.x;
-          const dy = blackHoleY - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          
-          // Always pull if within range (which is now the entire level)
-          if (dist < basePullRange) {
-            // Pull factor increases as platform gets closer (exponential)
-            const pullFactor = Math.pow((basePullRange - dist) / basePullRange, 3);
-            
-            // Move platform toward black hole
-            p.x += (dx / dist) * pullStrength * 4 * pullFactor;
-            p.y += (dy / dist) * pullStrength * 1.5 * pullFactor;
-            
-            // Update position
-            p.el.style.left = `${p.x - cameraOffset}px`;
-            p.el.style.top = `${p.y}px`;
-            
-            // Shrink and remove when close to black hole
-            const shrinkThreshold = 120 * totalMultiplier;
-            if (dist < shrinkThreshold) {
-              const scale = Math.max(0, (dist / shrinkThreshold));
-              p.el.style.transform = `scale(${scale})`;
-              p.el.style.opacity = scale;
-              
-              // Remove when fully consumed
-              const consumeThreshold = 50 * totalMultiplier;
-              if (dist < consumeThreshold) {
-                p.el.remove();
-                platforms.splice(index, 1);
-              }
-            }
-          }
-        }
-      }
-      
-      // Pull obstacles too (iterate backwards)
-      for (let index = obstacles.length - 1; index >= 0; index--) {
-        const ob = obstacles[index];
-        
-        const dx = blackHoleX - ob.x;
-        const dy = blackHoleY - ob.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        
-        if (dist < basePullRange) {
-          const pullFactor = Math.pow((basePullRange - dist) / basePullRange, 3);
-          ob.x += (dx / dist) * pullStrength * 5 * pullFactor;
-          ob.y += (dy / dist) * pullStrength * 2 * pullFactor;
-          ob.el.style.left = `${ob.x - cameraOffset}px`;
-          ob.el.style.top = `${ob.y}px`;
-          
-          // Shrink and remove
-          const shrinkThreshold = 100 * totalMultiplier;
-          if (dist < shrinkThreshold) {
-            const scale = Math.max(0, (dist / shrinkThreshold));
-            ob.el.style.transform = `scale(${scale})`;
-            ob.el.style.opacity = scale;
-            
-            const consumeThreshold = 40 * totalMultiplier;
-            if (dist < consumeThreshold) {
-              ob.el.remove();
-              obstacles.splice(index, 1);
-            }
-          }
-        }
-      }
-      
-      // Check if Benny is near the black hole
-      const nearBlackHole = bennyState.x < 100 && bennyState.y > groundY - 80;
-      
-      if (nearBlackHole) {
-        // Pull Benny toward the black hole (stronger on higher levels)
-        const bennyPullStrength = (0.3 + (activeTime / 30000) * 0.2) * totalMultiplier;
-        bennyState.vy += bennyPullStrength * 0.5;
-        bennyState.vx -= bennyPullStrength * 0.2;
-        
-        // Warning indicator
-        if (!qs('.bw-warning')) {
-          const warning = document.createElement('div');
-          warning.className = 'bw-warning';
-          area.appendChild(warning);
-        }
-      } else {
-        const warning = qs('.bw-warning');
-        if (warning) warning.remove();
-      }
-    }
-    
-    // Check if Benny fell into the black hole
-    if (bennyState.x < 40 && bennyState.y > groundY - 60) {
-      triggerBlackHoleDeath();
-      return;
     }
 
     if (pendingSuperJump && bennyState.onGround) {
@@ -1553,17 +1608,42 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       proj.y += proj.vy;
       proj.el.style.left = `${proj.x - cameraOffset}px`;
       proj.el.style.top = `${proj.y}px`;
-      const hit = Math.abs((bennyState.x + 18) - proj.x) < 20 && Math.abs((bennyState.y + 18) - proj.y) < 20;
+      const hit = !proj.returned && Math.abs((bennyState.x + 18) - proj.x) < 20 && Math.abs((bennyState.y + 18) - proj.y) < 20;
       if (hit) {
-        if (proj.type === 'warning') {
-          slowUntil = Math.max(slowUntil, now + 2200);
-          setMessage('Syntax warning hit. Benny slowed!', 1000);
-        } else {
-          freezeUntil = Math.max(freezeUntil, now + freezeDurationMs());
-          setMessage(`Stop sign hit. Frozen ${Math.floor(freezeDurationMs() / 1000)}s!`, 1200);
+        const ownerAlive = proj.owner && airEnemies.includes(proj.owner);
+        if (!ownerAlive) {
+          proj.el.remove();
+          return false;
         }
-        proj.el.remove();
-        return false;
+        const ownerX = proj.owner.x + proj.owner.w * 0.5;
+        const ownerY = proj.owner.y + proj.owner.h * 0.5;
+        const angle = Math.atan2(ownerY - proj.y, ownerX - proj.x);
+        const speed = 5.4;
+        proj.returned = true;
+        proj.vx = Math.cos(angle) * speed;
+        proj.vy = Math.sin(angle) * speed;
+        proj.el.classList.add('reflected');
+        proj.el.textContent = '↩️';
+        setMessage('Bounce back!', 800);
+        return true;
+      }
+      if (proj.returned) {
+        if (!proj.owner || !airEnemies.includes(proj.owner)) {
+          proj.el.remove();
+          return false;
+        }
+        const ownerX = proj.owner.x + proj.owner.w * 0.5;
+        const ownerY = proj.owner.y + proj.owner.h * 0.5;
+        const angle = Math.atan2(ownerY - proj.y, ownerX - proj.x);
+        const speed = 5.8;
+        proj.vx = Math.cos(angle) * speed;
+        proj.vy = Math.sin(angle) * speed;
+        const hitOwner = Math.abs(ownerX - proj.x) < 22 && Math.abs(ownerY - proj.y) < 22;
+        if (hitOwner) {
+          awardEnemyElimination(proj.owner, 30);
+          proj.el.remove();
+          return false;
+        }
       }
       const out = proj.x < cameraOffset - 90 || proj.x > cameraOffset + rect.width + 90 || proj.y < -80 || proj.y > rect.height + 80;
       if (out) {
@@ -1578,6 +1658,18 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       shot.y += shot.vy;
       shot.el.style.left = `${shot.x - cameraOffset}px`;
       shot.el.style.top = `${shot.y}px`;
+
+      const enemyProjIndex = enemyErrors.findIndex((proj) =>
+        Math.abs(shot.x - proj.x) < 18 && Math.abs(shot.y - proj.y) < 18
+      );
+      if (enemyProjIndex !== -1) {
+        const [blockedProj] = enemyErrors.splice(enemyProjIndex, 1);
+        if (blockedProj && blockedProj.el) blockedProj.el.remove();
+        points += 15;
+        shot.el.remove();
+        return false;
+      }
+
       let hitEnemy = null;
       for (let i = 0; i < airEnemies.length; i += 1) {
         const enemy = airEnemies[i];
@@ -1628,6 +1720,18 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       bennyState.onGround = true;
     }
 
+    if (activeBlackHolePart) {
+      const bx = bennyState.x;
+      const by = bennyState.y;
+      const bw = 36;
+      const bh = 36;
+      const overlapX = bx + bw > activeBlackHolePart.x && bx < activeBlackHolePart.x + activeBlackHolePart.w;
+      const overlapY = by + bh > activeBlackHolePart.y && by < activeBlackHolePart.y + activeBlackHolePart.h;
+      if (overlapX && overlapY) {
+        collectBlackHolePart(activeBlackHolePart.key);
+      }
+    }
+
     benny.style.left = `${bennyState.x}px`;
     benny.style.top = `${bennyState.y}px`;
     distance += Math.abs(bennyState.vx) * 0.2;
@@ -1648,6 +1752,11 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     
     // Update star position with camera offset
     star.style.left = `${starPos.x - cameraOffset}px`;
+
+    if (activeBlackHolePart && activeBlackHolePart.el) {
+      activeBlackHolePart.el.style.left = `${activeBlackHolePart.x - cameraOffset}px`;
+      activeBlackHolePart.el.style.top = `${activeBlackHolePart.y}px`;
+    }
     
     // Update Benny with camera offset
     benny.style.left = `${bennyState.x - cameraOffset}px`;
@@ -1819,6 +1928,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
 
   function startLevel() {
     setBossMode(false);
+    syncBlackHoleWindowForLevel();
     applyBennyColor();
     setTheme();
     if (levelLabel) levelLabel.textContent = `Level ${levelIndex + 1}`;
@@ -1840,6 +1950,8 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         points = 0;
         distance = 0;
         bossWonThisLevel = false;
+        resetBlackHolePartsForWindow(0);
+        blackHoleCooldownUntilLevel = 0;
       }
       saveProgress('auto');
       startLevel();

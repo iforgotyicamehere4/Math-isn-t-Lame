@@ -1121,10 +1121,16 @@ bi.benny-world {
   padding: 18px;
   z-index: 14;
   background: radial-gradient(circle at 50% 18%, rgba(72, 95, 170, 0.38), rgba(7, 9, 16, 0.92) 66%);
+  opacity: 1;
+  transition: opacity 1600ms ease;
 }
 
 .bw-syntax-intro.active {
   display: flex;
+}
+
+.bw-syntax-intro.fade-out {
+  opacity: 0;
 }
 
 .bw-syntax-intro__panel {
@@ -1220,23 +1226,31 @@ bi.benny-world {
 }
 
 .bw-post-victory {
-  position: absolute;
+  position: fixed;
   inset: 0;
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 15;
+  z-index: 2200;
   background: rgba(5, 8, 16, 0.94);
-  padding: 16px;
+  padding: 24px;
 }
 
 .bw-post-victory.active {
   display: flex;
 }
 
+.bw-post-victory.show-credits {
+  padding: 0;
+}
+
+.bw-post-victory.show-credits .bw-post-victory__message {
+  display: none;
+}
+
 .bw-post-victory__message {
-  max-width: 900px;
-  width: 100%;
+  max-width: 980px;
+  width: min(92vw, 980px);
   color: #f4f8ff;
   font-size: clamp(1.05rem, 2.8vw, 1.8rem);
   line-height: 1.45;
@@ -1256,25 +1270,44 @@ bi.benny-world {
 
 .bw-credits {
   display: none;
-  width: min(760px, 100%);
-  perspective: 1200px;
+  width: min(95vw, 1180px);
+  height: min(88vh, 860px);
+  perspective: 1800px;
 }
 
 .bw-post-victory.show-credits .bw-credits {
-  display: block;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
 }
 
 .bw-credits__sheet {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
   transform-style: preserve-3d;
   transform-origin: left center;
+  border-radius: 18px;
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.5),
+    inset 14px 0 0 rgba(56, 18, 10, 0.45);
+  background: linear-gradient(180deg, #5f2f26, #442019);
 }
 
 .bw-credits__sheet.turning {
-  animation: bwPageTurn 900ms ease;
+  animation: bwPageTurn 1100ms ease;
 }
 
 .bw-credits__paper {
-  min-height: min(72vh, 560px);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   background:
     repeating-linear-gradient(
       to bottom,
@@ -1283,15 +1316,19 @@ bi.benny-world {
       #c7dfff 28px,
       #fffefb 29px
     );
-  border-radius: 10px;
+  border-radius: 0;
   border: 1px solid rgba(14, 29, 58, 0.35);
   box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.4),
-    inset 34px 0 0 rgba(255, 160, 160, 0.35);
-  padding: 34px 30px 30px 48px;
+    0 14px 28px rgba(0, 0, 0, 0.35),
+    inset 52px 0 0 rgba(255, 160, 160, 0.35),
+    inset 58px 0 0 rgba(49, 18, 14, 0.2);
+  padding: clamp(20px, 3.2vw, 40px) clamp(16px, 3vw, 42px) clamp(20px, 3vw, 34px) clamp(76px, 9vw, 120px);
   color: #10203f;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
 }
 
 .bw-credits__page-label {
@@ -1301,14 +1338,19 @@ bi.benny-world {
   text-transform: uppercase;
   color: #2e4a84;
   margin-bottom: 18px;
+  text-align: center;
+  width: 100%;
 }
 
 .bw-credits__text {
   margin: 0;
   white-space: pre-wrap;
-  line-height: 1.55;
-  font-size: clamp(0.92rem, 2.1vw, 1.18rem);
+  line-height: 1.5;
+  font-size: clamp(0.9rem, 1.7vw, 1.2rem);
   font-weight: 700;
+  max-width: min(56ch, 82vw);
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .bw-boss-arena {
@@ -1418,7 +1460,7 @@ bi.benny-world {
   }
 
   .bw-credits__paper {
-    padding: 22px 16px 20px 28px;
+    padding: 22px 12px 18px 50px;
   }
 }
 
@@ -1438,7 +1480,7 @@ bi.benny-world {
     transform: rotateY(0deg);
   }
   45% {
-    transform: rotateY(-18deg);
+    transform: rotateY(-32deg);
   }
   100% {
     transform: rotateY(0deg);

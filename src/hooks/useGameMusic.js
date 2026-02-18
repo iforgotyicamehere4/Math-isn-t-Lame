@@ -30,6 +30,8 @@ export default function useGameMusic({
     let currentSong = null;
     let triedFallbackForSong = false;
     let previousSongs = [];
+    let externalTrackLock = false;
+    let externalTrackStopOnEnd = false;
     let tapCount = 0;
     let lastTapAt = 0;
     let tapResetTimer = null;
@@ -107,10 +109,23 @@ export default function useGameMusic({
         setSongSource(currentSong, true);
         return;
       }
+      if (externalTrackLock) {
+        externalTrackLock = false;
+        externalTrackStopOnEnd = false;
+        if (statusEl) statusEl.textContent = 'Forced track unavailable.';
+        return;
+      }
       skipToNextSong();
     };
 
     const onAudioEnded = () => {
+      if (externalTrackLock) {
+        externalTrackLock = false;
+        if (externalTrackStopOnEnd) {
+          externalTrackStopOnEnd = false;
+          return;
+        }
+      }
       skipToNextSong();
     };
     audio.loop = false;
@@ -179,6 +194,7 @@ export default function useGameMusic({
     };
 
     const skipToNextSong = () => {
+      if (externalTrackLock) return;
       if (!enabledSongs.length) {
         syncSongsFromProfile();
         if (!enabledSongs.length) return;
@@ -190,6 +206,7 @@ export default function useGameMusic({
     };
 
     const goToPreviousSong = () => {
+      if (externalTrackLock) return;
       if (!previousSongs.length) return;
       const previous = previousSongs.pop();
       if (currentSong) queue.unshift(currentSong);
@@ -198,12 +215,66 @@ export default function useGameMusic({
     };
 
     const onHeadsetTap = () => {
+      if (externalTrackLock) return;
       const now = Date.now();
       if (now - lastTapAt > sequenceWindowMs) tapCount = 0;
       tapCount += 1;
       lastTapAt = now;
       scheduleTapReset();
     };
+
+    const playExternalTrack = ({ title, filename, lock = true, stopOnEnd = false }) => {
+      if (!filename) return;
+      externalTrackLock = Boolean(lock);
+      externalTrackStopOnEnd = Boolean(stopOnEnd);
+      const forcedSong = {
+        title: title || String(filename).replace(/\.[a-z0-9]+$/i, ''),
+        filename
+      };
+      if (!setSongSource(forcedSong, false)) return;
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') {
+        p.then(() => showNowPlaying(forcedSong.title)).catch(() => {
+          if (statusEl) statusEl.textContent = 'Music blocked by browser. Tap Music once.';
+        });
+        return;
+      }
+      showNowPlaying(forcedSong.title);
+    };
+
+    const onMusicControl = (event) => {
+      const detail = event?.detail || {};
+      const action = String(detail.action || '').toLowerCase();
+      if (!action) return;
+      if (action === 'play-track') {
+        playExternalTrack(detail);
+        return;
+      }
+      if (action === 'pause') {
+        pauseMusic();
+        return;
+      }
+      if (action === 'resume') {
+        if (audio.paused) {
+          if (currentSong) {
+            const p = audio.play();
+            if (p && typeof p.catch === 'function') {
+              p.catch(() => {
+                if (statusEl) statusEl.textContent = 'Music blocked by browser. Tap Music once.';
+              });
+            }
+          } else {
+            playMusic();
+          }
+        }
+        return;
+      }
+      if (action === 'unlock') {
+        externalTrackLock = false;
+        externalTrackStopOnEnd = false;
+      }
+    };
+    window.addEventListener('mathpop:music-control', onMusicControl);
 
     const onToggleChange = () => {
       musicEnabled = Boolean(toggleEl?.checked);
@@ -284,6 +355,7 @@ export default function useGameMusic({
       pauseHandlers.forEach(([el, handler]) => el.removeEventListener('click', handler));
       togglePauseHandlers.forEach(([el, handler]) => el.removeEventListener('click', handler));
       interactionHandlers.forEach(([el, handler, event]) => el.removeEventListener(event, handler));
+      window.removeEventListener('mathpop:music-control', onMusicControl);
       if (popupTimer) clearTimeout(popupTimer);
       if (tapResetTimer) clearTimeout(tapResetTimer);
       if (popupEl) popupEl.classList.remove('show');

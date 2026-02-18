@@ -224,6 +224,7 @@ window.__BennyWorldBabylonCleanup = null;
   ];
 
   const totalLevels = 75;
+  const TEST_START_LEVEL_75_ON_EASY = true;
   let levelIndex = 0;
   let points = 0;
   let distance = 0;
@@ -297,14 +298,67 @@ window.__BennyWorldBabylonCleanup = null;
   const debugKing = document.createElement('div');
   debugKing.className = 'bw-debug-king';
   debugKing.innerHTML = `
-    <div class="bw-debug-king__crown">+ - * / =</div>
-    <div class="bw-debug-king__cloak">&lt;code/&gt; while(x){...}</div>
-    <div class="bw-debug-king__body">x ?= y / 0</div>
+    <div class="bw-debug-king__crown">Syntax Queen</div>
+    <div class="bw-debug-king__cloak">Lead Guitar / Glitch Riffs</div>
+    <div class="bw-debug-king__body">BOSS MODE</div>
   `;
   const bossArena = document.createElement('div');
   bossArena.className = 'bw-boss-arena';
+  const syntaxIntroOverlay = document.createElement('div');
+  syntaxIntroOverlay.className = 'bw-syntax-intro';
+  syntaxIntroOverlay.innerHTML = `
+    <div class="bw-syntax-intro__panel">
+      <div class="bw-syntax-intro__kicker">Benny Dash Zone 1</div>
+      <h2 class="bw-syntax-intro__title">Syntax Queen Theme Song</h2>
+      <p class="bw-syntax-intro__scene">Syntax Queen enters with her electric guitar.</p>
+      <div class="bw-syntax-intro__band">
+        <div class="bw-bandmate queen" data-role="queen">
+          <strong>Syntax Queen</strong>
+          <span>Electric Guitar</span>
+        </div>
+        <div class="bw-bandmate drums" data-role="drums">
+          <strong>Syntax Error</strong>
+          <span>Drums</span>
+        </div>
+        <div class="bw-bandmate bass" data-role="bass">
+          <strong>Syntax Error</strong>
+          <span>Bass</span>
+        </div>
+      </div>
+      <div class="bw-syntax-intro__timer">2:07</div>
+    </div>
+  `;
+  const syntaxIntroSceneEl = syntaxIntroOverlay.querySelector('.bw-syntax-intro__scene');
+  const syntaxIntroTimerEl = syntaxIntroOverlay.querySelector('.bw-syntax-intro__timer');
+  const syntaxIntroBandmates = {
+    queen: syntaxIntroOverlay.querySelector('[data-role="queen"]'),
+    drums: syntaxIntroOverlay.querySelector('[data-role="drums"]'),
+    bass: syntaxIntroOverlay.querySelector('[data-role="bass"]')
+  };
+  const postVictoryOverlay = document.createElement('div');
+  postVictoryOverlay.className = 'bw-post-victory';
+  postVictoryOverlay.innerHTML = `
+    <div class="bw-post-victory__message">
+      BARK BARK!!!!! Congragulations you've beat this game. Though its just a game; beating shows you can follow thru when you want to. BARK BARK I KNOW this is a power in its self. Keep practicing and thinking of ways you can apply it in your own way.
+    </div>
+    <div class="bw-credits" aria-live="polite">
+      <div class="bw-credits__sheet">
+        <div class="bw-credits__paper">
+          <div class="bw-credits__page-label">Page 1</div>
+          <p class="bw-credits__text"></p>
+        </div>
+      </div>
+    </div>
+  `;
+  const postVictoryMessageEl = postVictoryOverlay.querySelector('.bw-post-victory__message');
+  const creditsRootEl = postVictoryOverlay.querySelector('.bw-credits');
+  const creditsSheetEl = postVictoryOverlay.querySelector('.bw-credits__sheet');
+  const creditsPageLabelEl = postVictoryOverlay.querySelector('.bw-credits__page-label');
+  const creditsTextEl = postVictoryOverlay.querySelector('.bw-credits__text');
   area.appendChild(bossArena);
   area.appendChild(debugKing);
+  area.appendChild(syntaxIntroOverlay);
+  area.appendChild(postVictoryOverlay);
 
   let bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
   let starPos = { x: 0, y: 0 };
@@ -341,6 +395,39 @@ window.__BennyWorldBabylonCleanup = null;
   let freezeUntil = 0;
   let nextEnemyWaveDistance = 500;
   const bennyShotCooldownMs = 220;
+  const syntaxQueenThemeDurationMs = 126618;
+  const syntaxQueenThemeSrc = 'audio/jukebox/Syntax Queen Theme song.mp3';
+  const syntaxIntroTimeline = [
+    { atMs: 0, text: 'Hardkore hip hop drop. Syntax Queen opens on electric guitar.', role: 'queen' },
+    { atMs: 17000, text: 'Capture the Fraction syntax errors lock in: drums and bass.', role: 'drums' },
+    { atMs: 42000, text: 'Bottomless guitar loop keeps spiraling while Benny advances.', role: 'bass' },
+    { atMs: 83000, text: 'Bridge section (1:23 - 1:33): the band strips down and resets tension.', role: 'drums' },
+    { atMs: 93000, text: 'After 1:33: intricate sci-fi scale run takes over the lead.', role: 'queen' },
+    { atMs: 118000, text: 'Final pass. Battle starts as soon as the track resolves.', role: 'queen' }
+  ];
+  let syntaxIntroActive = false;
+  let syntaxIntroStartedAt = 0;
+  let syntaxIntroStepIndex = -1;
+  let syntaxIntroTimeoutId = 0;
+  let syntaxIntroAudio = null;
+  let syntaxIntroAudioEndedHandler = null;
+  const postVictorySongSrc = 'audio/jukebox/For the Dev.mp3';
+  const postVictoryMessageFadeMs = 30000;
+  const postVictoryMessageHideMs = 33000;
+  const postVictoryPageTurnMs = 6000;
+  const postVictoryCreditsPages = [
+    '"Bark Bark its all fun and games until you try to make em"',
+    '"Dedicated to Benny a good dog in a strange world"\n\nSpecial thanks to all my math teachers growing up. I wasn\'t a easy kid i know..... I hope this Game makes up for all the bad behavior!',
+    '"Thank you Andrea and Richard. 2 great human beings Benny can always count on!. Can you believe Benny made this with out any thumbs?????"',
+    '"Thank you Mom and Thank you Dad, I love both of you and this game in some ways is me watching yall growing up."',
+    '"Dedicated to My Aunt Shila and Aunt Monkey. Amazing human beings with warm hearts and tenacious spirits."',
+    'The End'
+  ];
+  let postVictoryActive = false;
+  let postVictoryStartedAt = 0;
+  let postVictoryPageIndex = 0;
+  let postVictoryAudio = null;
+  let postVictoryAudioEndedHandler = null;
   const tierPowerNames = {
     1: 'Subtraction eyes',
     2: 'Greater-than blast',
@@ -382,6 +469,13 @@ window.__BennyWorldBabylonCleanup = null;
   function progressKey(mode = difficulty) {
     const normalized = normalizeDifficulty(mode);
     return `mathpop_benny_dash_progress_${currentUser()}_${normalized}`;
+  }
+
+  function applyEasyTestStartLevel() {
+    if (!TEST_START_LEVEL_75_ON_EASY) return;
+    if (difficulty !== 'easy') return;
+    levelIndex = totalLevels - 1;
+    bossWonThisLevel = false;
   }
 
   function legacyProgressKey() {
@@ -685,6 +779,201 @@ window.__BennyWorldBabylonCleanup = null;
     }
   }
 
+  function formatMsAsClock(ms) {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function applySyntaxIntroStep(nextIndex) {
+    if (nextIndex === syntaxIntroStepIndex || nextIndex < 0 || nextIndex >= syntaxIntroTimeline.length) return;
+    syntaxIntroStepIndex = nextIndex;
+    const step = syntaxIntroTimeline[nextIndex];
+    if (syntaxIntroSceneEl) syntaxIntroSceneEl.textContent = step.text;
+    Object.values(syntaxIntroBandmates).forEach((node) => node && node.classList.remove('is-live'));
+    const roleNode = step.role ? syntaxIntroBandmates[step.role] : null;
+    if (roleNode) roleNode.classList.add('is-live');
+  }
+
+  function stopSyntaxQueenIntro(startBoss = true) {
+    if (syntaxIntroTimeoutId) {
+      clearTimeout(syntaxIntroTimeoutId);
+      syntaxIntroTimeoutId = 0;
+    }
+    if (syntaxIntroAudio) {
+      if (syntaxIntroAudioEndedHandler) {
+        syntaxIntroAudio.removeEventListener('ended', syntaxIntroAudioEndedHandler);
+      }
+      syntaxIntroAudio.pause();
+      syntaxIntroAudio.currentTime = 0;
+      syntaxIntroAudio = null;
+      syntaxIntroAudioEndedHandler = null;
+    }
+    syntaxIntroActive = false;
+    syntaxIntroStepIndex = -1;
+    area.classList.remove('syntax-intro-active');
+    syntaxIntroOverlay.classList.remove('active');
+    Object.values(syntaxIntroBandmates).forEach((node) => node && node.classList.remove('is-live'));
+    if (startBoss) startDebugKingFight();
+  }
+
+  function ensureBossRewardSongUnlocked() {
+    const user = currentUser();
+    if (!user || user === 'guest') return;
+    const key = `mathpop_jukebox_${user}`;
+    let state = {};
+    try {
+      state = JSON.parse(localStorage.getItem(key) || '{}') || {};
+    } catch {
+      state = {};
+    }
+    if (!Object.prototype.hasOwnProperty.call(state, 'song-27')) {
+      state['song-27'] = false;
+      localStorage.setItem(key, JSON.stringify(state));
+    }
+  }
+
+  function setCreditsPage(index, turn = false) {
+    const safeIndex = Math.max(0, Math.min(postVictoryCreditsPages.length - 1, index));
+    if (safeIndex === postVictoryPageIndex && creditsTextEl && creditsTextEl.textContent) return;
+    postVictoryPageIndex = safeIndex;
+    if (creditsPageLabelEl) creditsPageLabelEl.textContent = `Page ${safeIndex + 1}`;
+    if (creditsTextEl) creditsTextEl.textContent = postVictoryCreditsPages[safeIndex] || '';
+    if (turn && creditsSheetEl) {
+      creditsSheetEl.classList.remove('turning');
+      void creditsSheetEl.offsetWidth;
+      creditsSheetEl.classList.add('turning');
+    }
+  }
+
+  function stopPostVictorySequence(clearOnly = true) {
+    postVictoryActive = false;
+    postVictoryStartedAt = 0;
+    postVictoryPageIndex = 0;
+    if (postVictoryAudio) {
+      if (postVictoryAudioEndedHandler) {
+        postVictoryAudio.removeEventListener('ended', postVictoryAudioEndedHandler);
+      }
+      postVictoryAudio.pause();
+      postVictoryAudio.currentTime = 0;
+      postVictoryAudio = null;
+      postVictoryAudioEndedHandler = null;
+    }
+    area.classList.remove('post-victory-active');
+    postVictoryOverlay.classList.remove('active', 'hide-message', 'show-credits');
+    if (creditsSheetEl) creditsSheetEl.classList.remove('turning');
+    if (creditsRootEl) creditsRootEl.classList.remove('active');
+    if (postVictoryMessageEl) postVictoryMessageEl.classList.remove('fade-out');
+    if (clearOnly && statusEl) statusEl.textContent = 'Run to the star!';
+  }
+
+  function startPostVictorySequence() {
+    if (postVictoryActive) return;
+    ensureBossRewardSongUnlocked();
+    postVictoryActive = true;
+    postVictoryStartedAt = performance.now();
+    postVictoryPageIndex = 0;
+    stopSyntaxQueenIntro(false);
+    setBossMode(false);
+    stopDebrisFall();
+    blackHoleActive = false;
+    blackHole.style.display = 'none';
+    area.classList.add('post-victory-active');
+    postVictoryOverlay.classList.add('active');
+    postVictoryOverlay.classList.remove('hide-message', 'show-credits');
+    if (postVictoryMessageEl) {
+      postVictoryMessageEl.classList.remove('fade-out');
+    }
+    if (creditsRootEl) creditsRootEl.classList.remove('active');
+    setCreditsPage(0, false);
+
+    try {
+      postVictoryAudio = new Audio(postVictorySongSrc);
+      postVictoryAudio.preload = 'auto';
+      postVictoryAudioEndedHandler = () => {
+        if (statusEl) statusEl.textContent = 'Credits complete. Syntax Queen victory secured.';
+      };
+      postVictoryAudio.addEventListener('ended', postVictoryAudioEndedHandler);
+      const playPromise = postVictoryAudio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          setMessage('Victory track blocked by browser autoplay.', 1800);
+        });
+      }
+    } catch {
+      setMessage('Victory track unavailable, credits still rolling.', 1800);
+    }
+  }
+
+  function updatePostVictorySequence(now = performance.now()) {
+    if (!postVictoryActive) return;
+    const elapsed = Math.max(0, now - postVictoryStartedAt);
+    if (elapsed >= postVictoryMessageFadeMs && postVictoryMessageEl) {
+      postVictoryMessageEl.classList.add('fade-out');
+    }
+    if (elapsed >= postVictoryMessageHideMs) {
+      postVictoryOverlay.classList.add('show-credits');
+      if (creditsRootEl) creditsRootEl.classList.add('active');
+      const creditsElapsed = elapsed - postVictoryMessageHideMs;
+      const pageIndex = Math.min(
+        postVictoryCreditsPages.length - 1,
+        Math.max(0, Math.floor(creditsElapsed / postVictoryPageTurnMs))
+      );
+      setCreditsPage(pageIndex, pageIndex !== postVictoryPageIndex);
+    }
+  }
+
+  function updateSyntaxQueenIntro(now = performance.now()) {
+    if (!syntaxIntroActive) return;
+    const elapsed = Math.max(0, now - syntaxIntroStartedAt);
+    const remaining = Math.max(0, syntaxQueenThemeDurationMs - elapsed);
+    if (syntaxIntroTimerEl) syntaxIntroTimerEl.textContent = formatMsAsClock(remaining);
+
+    let nextIndex = 0;
+    for (let i = 0; i < syntaxIntroTimeline.length; i += 1) {
+      if (elapsed >= syntaxIntroTimeline[i].atMs) nextIndex = i;
+      else break;
+    }
+    applySyntaxIntroStep(nextIndex);
+  }
+
+  function startSyntaxQueenIntro() {
+    if (syntaxIntroActive || bossActive) return;
+    syntaxIntroActive = true;
+    syntaxIntroStartedAt = performance.now();
+    syntaxIntroStepIndex = -1;
+    setBossMode(false);
+    blackHoleActive = false;
+    blackHoleTimer = 0;
+    clearBlackHolePartOnMap();
+    blackHole.style.display = 'none';
+    stopDebrisFall();
+    crumblingFloor.classList.remove('crumpling');
+    area.classList.remove('shake');
+    area.classList.add('syntax-intro-active');
+    syntaxIntroOverlay.classList.add('active');
+    setMessage('Syntax Queen intro starts. Battle will begin after the song.', 1800);
+    updateSyntaxQueenIntro(syntaxIntroStartedAt);
+
+    try {
+      syntaxIntroAudio = new Audio(syntaxQueenThemeSrc);
+      syntaxIntroAudio.preload = 'auto';
+      syntaxIntroAudioEndedHandler = () => stopSyntaxQueenIntro(true);
+      syntaxIntroAudio.addEventListener('ended', syntaxIntroAudioEndedHandler);
+      const playPromise = syntaxIntroAudio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          setMessage('Theme audio blocked. Intro still runs for 2:07.', 1800);
+        });
+      }
+    } catch {
+      setMessage('Theme audio unavailable. Intro still runs for 2:07.', 1800);
+    }
+
+    syntaxIntroTimeoutId = setTimeout(() => stopSyntaxQueenIntro(true), syntaxQueenThemeDurationMs);
+  }
+
   function spawnBossProjectile(type = 'syntax') {
     const el = document.createElement('div');
     el.className = `bw-boss-projectile ${type}`;
@@ -748,6 +1037,7 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function startDebugKingFight() {
+    stopPostVictorySequence(false);
     setBossMode(true);
     blackHoleActive = false;
     blackHoleTimer = 0;
@@ -766,23 +1056,32 @@ window.__BennyWorldBabylonCleanup = null;
     bossY = Math.max(80, rect.height - 180);
     debugKing.style.left = `${bossX - cameraOffset}px`;
     debugKing.style.top = `${bossY}px`;
-    setMessage('Debug King appears: Phase 1 - Syntax Chaos', 1600);
+    setMessage('Syntax Queen appears: Phase 1 - Syntax Chaos', 1600);
   }
 
   function finishDebugKingFight() {
     setBossMode(false);
     bossWonThisLevel = true;
     points += 500;
-    setMessage('Debug King defeated! +500', 1800);
+    setMessage('Syntax Queen defeated! +500', 1800);
     levelIndex = Math.min(totalLevels - 1, levelIndex + 1);
     saveProgress('auto');
-    startLevel();
+    startPostVictorySequence();
   }
 
   function updateHud() {
     if (pointsEl) pointsEl.textContent = `Points: ${points}`;
     if (dashEl) dashEl.textContent = `Dash: ${Math.floor(distance)}m`;
     if (statusEl) {
+      if (postVictoryActive) {
+        statusEl.textContent = 'BARK BARK!!!!! Victory credits rolling.';
+        return;
+      }
+      if (syntaxIntroActive) {
+        const remaining = Math.max(0, syntaxQueenThemeDurationMs - (performance.now() - syntaxIntroStartedAt));
+        statusEl.textContent = `Syntax Queen intro: ${formatMsAsClock(remaining)} to battle`;
+        return;
+      }
       if (bossActive) {
         const phaseLabel = bossPhase === 1
           ? 'Syntax Chaos'
@@ -792,7 +1091,7 @@ window.__BennyWorldBabylonCleanup = null;
         const pattern = bossPhase === 3
           ? ` | Pattern ${bossPatternProgress}/${bossPatternSequence.length}`
           : '';
-        statusEl.textContent = `Debug King: ${phaseLabel} | HP ${bossHealth}${pattern}`;
+        statusEl.textContent = `Syntax Queen: ${phaseLabel} | HP ${bossHealth}${pattern}`;
         return;
       }
       if (deskPlaneActive) {
@@ -1076,6 +1375,7 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function fireBennyShot() {
+    if (syntaxIntroActive || postVictoryActive) return;
     const cfg = getShotPowerConfig();
     const now = performance.now();
     if (now - lastBennyShotAt < cfg.cooldown) return;
@@ -1266,6 +1566,8 @@ window.__BennyWorldBabylonCleanup = null;
     const savedCrumblingFloor = crumblingFloor;
     const savedDebugKing = debugKing;
     const savedBossArena = bossArena;
+    const savedSyntaxIntro = syntaxIntroOverlay;
+    const savedPostVictory = postVictoryOverlay;
     
     area.innerHTML = '';
     clearBlackHolePartOnMap();
@@ -1367,6 +1669,8 @@ window.__BennyWorldBabylonCleanup = null;
     area.appendChild(savedCrumblingFloor);
     area.appendChild(savedBossArena);
     area.appendChild(savedDebugKing);
+    area.appendChild(savedSyntaxIntro);
+    area.appendChild(savedPostVictory);
 
     const lastPath = safePath[safePath.length - 1];
     const starX = lastPath ? lastPath.x + lastPath.w / 2 : rect.width - 70;
@@ -1392,6 +1696,7 @@ window.__BennyWorldBabylonCleanup = null;
 
   function applyPhysics() {
     if (gameOver) return;
+    if (syntaxIntroActive || postVictoryActive) return;
     const rect = area.getBoundingClientRect();
     const groundY = rect.height - 40;
     if (bossActive) {
@@ -1882,7 +2187,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
   }
 
   function checkGoal() {
-    if (bossActive) return;
+    if (bossActive || syntaxIntroActive || postVictoryActive) return;
     // Use the stored star position instead of getBoundingClientRect
     const hit = bennyState.x + 30 > starPos.x && bennyState.x < starPos.x + 30 && bennyState.y + 30 > starPos.y && bennyState.y < starPos.y + 30;
     if (hit) {
@@ -1890,8 +2195,8 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       if (isFinalLevel && !bossWonThisLevel) {
         points += 200;
         saveProgress('auto');
-        setMessage('Level 75 cleared. Debug King encounter begins!', 1600);
-        startDebugKingFight();
+        setMessage('Level 75 cleared. Syntax Queen intro starts!', 1600);
+        startSyntaxQueenIntro();
         return;
       }
       points += 200;
@@ -1906,6 +2211,8 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
   }
 
   function tick() {
+    updatePostVictorySequence();
+    updateSyntaxQueenIntro();
     applyPhysics();
     while (distance >= nextEnemyWaveDistance) {
       spawnDistanceEnemyWave();
@@ -1927,6 +2234,8 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
   }
 
   function startLevel() {
+    stopPostVictorySequence(false);
+    stopSyntaxQueenIntro(false);
     setBossMode(false);
     syncBlackHoleWindowForLevel();
     applyBennyColor();
@@ -1941,6 +2250,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
   if (difficultySelect) {
     difficulty = normalizeDifficulty(difficultySelect.value || 'easy');
     loadProgress(false);
+    applyEasyTestStartLevel();
     root.dataset.difficulty = difficulty;
     difficultySelect.addEventListener('change', () => {
       difficulty = normalizeDifficulty(difficultySelect.value || 'easy');
@@ -1953,6 +2263,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         resetBlackHolePartsForWindow(0);
         blackHoleCooldownUntilLevel = 0;
       }
+      applyEasyTestStartLevel();
       saveProgress('auto');
       startLevel();
     });
@@ -1970,6 +2281,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
 
   function bindKeyEvents() {
     const down = (e) => {
+      if (syntaxIntroActive || postVictoryActive) return;
       if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
       if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') {
@@ -1988,6 +2300,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       if (e.key === 'Shift') keys.glide = true;
     };
     const up = (e) => {
+      if (syntaxIntroActive || postVictoryActive) return;
       if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
       if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
@@ -2005,12 +2318,14 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     if (!btn) return () => {};
     const onDown = (e) => {
       e.preventDefault();
+      if (syntaxIntroActive || postVictoryActive) return;
       keys[key] = pressed;
       if (key === 'jump') triggerFlip();
       if (key === 'jump') triggerBossPulse();
     };
     const onUp = (e) => {
       e.preventDefault();
+      if (syntaxIntroActive || postVictoryActive) return;
       keys[key] = false;
     };
     btn.addEventListener('pointerdown', onDown);
@@ -2029,6 +2344,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     if (!btn) return () => {};
     const onDown = (e) => {
       e.preventDefault();
+      if (syntaxIntroActive || postVictoryActive) return;
       action();
     };
     btn.addEventListener('pointerdown', onDown);
@@ -2128,6 +2444,8 @@ const cleanupKeys = bindKeyEvents();
   rafId = requestAnimationFrame(tick);
 
   window.__BennyWorldCleanup = () => {
+    stopPostVictorySequence(false);
+    stopSyntaxQueenIntro(false);
     saveProgress('auto');
     if (rafId) cancelAnimationFrame(rafId);
     airEnemies.forEach((enemy) => enemy.el.remove());

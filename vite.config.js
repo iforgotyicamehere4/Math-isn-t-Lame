@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
-  base: '/Math-isn-t-Lame/',   // GitHub Pages repository deployment
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/' : '/Math-isn-t-Lame/', // Dev vs GitHub Pages build
   plugins: [react()],
   server: {
     host: true,
@@ -21,4 +21,4 @@ export default defineConfig({
       }
     }
   }
-});
+}));

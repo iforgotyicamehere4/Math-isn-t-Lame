@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { JUKEBOX_SONGS } from '../data/jukeboxSongs';
+import { getAvailableJukeboxSongs } from '../data/jukeboxSongs';
 
 export default function useGameMusic({
   toggleId,
@@ -51,7 +51,7 @@ export default function useGameMusic({
       if (!raw) return [];
       try {
         const state = JSON.parse(raw);
-        return JUKEBOX_SONGS
+        return getAvailableJukeboxSongs(user)
           .filter((song) => Boolean(state?.[song.id]))
           .map((song) => ({ title: song.label, filename: song.filename }));
       } catch {

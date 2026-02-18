@@ -148,5 +148,60 @@ export const JUKEBOX_SONGS = [
     "label": "What if 7never89",
     "filename": "25-what-if-7never89.mp3",
     "originalFilename": "What if 7never89.mp3"
+  },
+  {
+    "id": "song-26",
+    "label": "Syntax Queen Theme song",
+    "filename": "Syntax Queen Theme song.mp3",
+    "originalFilename": "Syntax Queen Theme song.mp3"
+  },
+  {
+    "id": "song-27",
+    "label": "For the Dev",
+    "filename": "For the Dev.mp3",
+    "originalFilename": "For the Dev.mp3"
   }
 ];
+
+const BENNY_DASH_DIFFICULTIES = ['easy', 'medium', 'mathanomical'];
+const BOSS_UNLOCK_SONG_IDS = new Set(['song-26', 'song-27']);
+
+function readStorage(storage) {
+  if (storage) return storage;
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  return window.localStorage;
+}
+
+function parseProgress(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function hasBennyDashCompletion(user, storage) {
+  if (!user) return false;
+  const store = readStorage(storage);
+  if (!store) return false;
+
+  const scopedComplete = BENNY_DASH_DIFFICULTIES.some((mode) => {
+    const key = `mathpop_benny_dash_progress_${user}_${mode}`;
+    const data = parseProgress(store.getItem(key));
+    return Boolean(data?.bossWonThisLevel);
+  });
+  if (scopedComplete) return true;
+
+  const legacy = parseProgress(store.getItem(`mathpop_benny_dash_progress_${user}`));
+  return Boolean(legacy?.bossWonThisLevel);
+}
+
+export function getAvailableJukeboxSongs(user, storage) {
+  const unlocked = hasBennyDashCompletion(user, storage);
+  return JUKEBOX_SONGS.filter((song) => {
+    if (!BOSS_UNLOCK_SONG_IDS.has(song.id)) return true;
+    return unlocked;
+  });
+}

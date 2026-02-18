@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/profile.css';
-import { JUKEBOX_SONGS } from '../data/jukeboxSongs';
+import { JUKEBOX_SONGS, getAvailableJukeboxSongs } from '../data/jukeboxSongs';
 
 const BENNY_COLORS = [
   { id: 'solid-01', name: 'Sky', type: 'solid', primary: '#7dd3fc' },
@@ -74,21 +74,22 @@ const BENNY_TIERS = [
   { id: 10, name: 'Mathtality', power: 'All zombies cleared', points: 100000, streak: 18 }
 ];
 
-function buildDefaultJukeboxState() {
-  return JUKEBOX_SONGS.reduce((acc, song) => {
+function buildDefaultJukeboxState(availableSongs = JUKEBOX_SONGS) {
+  return availableSongs.reduce((acc, song) => {
     acc[song.id] = false;
     return acc;
   }, {});
 }
 
 function loadJukeboxState(user) {
-  const defaults = buildDefaultJukeboxState();
+  const availableSongs = getAvailableJukeboxSongs(user);
+  const defaults = buildDefaultJukeboxState(availableSongs);
   if (!user) return defaults;
   const raw = localStorage.getItem(`mathpop_jukebox_${user}`);
   if (!raw) return defaults;
   try {
     const parsed = JSON.parse(raw);
-    return JUKEBOX_SONGS.reduce((acc, song) => {
+    return availableSongs.reduce((acc, song) => {
       acc[song.id] = Boolean(parsed?.[song.id]);
       return acc;
     }, {});
@@ -168,6 +169,7 @@ export default function Profile() {
     return raw ? JSON.parse(raw) : null;
   }, [currentUser, refresh]);
   const stats = useMemo(() => loadProfileStats(currentUser), [currentUser, refresh]);
+  const availableJukeboxSongs = useMemo(() => getAvailableJukeboxSongs(currentUser), [currentUser, refresh]);
 
   if (!currentUser || !profile || !stats) {
     return (
@@ -405,7 +407,7 @@ export default function Profile() {
     <>
       <p className="profile-subtitle">Tap a song to switch it On or Off.</p>
       <div className="jukebox-list">
-        {JUKEBOX_SONGS.map((song) => {
+        {availableJukeboxSongs.map((song) => {
           const enabled = Boolean(jukeboxState[song.id]);
           return (
             <button
@@ -422,7 +424,7 @@ export default function Profile() {
           );
         })}
       </div>
-      <p className="jukebox-filename">Bark Bark music helps me focus</p>
+      <p className="jukebox-filename">Syntax Queen Theme unlocks after beating Benny Dash.</p>
     </>
   );
 

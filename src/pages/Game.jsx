@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/game.css';
-import { JUKEBOX_SONGS } from '../data/jukeboxSongs';
+import { getAvailableJukeboxSongs } from '../data/jukeboxSongs';
 import { attachContinueTracker } from '../utils/continueProgress';
 
 // Import scripts using Vite's asset handling for proper bundling
@@ -23,7 +23,8 @@ export default function Game() {
     let cancelled = false;
     // Make Vite base URL available to the legacy game script loaded from /public.
     window.__MathPopBaseUrl = import.meta.env.BASE_URL || '/';
-    window.__MathPopJukeboxSongs = JUKEBOX_SONGS;
+    const currentUser = localStorage.getItem('mathpop_current_user');
+    window.__MathPopJukeboxSongs = getAvailableJukeboxSongs(currentUser);
     
     // Request landscape orientation lock for mobile devices
     if (window.screen && window.screen.orientation) {

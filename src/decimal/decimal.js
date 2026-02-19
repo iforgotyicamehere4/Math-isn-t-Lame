@@ -109,6 +109,20 @@ export default function initDecimal() {
   let correctiveLockAxis = null;
   let correctiveLockIndex = null;
   let correctiveCountdownTimer = null;
+  const DAILY_CHALLENGE_POINTS = 8000;
+  const dailyChallenge = (() => {
+    const raw = window.__DecimalDailyChallenge;
+    if (!raw || !raw.enabled || raw.gameId !== 'decimal') return null;
+    return {
+      id: String(raw.id || ''),
+      dateKey: String(raw.dateKey || ''),
+      level: String(raw.level || 'easy20'),
+      requiredCorrect: Math.max(1, Number(raw.requiredCorrect) || 10),
+      points: Math.max(1, Number(raw.points) || DAILY_CHALLENGE_POINTS),
+      claimed: Boolean(raw.claimed),
+      progress: raw.progress && typeof raw.progress === 'object' ? raw.progress : null
+    };
+  })();
 
   function currentUser() {
     return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -181,6 +195,128 @@ export default function initDecimal() {
     localStorage.setItem(profileStatsKey(), JSON.stringify(stats));
   }
 
+  function dailyChallengeKey() {
+    return `mathpop_daily_challenge_state_${currentUser()}`;
+  }
+
+  function loadDailyChallengeState() {
+    const raw = localStorage.getItem(dailyChallengeKey());
+    if (!raw) return { claims: {}, progress: {}, streak: 0, lastClaimDate: null, totalCompleted: 0 };
+    try {
+      const parsed = JSON.parse(raw);
+      return {
+        claims: parsed?.claims && typeof parsed.claims === 'object' ? parsed.claims : {},
+        progress: parsed?.progress && typeof parsed.progress === 'object' ? parsed.progress : {},
+        streak: Number(parsed?.streak) || 0,
+        lastClaimDate: parsed?.lastClaimDate || null,
+        totalCompleted: Number(parsed?.totalCompleted) || 0
+      };
+    } catch {
+      return { claims: {}, progress: {}, streak: 0, lastClaimDate: null, totalCompleted: 0 };
+    }
+  }
+
+  function saveDailyChallengeState(state) {
+    localStorage.setItem(dailyChallengeKey(), JSON.stringify(state));
+  }
+
+  function dateKeyOffset(baseDateKey, dayOffset) {
+    const d = new Date(`${baseDateKey}T12:00:00`);
+    d.setDate(d.getDate() + dayOffset);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function updateDailyChallengeHint() {
+    const hintTarget = document.getElementById('decimalDailyHint');
+    if (!hintTarget) return;
+    if (!dailyChallenge) {
+      hintTarget.textContent = '';
+      return;
+    }
+    if (dailyChallenge.claimed) {
+      hintTarget.textContent = 'Daily challenge complete. Come back tomorrow for a new one.';
+      return;
+    }
+    const activeLevel = getRawLevelValue();
+    if (activeLevel !== dailyChallenge.level) {
+      hintTarget.textContent = `Daily Challenge is on ${dailyChallenge.level}. Switch level to earn ${dailyChallenge.points} pts.`;
+      return;
+    }
+    const correct = Number(dailyChallenge.progress?.correct) || 0;
+    hintTarget.textContent = `Daily Challenge: ${dailyChallenge.level} | ${correct}/${dailyChallenge.requiredCorrect} correct | Reward ${dailyChallenge.points} pts`;
+  }
+
+  function applyDailyChallengeProgress(stats, gameStats, levelName, wasCorrect, pointsEarned) {
+    if (!dailyChallenge || !dailyChallenge.id || !dailyChallenge.dateKey) return { awarded: false };
+    if (dailyChallenge.claimed) return { awarded: false };
+    if (levelName !== dailyChallenge.level) return { awarded: false };
+    const state = loadDailyChallengeState();
+    const claim = state.claims?.[dailyChallenge.dateKey];
+    if (claim && claim.challengeId === dailyChallenge.id) {
+      dailyChallenge.claimed = true;
+      updateDailyChallengeHint();
+      return { awarded: false };
+    }
+    if (!state.progress || typeof state.progress !== 'object') state.progress = {};
+    const prev = state.progress[dailyChallenge.dateKey];
+    if (!prev || prev.challengeId !== dailyChallenge.id) {
+      state.progress[dailyChallenge.dateKey] = {
+        challengeId: dailyChallenge.id,
+        correct: 0,
+        score: 0,
+        completed: false,
+        completedAt: null
+      };
+    }
+    const entry = state.progress[dailyChallenge.dateKey];
+    if (wasCorrect) {
+      entry.correct = (Number(entry.correct) || 0) + 1;
+      entry.score = (Number(entry.score) || 0) + Math.max(1, Number(pointsEarned) || 0);
+    }
+    if (!entry.completed && Number(entry.correct) >= dailyChallenge.requiredCorrect) {
+      entry.completed = true;
+      entry.completedAt = new Date().toISOString();
+    }
+    let awarded = false;
+    if (entry.completed) {
+      if (!state.claims || typeof state.claims !== 'object') state.claims = {};
+      if (!state.claims[dailyChallenge.dateKey]) {
+        state.claims[dailyChallenge.dateKey] = {
+          challengeId: dailyChallenge.id,
+          points: dailyChallenge.points,
+          claimedAt: new Date().toISOString()
+        };
+        const previousDate = state.lastClaimDate;
+        if (previousDate === dailyChallenge.dateKey) {
+          // no-op
+        } else if (previousDate === dateKeyOffset(dailyChallenge.dateKey, -1)) {
+          state.streak = (Number(state.streak) || 0) + 1;
+        } else {
+          state.streak = 1;
+        }
+        state.lastClaimDate = dailyChallenge.dateKey;
+        state.totalCompleted = (Number(state.totalCompleted) || 0) + 1;
+        stats.totalPoints += dailyChallenge.points;
+        gameStats.points += dailyChallenge.points;
+        awarded = true;
+      }
+      dailyChallenge.claimed = true;
+    }
+    dailyChallenge.progress = {
+      challengeId: dailyChallenge.id,
+      correct: Number(entry.correct) || 0,
+      score: Number(entry.score) || 0,
+      completed: Boolean(entry.completed),
+      completedAt: entry.completedAt || null
+    };
+    saveDailyChallengeState(state);
+    updateDailyChallengeHint();
+    return { awarded };
+  }
+
   function recordAttempt(isCorrect, pointsEarned) {
     const stats = loadProfileStats();
     const gameStats = ensureGameStats(stats, 'decimal');
@@ -192,9 +328,13 @@ export default function initDecimal() {
       stats.totalPoints += pointsEarned;
       gameStats.points += pointsEarned;
     }
+    const dailyResult = applyDailyChallengeProgress(stats, gameStats, getRawLevelValue(), isCorrect, pointsEarned);
     gameStats.streakRecord = Math.max(gameStats.streakRecord, streak);
     gameStats.bestScore = Math.max(gameStats.bestScore, score);
     saveProfileStats(stats);
+    if (dailyResult.awarded && feedbackEl) {
+      feedbackEl.textContent = `Daily challenge complete! +${dailyChallenge.points} points.`;
+    }
   }
 
   function getLevelConfig() {
@@ -1667,6 +1807,7 @@ export default function initDecimal() {
         createGrid(COLS, ROWS);
         ensureCanvas();
         drawGrid();
+        updateDailyChallengeHint();
       };
     }
     if (!startHandler) {
@@ -1831,6 +1972,7 @@ export default function initDecimal() {
     startGravity();
     startRoundTimer();
     updateHud();
+    updateDailyChallengeHint();
     feedbackEl.textContent = 'Game started — clear rows before the timer ends';
     promptEl.textContent = 'Click a full row to solve it.';
     pauseBtn.disabled = false; pauseBtn.textContent = 'Pause';
@@ -1934,6 +2076,7 @@ export default function initDecimal() {
   drawGrid();
   buildPalette();
   initUI();
+  updateDailyChallengeHint();
 
   // expose debug API
   window.DecimalTetris = {

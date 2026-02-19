@@ -585,12 +585,14 @@ window.__MathPupStateReset = true;
   const bennyPaletteEl = qs('#bennyPalette');
   const bennyUnlockInfoEl = qs('#bennyUnlockInfo');
   const mathHintEl = qs('#mathHint');
+  const dailyChallengeHintEl = qs('#dailyChallengeHint');
   let bennyDock = null;
   const mobileControls = qs('#mobileControls');
   const mobileJoystick = qs('#mobileJoystick');
   const mobileStick = qs('#mobileStick');
   const mobileShoot = qs('#mobileShoot');
   const mobileAnswer = qs('#mobileAnswer');
+  const mobileMinusBtn = qs('#mobileMinusBtn');
   const mobileAnswerBtn = qs('#mobileAnswerBtn');
 
   const typedContainer = document.createElement('div');
@@ -669,6 +671,20 @@ window.__MathPupStateReset = true;
   let keydownHandler = null;
   let keyupHandler = null;
   let pupStreak = 0;
+  const DAILY_CHALLENGE_POINTS = 8000;
+  const dailyChallenge = (() => {
+    const raw = window.__MathPupDailyChallenge;
+    if (!raw || !raw.enabled) return null;
+    return {
+      id: String(raw.id || ''),
+      dateKey: String(raw.dateKey || ''),
+      level: String(raw.level || 'Easy'),
+      requiredCorrect: Math.max(1, Number(raw.requiredCorrect) || 10),
+      points: Math.max(1, Number(raw.points) || DAILY_CHALLENGE_POINTS),
+      claimed: Boolean(raw.claimed),
+      progress: raw.progress && typeof raw.progress === 'object' ? raw.progress : null
+    };
+  })();
 
   let benny = null;
   const bennyState = { x: 0, y: 0, vx: 0, vy: 0 };
@@ -1042,6 +1058,136 @@ window.__MathPupStateReset = true;
 
   function saveProfileStats(stats) {
     localStorage.setItem(profileStatsKey(), JSON.stringify(stats));
+  }
+
+  function dailyChallengeKey() {
+    return `mathpop_daily_challenge_state_${currentUser()}`;
+  }
+
+  function loadDailyChallengeState() {
+    const raw = localStorage.getItem(dailyChallengeKey());
+    if (!raw) {
+      return { claims: {}, progress: {}, streak: 0, lastClaimDate: null, totalCompleted: 0 };
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return {
+        claims: parsed?.claims && typeof parsed.claims === 'object' ? parsed.claims : {},
+        progress: parsed?.progress && typeof parsed.progress === 'object' ? parsed.progress : {},
+        streak: Number(parsed?.streak) || 0,
+        lastClaimDate: parsed?.lastClaimDate || null,
+        totalCompleted: Number(parsed?.totalCompleted) || 0
+      };
+    } catch {
+      return { claims: {}, progress: {}, streak: 0, lastClaimDate: null, totalCompleted: 0 };
+    }
+  }
+
+  function saveDailyChallengeState(state) {
+    localStorage.setItem(dailyChallengeKey(), JSON.stringify(state));
+  }
+
+  function dateKeyOffset(baseDateKey, dayOffset) {
+    const d = new Date(`${baseDateKey}T12:00:00`);
+    d.setDate(d.getDate() + dayOffset);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function setDailyChallengeHint(message) {
+    if (!dailyChallengeHintEl) return;
+    dailyChallengeHintEl.textContent = message || '';
+  }
+
+  function updateDailyChallengeHint() {
+    if (!dailyChallenge) {
+      setDailyChallengeHint('');
+      return;
+    }
+    if (dailyChallenge.claimed) {
+      setDailyChallengeHint('Daily challenge complete. Come back tomorrow for a new one.');
+      return;
+    }
+    const correct = Number(dailyChallenge.progress?.correct) || 0;
+    setDailyChallengeHint(
+      `Daily Challenge: ${dailyChallenge.level} | ${correct}/${dailyChallenge.requiredCorrect} correct | Reward ${dailyChallenge.points} pts`
+    );
+  }
+
+  function applyDailyChallengeProgress(stats, gameStats, levelName, wasCorrect) {
+    if (!dailyChallenge || !dailyChallenge.id || !dailyChallenge.dateKey) return { awarded: false };
+    if (dailyChallenge.claimed) return { awarded: false };
+    if (levelName !== dailyChallenge.level) return { awarded: false };
+
+    const state = loadDailyChallengeState();
+    const currentClaim = state.claims?.[dailyChallenge.dateKey];
+    if (currentClaim && currentClaim.challengeId === dailyChallenge.id) {
+      dailyChallenge.claimed = true;
+      updateDailyChallengeHint();
+      return { awarded: false };
+    }
+
+    if (!state.progress || typeof state.progress !== 'object') state.progress = {};
+    const progress = state.progress[dailyChallenge.dateKey];
+    if (!progress || progress.challengeId !== dailyChallenge.id) {
+      state.progress[dailyChallenge.dateKey] = {
+        challengeId: dailyChallenge.id,
+        correct: 0,
+        score: 0,
+        completed: false,
+        completedAt: null
+      };
+    }
+    const entry = state.progress[dailyChallenge.dateKey];
+
+    if (wasCorrect) {
+      entry.correct = (Number(entry.correct) || 0) + 1;
+      entry.score = (Number(entry.score) || 0) + 100;
+    }
+
+    if (!entry.completed && Number(entry.correct) >= dailyChallenge.requiredCorrect) {
+      entry.completed = true;
+      entry.completedAt = new Date().toISOString();
+    }
+
+    let awarded = false;
+    if (entry.completed) {
+      if (!state.claims || typeof state.claims !== 'object') state.claims = {};
+      if (!state.claims[dailyChallenge.dateKey]) {
+        state.claims[dailyChallenge.dateKey] = {
+          challengeId: dailyChallenge.id,
+          points: dailyChallenge.points,
+          claimedAt: new Date().toISOString()
+        };
+        const previousDate = state.lastClaimDate;
+        if (previousDate === dailyChallenge.dateKey) {
+          // no-op: already counted today
+        } else if (previousDate === dateKeyOffset(dailyChallenge.dateKey, -1)) {
+          state.streak = (Number(state.streak) || 0) + 1;
+        } else {
+          state.streak = 1;
+        }
+        state.lastClaimDate = dailyChallenge.dateKey;
+        state.totalCompleted = (Number(state.totalCompleted) || 0) + 1;
+        stats.totalPoints += dailyChallenge.points;
+        gameStats.points += dailyChallenge.points;
+        awarded = true;
+      }
+      dailyChallenge.claimed = true;
+    }
+
+    dailyChallenge.progress = {
+      challengeId: dailyChallenge.id,
+      correct: Number(entry.correct) || 0,
+      score: Number(entry.score) || 0,
+      completed: Boolean(entry.completed),
+      completedAt: entry.completedAt || null
+    };
+    saveDailyChallengeState(state);
+    updateDailyChallengeHint();
+    return { awarded };
   }
 
   function recordProblemTiming(levelName, problem, elapsedMs, result) {
@@ -2105,6 +2251,7 @@ window.__MathPupStateReset = true;
       stats.totalPoints += res.pointsEarned;
       gameStats.points += res.pointsEarned;
     }
+    const dailyResult = applyDailyChallengeProgress(stats, gameStats, levelName, res.correct);
     stats.pupStreakRecord = Math.max(stats.pupStreakRecord, pupStreak);
     gameStats.streakRecord = Math.max(gameStats.streakRecord, pupStreak);
     gameStats.bestScore = Math.max(gameStats.bestScore, score);
@@ -2117,6 +2264,10 @@ window.__MathPupStateReset = true;
       }
     }
     saveProfileStats(stats);
+    if (dailyResult.awarded) {
+      statusEl.textContent += ` Daily challenge complete! +${dailyChallenge.points} points.`;
+      scoreEl.textContent = 'Score: ' + score;
+    }
 
     if (res.levelJustCompleted) {
       statusEl.textContent = `Level ${levelName} completed!`;
@@ -2329,6 +2480,21 @@ window.__MathPupStateReset = true;
       window.__MathPupNormalizeSignedIntegerInput = normalizeSignedIntegerInput;
     }
   }
+  if (mobileMinusBtn && mobileAnswer) {
+    mobileMinusBtn.addEventListener('click', () => {
+      const current = mobileAnswer.value || '';
+      const toggled = current.startsWith('-') ? current.slice(1) : `-${current}`;
+      const normalizeSignedIntegerInput = window.__MathPupNormalizeSignedIntegerInput
+        || ((raw) => {
+          const cleaned = String(raw || '').replace(/[^\d-]/g, '');
+          const sign = cleaned.startsWith('-') ? '-' : '';
+          const digits = cleaned.replace(/-/g, '');
+          return sign + digits;
+        });
+      mobileAnswer.value = normalizeSignedIntegerInput(toggled);
+      mobileAnswer.focus();
+    });
+  }
 
   // Number keyboard functionality
   const keyboardDisplay = document.getElementById('keyboardDisplay');
@@ -2382,6 +2548,14 @@ window.__MathPupStateReset = true;
     musicToggle.addEventListener('click', musicToggleClickHandler);
   }
   applyMusicEnabled(musicEnabled);
+  if (dailyChallenge && levelSelect) {
+    levelSelect.value = dailyChallenge.level;
+    currentLevel = dailyChallenge.level;
+    loadHighScore(currentLevel);
+    renderBennyPalette(currentLevel);
+    loadBennyColor(currentLevel);
+  }
+  updateDailyChallengeHint();
 
   startBtn.addEventListener('click', () => {
     if (running) return;
@@ -2433,6 +2607,11 @@ window.__MathPupStateReset = true;
     loadHighScore(currentLevel);
     renderBennyPalette(currentLevel);
     loadBennyColor(currentLevel);
+    if (dailyChallenge && !dailyChallenge.claimed && currentLevel !== dailyChallenge.level) {
+      setDailyChallengeHint(`Daily Challenge is on ${dailyChallenge.level}. Switch back to earn ${dailyChallenge.points} pts.`);
+    } else {
+      updateDailyChallengeHint();
+    }
   });
 
   function gameOver(levelName) {

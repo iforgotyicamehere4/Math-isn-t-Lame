@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import '../styles/game.css';
 import { getAvailableJukeboxSongs } from '../data/jukeboxSongs';
 import { attachContinueTracker } from '../utils/continueProgress';
+import { getDailyChallengeStatus } from '../utils/dailyChallenge';
 
 // Import scripts using Vite's asset handling for proper bundling
 import mathScript from '/js/math.js?url';
@@ -10,6 +11,7 @@ import timerScript from '/js/mathpup-timer.js?url';
 import gameScript from '/js/game.js?url';
 
 export default function Game() {
+  const location = useLocation();
   if (typeof window !== 'undefined' && window.performance) {
     const Perf = window.Performance || window.performance.constructor;
     if (Perf && typeof Perf.now !== 'function') {
@@ -25,6 +27,23 @@ export default function Game() {
     window.__MathPopBaseUrl = import.meta.env.BASE_URL || '/';
     const currentUser = localStorage.getItem('mathpop_current_user');
     window.__MathPopJukeboxSongs = getAvailableJukeboxSongs(currentUser);
+    const isDailyMode = new URLSearchParams(location.search).get('daily') === '1';
+    if (isDailyMode && currentUser) {
+      const dailyStatus = getDailyChallengeStatus(currentUser, new Date());
+      if (dailyStatus.challenge.gameId === 'mathpup') {
+        window.__MathPupDailyChallenge = {
+          enabled: true,
+          ...dailyStatus.challenge,
+          dateKey: dailyStatus.dateKey,
+          claimed: dailyStatus.claimed,
+          progress: dailyStatus.progress
+        };
+      } else {
+        window.__MathPupDailyChallenge = null;
+      }
+    } else {
+      window.__MathPupDailyChallenge = null;
+    }
     
     // Request landscape orientation lock for mobile devices
     if (window.screen && window.screen.orientation) {
@@ -102,8 +121,9 @@ export default function Game() {
       // Clear any MathPup global references
       window.MathPup = null;
       window.__MathPopJukeboxSongs = null;
+      window.__MathPupDailyChallenge = null;
     };
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
     const cleanup = attachContinueTracker({
@@ -186,6 +206,7 @@ export default function Game() {
             <div id="bennyDock" className="benny-dock" aria-hidden="true" />
           </div>
           <p id="mathHint" className="math-hint" aria-live="polite" />
+          <p id="dailyChallengeHint" className="math-hint" aria-live="polite" />
           <div className="mobile-answer" aria-label="Answer input">
             <input
               id="mobileAnswer"
@@ -194,6 +215,7 @@ export default function Game() {
               placeholder="Type answer"
               autoComplete="off"
             />
+            <button id="mobileMinusBtn" type="button" aria-label="Toggle minus sign">-</button>
             <button id="mobileAnswerBtn" type="button">Answer</button>
           </div>
           <p id="bennyStory" className="benny-story">

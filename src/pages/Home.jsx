@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAutoTranslate from '../hooks/useAutoTranslate';
 import { readContinueProgress, setContinueRequest } from '../utils/continueProgress';
+import { DAILY_CHALLENGE_COUNT, DAILY_CHALLENGE_POINTS, getDailyChallengeStatus } from '../utils/dailyChallenge';
 
 const HOME_QUOTES = [
   {
@@ -452,6 +453,11 @@ export default function Home() {
 
   const [currentUser, setCurrentUserState] = useState(() => localStorage.getItem('mathpop_current_user') || null);
   const [continueProgress, setContinueProgress] = useState(null);
+  const todayChallenge = useMemo(
+    () => (currentUser ? getDailyChallengeStatus(currentUser, new Date()) : null),
+    [currentUser]
+  );
+  const dailyRoute = todayChallenge ? `${todayChallenge.challenge.route}?daily=1` : '/game?daily=1';
 
   const homeStrings = useMemo(() => ({
     navHowTo: 'How to Play',
@@ -651,9 +657,7 @@ export default function Home() {
       alert('You must accept the disclaimer');
       return;
     }
-    const created = typeof performance !== 'undefined' && typeof performance.now === 'function'
-      ? performance.now()
-      : Date.now();
+    const created = Date.now();
     const profile = {
       username: suUsername.trim(),
       email: suEmail.trim(),
@@ -730,9 +734,36 @@ export default function Home() {
                 <button className="start-btn" id="continueGame" onClick={handleContinue}>
                   {continueProgress ? (tr.continue || homeStrings.continue) : (tr.continueEmpty || homeStrings.continueEmpty)}
                 </button>
-                <button className="start-btn" style={{ marginLeft: 8 }} onClick={() => navigate('/game')}>
+                <button className="start-btn" style={{ marginLeft: 8 }} onClick={() => navigate(dailyRoute)}>
                   {tr.dailyChallenge || homeStrings.dailyChallenge}
                 </button>
+                {todayChallenge && (
+                  <div className="daily-challenge-card" aria-live="polite">
+                    <p className="daily-challenge-title">
+                      Day {todayChallenge.challenge.dayIndex} of {DAILY_CHALLENGE_COUNT}:
+                      {' '}
+                      {todayChallenge.challenge.gameLabel}
+                      {' '}
+                      {todayChallenge.challenge.level}
+                    </p>
+                    <p className="daily-challenge-detail">
+                      Get
+                      {' '}
+                      {todayChallenge.challenge.requiredCorrect}
+                      {' '}
+                      correct answers. Reward:
+                      {' '}
+                      {DAILY_CHALLENGE_POINTS}
+                      {' '}
+                      points.
+                    </p>
+                    <p className="daily-challenge-status">
+                      {todayChallenge.claimed
+                        ? 'Completed today. Come back tomorrow for the next challenge.'
+                        : `Progress: ${Number(todayChallenge.progress?.correct) || 0}/${todayChallenge.challenge.requiredCorrect} correct. Streak: ${todayChallenge.streak} day(s).`}
+                    </p>
+                  </div>
+                )}
               </>
             ) : (
               <>

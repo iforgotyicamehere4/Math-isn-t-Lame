@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import '../styles/capture.css';
 import useScriptOnce from '../hooks/useScriptOnce';
 import useGameMusic from '../hooks/useGameMusic';
 import { attachContinueTracker } from '../utils/continueProgress';
+import { getDailyChallengeStatus } from '../utils/dailyChallenge';
 
 const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
 export default function Capture() {
+  const location = useLocation();
   const { loadScript, isLoaded } = useScriptOnce(`${BASE_PATH}js/capture.js`, 'capture');
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -21,6 +23,24 @@ export default function Capture() {
 
   useEffect(() => {
     let mounted = true;
+    const currentUser = localStorage.getItem('mathpop_current_user');
+    const isDailyMode = new URLSearchParams(location.search).get('daily') === '1';
+    if (isDailyMode && currentUser) {
+      const dailyStatus = getDailyChallengeStatus(currentUser, new Date());
+      if (dailyStatus.challenge.gameId === 'capture') {
+        window.__CaptureDailyChallenge = {
+          enabled: true,
+          ...dailyStatus.challenge,
+          dateKey: dailyStatus.dateKey,
+          claimed: dailyStatus.claimed,
+          progress: dailyStatus.progress
+        };
+      } else {
+        window.__CaptureDailyChallenge = null;
+      }
+    } else {
+      window.__CaptureDailyChallenge = null;
+    }
 
     const initCapture = async () => {
       if (!window.__CaptureCleanup) {
@@ -46,8 +66,9 @@ export default function Capture() {
 
     return () => {
       mounted = false;
+      window.__CaptureDailyChallenge = null;
     };
-  }, [loadScript]);
+  }, [loadScript, location.search]);
 
   useEffect(() => {
     return () => {
@@ -161,6 +182,7 @@ export default function Capture() {
           <p id="status">Press Start to begin.</p>
           
           <div className="hint" id="hint" style={{ marginTop: '12px' }} />
+          <div className="hint" id="captureDailyHint" style={{ marginTop: '8px' }} />
 
           <div className="inputWrap" style={{ marginTop: '12px' }}>
             <label htmlFor="fractionInput" style={{ marginBottom: '6px' }}>Type Answer:</label>

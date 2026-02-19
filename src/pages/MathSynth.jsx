@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import '../styles/mathsynth.css';
 import useScriptOnce from '../hooks/useScriptOnce';
 import useGameMusic from '../hooks/useGameMusic';
 import { attachContinueTracker } from '../utils/continueProgress';
+import { getDailyChallengeStatus } from '../utils/dailyChallenge';
 
 const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
 export default function MathSynth() {
+  const location = useLocation();
   const { loadScript, isLoaded } = useScriptOnce(`${BASE_PATH}js/mathsynth.js`, 'mathsynth');
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -21,6 +23,24 @@ export default function MathSynth() {
 
   useEffect(() => {
     let mounted = true;
+    const currentUser = localStorage.getItem('mathpop_current_user');
+    const isDailyMode = new URLSearchParams(location.search).get('daily') === '1';
+    if (isDailyMode && currentUser) {
+      const dailyStatus = getDailyChallengeStatus(currentUser, new Date());
+      if (dailyStatus.challenge.gameId === 'mathsynth') {
+        window.__MathSynthDailyChallenge = {
+          enabled: true,
+          ...dailyStatus.challenge,
+          dateKey: dailyStatus.dateKey,
+          claimed: dailyStatus.claimed,
+          progress: dailyStatus.progress
+        };
+      } else {
+        window.__MathSynthDailyChallenge = null;
+      }
+    } else {
+      window.__MathSynthDailyChallenge = null;
+    }
 
     const initMathSynth = async () => {
       if (!window.MathSynth) {
@@ -45,8 +65,9 @@ export default function MathSynth() {
 
     return () => {
       mounted = false;
+      window.__MathSynthDailyChallenge = null;
     };
-  }, [loadScript]);
+  }, [loadScript, location.search]);
 
   useEffect(() => {
     return () => {
@@ -177,6 +198,7 @@ export default function MathSynth() {
         <div className="side-panel game-shell__panel">
           <div className="prompt" id="mathSynthPrompt" />
           <div className="hint" id="mathSynthFeedback" />
+          <div className="hint" id="mathSynthDailyHint" />
           
           {/* Answer Section - shows when a cell is selected */}
           <div className="answer-section" id="mathSynthAnswerSection" style={{ display: 'none' }}>

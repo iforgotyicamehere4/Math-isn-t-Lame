@@ -964,6 +964,41 @@ nav li a {
   border-radius: 10px;
   border: none;
 }
+
+.daily-challenge-card {
+  margin: 12px auto 0;
+  max-width: 560px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 240, 255, 0.35);
+  background: rgba(9, 22, 56, 0.62);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  text-align: left;
+}
+
+.daily-challenge-title,
+.daily-challenge-detail,
+.daily-challenge-status {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.daily-challenge-title {
+  color: #9ef3ff;
+  font-size: 0.98rem;
+}
+
+.daily-challenge-detail {
+  margin-top: 4px;
+  color: #ffefbe;
+  font-size: 0.95rem;
+}
+
+.daily-challenge-status {
+  margin-top: 4px;
+  color: #e7f3ff;
+  font-size: 0.9rem;
+}
 h1 {
   display: flex;
   flex-direction: column;

@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import '../styles/decimal.css';
 import initDecimal from '../decimal/decimal.js';
 import useGameMusic from '../hooks/useGameMusic';
 import { attachContinueTracker } from '../utils/continueProgress';
+import { getDailyChallengeStatus } from '../utils/dailyChallenge';
 
 export default function Decimal() {
+  const location = useLocation();
   useGameMusic({
     toggleId: 'decimalMusicToggle',
     popupId: 'decimalNowPlaying',
@@ -21,11 +23,30 @@ export default function Decimal() {
   }, []);
 
   useEffect(() => {
+    const currentUser = localStorage.getItem('mathpop_current_user');
+    const isDailyMode = new URLSearchParams(location.search).get('daily') === '1';
+    if (isDailyMode && currentUser) {
+      const dailyStatus = getDailyChallengeStatus(currentUser, new Date());
+      if (dailyStatus.challenge.gameId === 'decimal') {
+        window.__DecimalDailyChallenge = {
+          enabled: true,
+          ...dailyStatus.challenge,
+          dateKey: dailyStatus.dateKey,
+          claimed: dailyStatus.claimed,
+          progress: dailyStatus.progress
+        };
+      } else {
+        window.__DecimalDailyChallenge = null;
+      }
+    } else {
+      window.__DecimalDailyChallenge = null;
+    }
     initDecimal();
     return () => {
       if (window.__DecimalCleanup) window.__DecimalCleanup();
+      window.__DecimalDailyChallenge = null;
     };
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
     const cleanup = attachContinueTracker({
@@ -131,6 +152,7 @@ export default function Decimal() {
             </div>
           </div>
           <div className="hint" id="hint" />
+          <div className="hint" id="decimalDailyHint" />
           
           <div className="feedback" id="feedback" style={{ marginTop: '12px' }} />
 

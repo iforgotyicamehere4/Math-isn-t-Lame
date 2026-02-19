@@ -1628,6 +1628,12 @@
     color: #fff;
     font-weight: 700;
   }
+
+  .game-page--mathpup #mobileMinusBtn {
+    min-width: 42px;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
 }
 
 @media (max-width: 480px) {

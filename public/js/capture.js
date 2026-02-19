@@ -35,6 +35,20 @@ let streak = 0;
 let currentProblem = null;
 let miniGameActive = false;
 let miniGameDone = false;
+const DAILY_CHALLENGE_POINTS = 8000;
+const dailyChallenge = (() => {
+  const raw = window.__CaptureDailyChallenge;
+  if (!raw || !raw.enabled || raw.gameId !== 'capture') return null;
+  return {
+    id: String(raw.id || ''),
+    dateKey: String(raw.dateKey || ''),
+    level: String(raw.level || 'easy'),
+    requiredCorrect: Math.max(1, Number(raw.requiredCorrect) || 10),
+    points: Math.max(1, Number(raw.points) || DAILY_CHALLENGE_POINTS),
+    claimed: Boolean(raw.claimed),
+    progress: raw.progress && typeof raw.progress === 'object' ? raw.progress : null
+  };
+})();
 
 // Round timer state for pause/resume
 let roundTimer = null;
@@ -184,6 +198,128 @@ function ensureGameStats(stats, gameId) {
 
 function saveProfileStats(stats) {
   localStorage.setItem(profileStatsKey(), JSON.stringify(stats));
+}
+
+function dailyChallengeKey() {
+  return `mathpop_daily_challenge_state_${currentUser()}`;
+}
+
+function loadDailyChallengeState() {
+  const raw = localStorage.getItem(dailyChallengeKey());
+  if (!raw) return { claims: {}, progress: {}, streak: 0, lastClaimDate: null, totalCompleted: 0 };
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      claims: parsed?.claims && typeof parsed.claims === 'object' ? parsed.claims : {},
+      progress: parsed?.progress && typeof parsed.progress === 'object' ? parsed.progress : {},
+      streak: Number(parsed?.streak) || 0,
+      lastClaimDate: parsed?.lastClaimDate || null,
+      totalCompleted: Number(parsed?.totalCompleted) || 0
+    };
+  } catch {
+    return { claims: {}, progress: {}, streak: 0, lastClaimDate: null, totalCompleted: 0 };
+  }
+}
+
+function saveDailyChallengeState(state) {
+  localStorage.setItem(dailyChallengeKey(), JSON.stringify(state));
+}
+
+function dateKeyOffset(baseDateKey, dayOffset) {
+  const d = new Date(`${baseDateKey}T12:00:00`);
+  d.setDate(d.getDate() + dayOffset);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function updateDailyChallengeHint() {
+  const hintTarget = document.getElementById('captureDailyHint');
+  if (!hintTarget) return;
+  if (!dailyChallenge) {
+    hintTarget.textContent = '';
+    return;
+  }
+  if (dailyChallenge.claimed) {
+    hintTarget.textContent = 'Daily challenge complete. Come back tomorrow for a new one.';
+    return;
+  }
+  const correct = Number(dailyChallenge.progress?.correct) || 0;
+  const activeLevel = currentLevel();
+  if (activeLevel !== dailyChallenge.level) {
+    hintTarget.textContent = `Daily Challenge is on ${dailyChallenge.level}. Switch level to earn ${dailyChallenge.points} pts.`;
+    return;
+  }
+  hintTarget.textContent = `Daily Challenge: ${dailyChallenge.level} | ${correct}/${dailyChallenge.requiredCorrect} correct | Reward ${dailyChallenge.points} pts`;
+}
+
+function applyDailyChallengeProgress(stats, gameStats, levelName, wasCorrect) {
+  if (!dailyChallenge || !dailyChallenge.id || !dailyChallenge.dateKey) return { awarded: false };
+  if (dailyChallenge.claimed) return { awarded: false };
+  if (levelName !== dailyChallenge.level) return { awarded: false };
+  const state = loadDailyChallengeState();
+  const claim = state.claims?.[dailyChallenge.dateKey];
+  if (claim && claim.challengeId === dailyChallenge.id) {
+    dailyChallenge.claimed = true;
+    updateDailyChallengeHint();
+    return { awarded: false };
+  }
+  if (!state.progress || typeof state.progress !== 'object') state.progress = {};
+  const prev = state.progress[dailyChallenge.dateKey];
+  if (!prev || prev.challengeId !== dailyChallenge.id) {
+    state.progress[dailyChallenge.dateKey] = {
+      challengeId: dailyChallenge.id,
+      correct: 0,
+      score: 0,
+      completed: false,
+      completedAt: null
+    };
+  }
+  const entry = state.progress[dailyChallenge.dateKey];
+  if (wasCorrect) {
+    entry.correct = (Number(entry.correct) || 0) + 1;
+    entry.score = (Number(entry.score) || 0) + 100;
+  }
+  if (!entry.completed && Number(entry.correct) >= dailyChallenge.requiredCorrect) {
+    entry.completed = true;
+    entry.completedAt = new Date().toISOString();
+  }
+  let awarded = false;
+  if (entry.completed) {
+    if (!state.claims || typeof state.claims !== 'object') state.claims = {};
+    if (!state.claims[dailyChallenge.dateKey]) {
+      state.claims[dailyChallenge.dateKey] = {
+        challengeId: dailyChallenge.id,
+        points: dailyChallenge.points,
+        claimedAt: new Date().toISOString()
+      };
+      const previousDate = state.lastClaimDate;
+      if (previousDate === dailyChallenge.dateKey) {
+        // no-op
+      } else if (previousDate === dateKeyOffset(dailyChallenge.dateKey, -1)) {
+        state.streak = (Number(state.streak) || 0) + 1;
+      } else {
+        state.streak = 1;
+      }
+      state.lastClaimDate = dailyChallenge.dateKey;
+      state.totalCompleted = (Number(state.totalCompleted) || 0) + 1;
+      stats.totalPoints += dailyChallenge.points;
+      gameStats.points += dailyChallenge.points;
+      awarded = true;
+    }
+    dailyChallenge.claimed = true;
+  }
+  dailyChallenge.progress = {
+    challengeId: dailyChallenge.id,
+    correct: Number(entry.correct) || 0,
+    score: Number(entry.score) || 0,
+    completed: Boolean(entry.completed),
+    completedAt: entry.completedAt || null
+  };
+  saveDailyChallengeState(state);
+  updateDailyChallengeHint();
+  return { awarded };
 }
 
 // ---------- Canvas helper ----------
@@ -901,6 +1037,105 @@ function generateProblemForLevel(level, choiceCount) {
   return generateMathanomicalProblem(choiceCount);
 }
 
+function buildFallbackDistractors(correct, desiredCount) {
+  const out = [];
+  if (!correct || !Number.isFinite(correct.num) || !Number.isFinite(correct.den)) return out;
+  const used = new Set();
+  let attempts = 0;
+  while (out.length < desiredCount && attempts++ < 200) {
+    const mode = attempts % 4;
+    let cand = null;
+    if (mode === 0) {
+      cand = simplify(correct.num + randInt(1, 3), correct.den);
+    } else if (mode === 1) {
+      cand = simplify(Math.max(1, correct.num - randInt(1, 3)), correct.den);
+    } else if (mode === 2) {
+      cand = simplify(correct.num, Math.max(2, correct.den + randInt(1, 3)));
+    } else {
+      cand = simplify(Math.max(1, correct.num + randInt(-2, 2)), Math.max(2, correct.den + randInt(-2, 2)));
+    }
+    if (!cand) continue;
+    if (fractionsEqual(cand, correct)) continue;
+    const key = `${cand.num}/${cand.den}`;
+    if (used.has(key)) continue;
+    used.add(key);
+    out.push(cand);
+  }
+  return out;
+}
+
+function normalizeProblemChoices(problem, choiceCount) {
+  const normalizedCorrect = simplify(problem?.correct?.num, problem?.correct?.den);
+  if (!normalizedCorrect) return null;
+
+  const cleanDistractors = [];
+  const seen = new Set();
+  const raw = Array.isArray(problem?.choices) ? problem.choices : [];
+  for (const item of raw) {
+    const s = simplify(item?.num, item?.den);
+    if (!s) continue;
+    if (fractionsEqual(s, normalizedCorrect)) continue;
+    const key = `${s.num}/${s.den}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cleanDistractors.push(s);
+    if (cleanDistractors.length >= Math.max(0, choiceCount - 1)) break;
+  }
+
+  if (cleanDistractors.length < Math.max(0, choiceCount - 1)) {
+    const extras = buildFallbackDistractors(normalizedCorrect, (choiceCount - 1) - cleanDistractors.length);
+    for (const d of extras) {
+      const key = `${d.num}/${d.den}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cleanDistractors.push(d);
+      if (cleanDistractors.length >= Math.max(0, choiceCount - 1)) break;
+    }
+  }
+
+  const finalChoices = shuffleArr([normalizedCorrect, ...cleanDistractors]).slice(0, Math.max(1, choiceCount));
+  // Safety: enforce exactly one correct option.
+  let correctSeen = 0;
+  const enforced = [];
+  for (const c of finalChoices) {
+    if (fractionsEqual(c, normalizedCorrect)) {
+      correctSeen += 1;
+      if (correctSeen > 1) continue;
+    }
+    enforced.push(c);
+  }
+  if (!enforced.some((c) => fractionsEqual(c, normalizedCorrect))) {
+    if (enforced.length > 0) enforced[0] = normalizedCorrect;
+    else enforced.push(normalizedCorrect);
+  }
+
+  return {
+    ...problem,
+    correct: normalizedCorrect,
+    choices: enforced
+  };
+}
+
+function generateValidatedProblem(level, choiceCount, maxAttempts = 20) {
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const generated = generateProblemForLevel(level, choiceCount);
+    const normalized = normalizeProblemChoices(generated, choiceCount);
+    if (!normalized) continue;
+    const correctCount = normalized.choices.filter((c) => fractionsEqual(c, normalized.correct)).length;
+    if (correctCount !== 1) continue;
+    if (normalized.choices.length < Math.max(1, choiceCount)) continue;
+    return normalized;
+  }
+  const emergency = {
+    type: level,
+    display: '1/2',
+    correct: { num: 1, den: 2 },
+    hint: 'Pick the fraction equal to one half.',
+    choices: [{ num: 1, den: 2 }, { num: 2, den: 3 }, { num: 3, den: 4 }].slice(0, Math.max(1, choiceCount))
+  };
+  return emergency;
+}
+
 // ---------- Game flow & timer logic ----------
 function updateHud() {
   if (scoreEl) scoreEl.textContent = `Score: ${score}`;
@@ -996,6 +1231,7 @@ function startGame() {
   pauseBtn.disabled = false;
   pauseBtn.textContent = "Pause";
   updateHud();
+  updateDailyChallengeHint();
   startRound();
   if (!animationId) {
     lastTimestamp = null;
@@ -1046,9 +1282,10 @@ function startRound() {
   roundActive = true;
 
   const level = currentLevel();
+  updateDailyChallengeHint();
   const choiceCount = getLevelConfig(level).choiceCount || 3;
 
-  currentProblem = generateProblemForLevel(level, choiceCount);
+  currentProblem = generateValidatedProblem(level, choiceCount);
 
   setStatus("Syntax Bugs incoming. Solve to survive.");
   renderTargetFraction(currentProblem.display);
@@ -1056,14 +1293,6 @@ function startRound() {
 
   // build validated choices
   const rawChoices = currentProblem.choices.slice(0, choiceCount).filter(c => c && Number.isFinite(c.num) && Number.isFinite(c.den) && c.den !== 0);
-  const fallback = [{ num: 1, den: 2 }, { num: 2, den: 3 }, { num: 3, den: 4 }, { num: 4, den: 5 }, { num: 5, den: 6 }];
-  let fi = 0;
-  while (rawChoices.length < choiceCount && fi < fallback.length) {
-    if (!rawChoices.some(c => fractionsEqual(c, fallback[fi]))) rawChoices.push(fallback[fi]);
-    fi++;
-  }
-
-  ensureCorrectIncluded(rawChoices, currentProblem.correct);
 
   syncCanvasSize();
   const xPositions = layOutBubbleX(rawChoices.length);
@@ -1148,11 +1377,15 @@ function handleSelection(fraction) {
       roundActive = false;
     }
   }
+  const dailyResult = applyDailyChallengeProgress(stats, gameStats, currentLevel(), wasCorrect);
   updateHud();
   if (wasCorrect) maybeTriggerMiniGame();
   gameStats.streakRecord = Math.max(gameStats.streakRecord, streak);
   gameStats.bestScore = Math.max(gameStats.bestScore, score);
   saveProfileStats(stats);
+  if (dailyResult.awarded) {
+    setStatus(`Daily challenge complete! +${dailyChallenge.points} points.`);
+  }
   if (wasCorrect) {
     roundActive = false;
     setTimeout(startRound, 700);
@@ -1624,6 +1857,7 @@ window.addEventListener('keyup', keyupHandler);
 
 updateHud();
 setStatus("Press Start to begin. Syntax Bug alert.");
+updateDailyChallengeHint();
 
 if (targetEl) {
   targetFractionClickHandler = (e) => {

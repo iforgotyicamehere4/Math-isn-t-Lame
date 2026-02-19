@@ -209,7 +209,7 @@ const HOME_QUOTES = [
     phrase: 'BARK BARK',
     quote: 'Nobody actually knows what it means… But legend says it translates to: "Math is Lit." (We asked Benny. He just barked again.)',
     author: 'Benny',
-    country: 'Math Pop Dev',
+    country: 'Benny Dev',
     translationKey: 'quote.benny'
   }
 ];

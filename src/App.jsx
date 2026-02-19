@@ -97,7 +97,7 @@ export default function App() {
           className={`startup-loading${startupImageFailed ? ' startup-loading--fallback' : ''}`}
           role="status"
           aria-live="polite"
-          aria-label="Loading Math Pop"
+          aria-label="Loading Benny's Mathanomical Adventure"
         >
           <img
             className="startup-loading__image-backdrop"
@@ -108,13 +108,22 @@ export default function App() {
           <img
             className="startup-loading__image"
             src={startupImageSrc}
-            alt="Math Pop loading screen"
+            alt="Benny's Mathanomical Adventure loading screen"
             onError={() => setStartupImageFailed(true)}
           />
+          <div className="startup-loading__title-halo" aria-hidden="true" />
+          <div className="startup-loading__glow" aria-hidden="true" />
+          <div className="startup-loading__math-float" aria-hidden="true">
+            <span className="symbol symbol--plus">+</span>
+            <span className="symbol symbol--minus">-</span>
+            <span className="symbol symbol--times">x</span>
+            <span className="symbol symbol--divide">÷</span>
+          </div>
+          <div className="startup-loading__vignette" aria-hidden="true" />
           <div className="startup-loading__stars" aria-hidden="true" />
           <div className="startup-loading__logo" aria-hidden="true">
-            <span className="top">MATH</span>
-            <span className="bottom">POP</span>
+            <span className="top">BENNY</span>
+            <span className="bottom">MATH</span>
           </div>
           <div className="startup-loading__plus" aria-hidden="true">+</div>
           <div className="startup-loading__minus" aria-hidden="true">-</div>

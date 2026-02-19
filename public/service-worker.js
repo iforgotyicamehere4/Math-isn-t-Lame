@@ -1,4 +1,4 @@
-// MathPop Service Worker
+// Benny Service Worker
 // Enables offline functionality and app-like experience
 
 const CACHE_NAME = 'mathpop-v1';

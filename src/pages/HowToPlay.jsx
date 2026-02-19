@@ -176,12 +176,12 @@ export default function HowToPlay() {
         <section className="instructions" aria-label="Benny tutorial">
           <h2>Benny&apos;s Tutorial</h2>
           <p className="tutorial-lead">
-            Math Pop is a basic math hangout for parents and kids. Team up,
+            Benny&apos;s Mathanomical Adventure is a basic math hangout for parents and kids. Team up,
             solve math, and help Benny clear out the dev&apos;s Syntax Bugs.
           </p>
 
           <div className="tutorial-block">
-            <h3>How Math Pop Works</h3>
+            <h3>How Benny&apos;s Mathanomical Adventure Works</h3>
             <ol>
               <li>Pick a game and choose a difficulty.</li>
               <li>Solve each problem before the bugs get away.</li>

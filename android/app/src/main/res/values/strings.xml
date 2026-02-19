@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">MathPop</string>
-    <string name="title_activity_main">MathPop</string>
+    <string name="app_name">Benny</string>
+    <string name="title_activity_main">Benny</string>
     <string name="package_name">com.mathpop.app</string>
     <string name="custom_url_scheme">com.mathpop.app</string>
 </resources>

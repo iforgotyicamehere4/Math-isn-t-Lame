@@ -225,6 +225,8 @@ window.__BennyWorldBabylonCleanup = null;
 
   const totalLevels = 75;
   const TEST_START_LEVEL_75_ON_EASY = true;
+  const TEST_START_DISTANCE_METERS = 9000;
+  const TEST_FINAL_STAR_METERS = 10000;
   let levelIndex = 0;
   let points = 0;
   let distance = 0;
@@ -381,6 +383,7 @@ window.__BennyWorldBabylonCleanup = null;
   let bossProjectiles = [];
   let bossPatternNodes = [];
   let bossPatternProgress = 0;
+  let bossPatternGraceUntil = 0;
   let bossLastSpawnAt = 0;
   let bossPulseAt = 0;
   let bossWonThisLevel = false;
@@ -395,26 +398,22 @@ window.__BennyWorldBabylonCleanup = null;
   let freezeUntil = 0;
   let nextEnemyWaveDistance = 500;
   const bennyShotCooldownMs = 220;
-  const syntaxQueenThemeDurationMs = 126618;
-  const syntaxQueenThemeSrc = 'audio/jukebox/Syntax Queen Theme song.mp3';
+  const syntaxQueenThemeDurationMs = 30000;
+  const syntaxQueenThemeFadeStartMs = 27000;
+  const syntaxQueenThemeSong = 'Syntax Queen Theme song.mp3';
   const syntaxIntroTimeline = [
-    { atMs: 0, text: 'Hardkore hip hop drop. Syntax Queen opens on electric guitar.', role: 'queen' },
-    { atMs: 17000, text: 'Capture the Fraction syntax errors lock in: drums and bass.', role: 'drums' },
-    { atMs: 42000, text: 'Bottomless guitar loop keeps spiraling while Benny advances.', role: 'bass' },
-    { atMs: 83000, text: 'Bridge section (1:23 - 1:33): the band strips down and resets tension.', role: 'drums' },
-    { atMs: 93000, text: 'After 1:33: intricate sci-fi scale run takes over the lead.', role: 'queen' },
-    { atMs: 118000, text: 'Final pass. Battle starts as soon as the track resolves.', role: 'queen' }
+    { atMs: 0, text: 'Syntax Queen storms in on electric guitar.', role: 'queen' },
+    { atMs: 9000, text: 'Capture the Fraction syntax errors lock in on drums and bass.', role: 'drums' },
+    { atMs: 18000, text: 'The loop builds. Benny gets ready for battle.', role: 'bass' },
+    { atMs: 25500, text: 'Final bars. Battle starts in seconds.', role: 'queen' }
   ];
   let syntaxIntroActive = false;
   let syntaxIntroStartedAt = 0;
   let syntaxIntroStepIndex = -1;
   let syntaxIntroTimeoutId = 0;
-  let syntaxIntroAudio = null;
-  let syntaxIntroAudioEndedHandler = null;
-  const postVictorySongSrc = 'audio/jukebox/For the Dev.mp3';
   const postVictoryMessageFadeMs = 30000;
   const postVictoryMessageHideMs = 33000;
-  const postVictoryPageTurnMs = 6000;
+  const postVictoryPageTurnMs = 15000;
   const postVictoryCreditsPages = [
     '"Bark Bark its all fun and games until you try to make em"',
     '"Dedicated to Benny a good dog in a strange world"\n\nSpecial thanks to all my math teachers growing up. I wasn\'t a easy kid i know..... I hope this Game makes up for all the bad behavior!',
@@ -426,8 +425,6 @@ window.__BennyWorldBabylonCleanup = null;
   let postVictoryActive = false;
   let postVictoryStartedAt = 0;
   let postVictoryPageIndex = 0;
-  let postVictoryAudio = null;
-  let postVictoryAudioEndedHandler = null;
   const tierPowerNames = {
     1: 'Subtraction eyes',
     2: 'Greater-than blast',
@@ -476,6 +473,26 @@ window.__BennyWorldBabylonCleanup = null;
     if (difficulty !== 'easy') return;
     levelIndex = totalLevels - 1;
     bossWonThisLevel = false;
+  }
+
+  function applyEasyTestStartDistance() {
+    if (!TEST_START_LEVEL_75_ON_EASY) return;
+    if (difficulty !== 'easy') return;
+    if (levelIndex !== totalLevels - 1) return;
+    const meters = Math.max(0, Number(TEST_START_DISTANCE_METERS) || 0);
+    distance = meters;
+    bennyState.x = Math.max(bennyState.x, meters);
+    // Skip retroactive wave spawning for all earlier 500m checkpoints.
+    nextEnemyWaveDistance = Math.ceil((meters + 1) / 500) * 500;
+  }
+
+  function applyEasyTestStarPosition() {
+    if (!TEST_START_LEVEL_75_ON_EASY) return;
+    if (difficulty !== 'easy') return;
+    if (levelIndex !== totalLevels - 1) return;
+    const starMeters = Math.max(0, Number(TEST_FINAL_STAR_METERS) || 0);
+    starPos.x = starMeters;
+    star.style.left = `${starMeters - cameraOffset}px`;
   }
 
   function legacyProgressKey() {
@@ -612,6 +629,13 @@ window.__BennyWorldBabylonCleanup = null;
     setTimeout(() => {
       if (msgEl.textContent === text) msgEl.textContent = '';
     }, holdMs);
+  }
+
+  function dispatchMusicControl(action, payload = {}) {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+    window.dispatchEvent(new CustomEvent('mathpop:music-control', {
+      detail: { action, ...payload }
+    }));
   }
 
   function getBlackHoleNeededPartForLevel(level) {
@@ -772,6 +796,7 @@ window.__BennyWorldBabylonCleanup = null;
       mirroredControls = false;
       bossPhase = 0;
       bossPatternProgress = 0;
+      bossPatternGraceUntil = 0;
       bossPatternNodes.forEach(node => node.el.remove());
       bossPatternNodes = [];
       bossProjectiles.forEach(p => p.el.remove());
@@ -796,25 +821,17 @@ window.__BennyWorldBabylonCleanup = null;
     if (roleNode) roleNode.classList.add('is-live');
   }
 
-  function stopSyntaxQueenIntro(startBoss = true) {
+  function stopSyntaxQueenIntro(startBoss = true, unlockMusic = true) {
     if (syntaxIntroTimeoutId) {
       clearTimeout(syntaxIntroTimeoutId);
       syntaxIntroTimeoutId = 0;
     }
-    if (syntaxIntroAudio) {
-      if (syntaxIntroAudioEndedHandler) {
-        syntaxIntroAudio.removeEventListener('ended', syntaxIntroAudioEndedHandler);
-      }
-      syntaxIntroAudio.pause();
-      syntaxIntroAudio.currentTime = 0;
-      syntaxIntroAudio = null;
-      syntaxIntroAudioEndedHandler = null;
-    }
     syntaxIntroActive = false;
     syntaxIntroStepIndex = -1;
     area.classList.remove('syntax-intro-active');
-    syntaxIntroOverlay.classList.remove('active');
+    syntaxIntroOverlay.classList.remove('active', 'fade-out');
     Object.values(syntaxIntroBandmates).forEach((node) => node && node.classList.remove('is-live'));
+    if (unlockMusic) dispatchMusicControl('unlock');
     if (startBoss) startDebugKingFight();
   }
 
@@ -851,15 +868,7 @@ window.__BennyWorldBabylonCleanup = null;
     postVictoryActive = false;
     postVictoryStartedAt = 0;
     postVictoryPageIndex = 0;
-    if (postVictoryAudio) {
-      if (postVictoryAudioEndedHandler) {
-        postVictoryAudio.removeEventListener('ended', postVictoryAudioEndedHandler);
-      }
-      postVictoryAudio.pause();
-      postVictoryAudio.currentTime = 0;
-      postVictoryAudio = null;
-      postVictoryAudioEndedHandler = null;
-    }
+    dispatchMusicControl('unlock');
     area.classList.remove('post-victory-active');
     postVictoryOverlay.classList.remove('active', 'hide-message', 'show-credits');
     if (creditsSheetEl) creditsSheetEl.classList.remove('turning');
@@ -874,7 +883,7 @@ window.__BennyWorldBabylonCleanup = null;
     postVictoryActive = true;
     postVictoryStartedAt = performance.now();
     postVictoryPageIndex = 0;
-    stopSyntaxQueenIntro(false);
+    stopSyntaxQueenIntro(false, true);
     setBossMode(false);
     stopDebrisFall();
     blackHoleActive = false;
@@ -887,23 +896,11 @@ window.__BennyWorldBabylonCleanup = null;
     }
     if (creditsRootEl) creditsRootEl.classList.remove('active');
     setCreditsPage(0, false);
-
-    try {
-      postVictoryAudio = new Audio(postVictorySongSrc);
-      postVictoryAudio.preload = 'auto';
-      postVictoryAudioEndedHandler = () => {
-        if (statusEl) statusEl.textContent = 'Credits complete. Syntax Queen victory secured.';
-      };
-      postVictoryAudio.addEventListener('ended', postVictoryAudioEndedHandler);
-      const playPromise = postVictoryAudio.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          setMessage('Victory track blocked by browser autoplay.', 1800);
-        });
-      }
-    } catch {
-      setMessage('Victory track unavailable, credits still rolling.', 1800);
-    }
+    dispatchMusicControl('play-track', {
+      title: 'For the Dev',
+      filename: 'For the Dev.mp3',
+      lock: true
+    });
   }
 
   function updatePostVictorySequence(now = performance.now()) {
@@ -929,6 +926,9 @@ window.__BennyWorldBabylonCleanup = null;
     const elapsed = Math.max(0, now - syntaxIntroStartedAt);
     const remaining = Math.max(0, syntaxQueenThemeDurationMs - elapsed);
     if (syntaxIntroTimerEl) syntaxIntroTimerEl.textContent = formatMsAsClock(remaining);
+    if (elapsed >= syntaxQueenThemeFadeStartMs) {
+      syntaxIntroOverlay.classList.add('fade-out');
+    }
 
     let nextIndex = 0;
     for (let i = 0; i < syntaxIntroTimeline.length; i += 1) {
@@ -953,25 +953,17 @@ window.__BennyWorldBabylonCleanup = null;
     area.classList.remove('shake');
     area.classList.add('syntax-intro-active');
     syntaxIntroOverlay.classList.add('active');
-    setMessage('Syntax Queen intro starts. Battle will begin after the song.', 1800);
+    syntaxIntroOverlay.classList.remove('fade-out');
+    setMessage('Syntax Queen intro starts. Battle queues in 30 seconds.', 1800);
     updateSyntaxQueenIntro(syntaxIntroStartedAt);
+    dispatchMusicControl('play-track', {
+      title: 'Syntax Queen Theme song',
+      filename: syntaxQueenThemeSong,
+      lock: true,
+      stopOnEnd: true
+    });
 
-    try {
-      syntaxIntroAudio = new Audio(syntaxQueenThemeSrc);
-      syntaxIntroAudio.preload = 'auto';
-      syntaxIntroAudioEndedHandler = () => stopSyntaxQueenIntro(true);
-      syntaxIntroAudio.addEventListener('ended', syntaxIntroAudioEndedHandler);
-      const playPromise = syntaxIntroAudio.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          setMessage('Theme audio blocked. Intro still runs for 2:07.', 1800);
-        });
-      }
-    } catch {
-      setMessage('Theme audio unavailable. Intro still runs for 2:07.', 1800);
-    }
-
-    syntaxIntroTimeoutId = setTimeout(() => stopSyntaxQueenIntro(true), syntaxQueenThemeDurationMs);
+    syntaxIntroTimeoutId = setTimeout(() => stopSyntaxQueenIntro(true, false), syntaxQueenThemeDurationMs);
   }
 
   function spawnBossProjectile(type = 'syntax') {
@@ -1017,12 +1009,18 @@ window.__BennyWorldBabylonCleanup = null;
     bossPatternNodes.forEach(node => node.el.remove());
     bossPatternNodes = [];
     const rect = area.getBoundingClientRect();
-    const cx = Math.max(180, Math.min(rect.width - 180, bossX - cameraOffset));
+    const minWorldX = cameraOffset + 180;
+    const maxWorldX = cameraOffset + rect.width - 180;
+    const cx = Math.max(minWorldX, Math.min(maxWorldX, bossX));
     const cy = Math.max(130, Math.min(rect.height - 120, bossY));
-    const radius = 120;
-    const labels = [...bossPatternSequence, '3x', '6x'];
-    labels.forEach((label, idx) => {
-      const ang = (Math.PI * 2 * idx) / labels.length;
+    const placements = [
+      { label: '2x', angle: Math.PI * 0.92, radius: 94 },
+      { label: '4x', angle: Math.PI * 0.5, radius: 82 },
+      { label: '8x', angle: Math.PI * 0.08, radius: 94 },
+      { label: '3x', angle: Math.PI * 1.28, radius: 148 },
+      { label: '6x', angle: Math.PI * -0.28, radius: 148 }
+    ];
+    placements.forEach(({ label, angle, radius }) => {
       const el = document.createElement('div');
       el.className = 'bw-pattern-node';
       el.textContent = label;
@@ -1030,8 +1028,8 @@ window.__BennyWorldBabylonCleanup = null;
       bossPatternNodes.push({
         el,
         label,
-        x: cx + Math.cos(ang) * radius,
-        y: cy + Math.sin(ang) * radius
+        x: cx + Math.cos(angle) * radius,
+        y: cy + Math.sin(angle) * radius
       });
     });
   }
@@ -1039,6 +1037,12 @@ window.__BennyWorldBabylonCleanup = null;
   function startDebugKingFight() {
     stopPostVictorySequence(false);
     setBossMode(true);
+    // Battle arena cleanup: remove desk platforms and keep only ground.
+    platforms = platforms.filter((p) => {
+      const isGround = p.el && p.el.classList && p.el.classList.contains('ground');
+      if (!isGround && p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el);
+      return isGround;
+    });
     blackHoleActive = false;
     blackHoleTimer = 0;
     clearBlackHolePartOnMap();
@@ -1050,10 +1054,18 @@ window.__BennyWorldBabylonCleanup = null;
     bossHealth = 12;
     bossPhase = 1;
     bossPatternProgress = 0;
+    bossPatternGraceUntil = 0;
     bossLastSpawnAt = performance.now();
     const rect = area.getBoundingClientRect();
-    bossX = Math.max(rect.width * 0.6 + cameraOffset, starPos.x - 40);
-    bossY = Math.max(80, rect.height - 180);
+    const groundY = rect.height - 40;
+    const fightAnchorX = Math.max(80, starPos.x - 260);
+    bennyState.x = fightAnchorX;
+    bennyState.y = groundY - 36;
+    bennyState.vx = 0;
+    bennyState.vy = 0;
+    bennyState.onGround = true;
+    bossX = bennyState.x + 170;
+    bossY = groundY - 120;
     debugKing.style.left = `${bossX - cameraOffset}px`;
     debugKing.style.top = `${bossY}px`;
     setMessage('Syntax Queen appears: Phase 1 - Syntax Chaos', 1600);
@@ -1678,6 +1690,7 @@ window.__BennyWorldBabylonCleanup = null;
     starPos = { x: starX, y: starY };
     star.style.left = `${starX}px`;
     star.style.top = `${starY}px`;
+    applyEasyTestStarPosition();
 
     if (bossActive) {
       blackHole.style.display = 'none';
@@ -2082,6 +2095,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         bossPhase = 3;
         mirroredControls = false;
         bossPatternProgress = 0;
+        bossPatternGraceUntil = 0;
         spawnBossPatternNodes();
         setMessage('Phase 3 - Infinite Loop Arena. Solve the pattern!', 1800);
       }
@@ -2119,32 +2133,28 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         const dxArena = (bennyState.x + 18) - arenaCenterX;
         const dyArena = (bennyState.y + 18) - arenaCenterY;
         const maxR = 180;
-        const dist = Math.hypot(dxArena, dyArena);
         bossArena.style.left = `${arenaCenterX - maxR - cameraOffset}px`;
         bossArena.style.top = `${arenaCenterY - maxR}px`;
-        if (dist > maxR) {
-          const nx = dxArena / dist;
-          const ny = dyArena / dist;
-          bennyState.x = arenaCenterX + nx * maxR - 18;
-          bennyState.y = arenaCenterY + ny * maxR - 18;
-        }
 
         bossPatternNodes.forEach((node) => {
           node.el.style.left = `${node.x - cameraOffset}px`;
           node.el.style.top = `${node.y}px`;
-          const hit = Math.abs((bennyState.x + 18) - node.x) < 24 && Math.abs((bennyState.y + 18) - node.y) < 24;
+          const hit = Math.abs((bennyState.x + 18) - node.x) < 34 && Math.abs((bennyState.y + 18) - node.y) < 34;
           if (!hit || node.done) return;
           const expected = bossPatternSequence[bossPatternProgress];
+          const graceActive = now < bossPatternGraceUntil;
           if (node.label === expected) {
             node.done = true;
             node.el.classList.add('done');
             bossPatternProgress += 1;
+            bossPatternGraceUntil = now + 450;
             setMessage(`Pattern ${bossPatternProgress}/${bossPatternSequence.length}`, 700);
             if (bossPatternProgress >= bossPatternSequence.length) {
               finishDebugKingFight();
             }
-          } else {
+          } else if (!graceActive) {
             bossPatternProgress = 0;
+            bossPatternGraceUntil = 0;
             bossPatternNodes.forEach((n) => {
               n.done = false;
               n.el.classList.remove('done');
@@ -2235,13 +2245,15 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
 
   function startLevel() {
     stopPostVictorySequence(false);
-    stopSyntaxQueenIntro(false);
+    stopSyntaxQueenIntro(false, true);
+    applyEasyTestStartLevel();
     setBossMode(false);
     syncBlackHoleWindowForLevel();
     applyBennyColor();
     setTheme();
     if (levelLabel) levelLabel.textContent = `Level ${levelIndex + 1}`;
     buildLevel();
+    applyEasyTestStartDistance();
     const activePower = getShotPowerConfig().powerName;
     setMessage(`Active power: ${activePower}`, 1200);
     saveProgress('auto');
@@ -2445,7 +2457,7 @@ const cleanupKeys = bindKeyEvents();
 
   window.__BennyWorldCleanup = () => {
     stopPostVictorySequence(false);
-    stopSyntaxQueenIntro(false);
+    stopSyntaxQueenIntro(false, true);
     saveProgress('auto');
     if (rafId) cancelAnimationFrame(rafId);
     airEnemies.forEach((enemy) => enemy.el.remove());

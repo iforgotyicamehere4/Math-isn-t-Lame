@@ -11,9 +11,6 @@ test('renders home hero content', () => {
     </MemoryRouter>
   );
 
-  expect(
-    screen.getByText(/Math isn't lame — it's an adventure!/i)
-  ).toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: /^Sign Up$/i })).toHaveLength(1);
   expect(screen.getAllByRole('button', { name: /^Sign In$/i })).toHaveLength(1);
 });

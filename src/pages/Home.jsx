@@ -464,7 +464,6 @@ export default function Home() {
     navGames: 'Games',
     navAbout: 'About',
     navProfile: 'Profile',
-    heroTagline: "Math isn't lame — it's an adventure!",
     signUp: 'Sign Up',
     signIn: 'Sign In',
     continue: 'Continue',
@@ -477,7 +476,6 @@ export default function Home() {
     email: 'Email',
     password: 'Password',
     createProfile: 'Create Profile',
-    disclaimerText: "By signing up you agree that Math isn't Lame.",
     quotePhrase: homeQuote.phrase,
     quoteText: homeQuote.quote,
     quoteByline: `${homeQuote.country} — ${homeQuote.author}`,
@@ -523,7 +521,7 @@ export default function Home() {
       && compactRows.join('') !== rows.join('');
     const compactHeight = compactRows.length * cellSize;
     const height = usePostLayout ? Math.max(baseHeight, compactHeight) : baseHeight;
-    const stageHeight = Math.max(viewport <= 520 ? 220 : 250, height + 22);
+    const stageHeight = Math.max(viewport <= 520 ? 180 : 200, height + 22);
 
     const total = targets.length || 1;
     const mappedTargets = targets.map((target, order) => {
@@ -725,9 +723,6 @@ export default function Home() {
 
       <header>
         <div className="hero-card">
-          <p className="tagline">{tr.heroTagline || homeStrings.heroTagline}</p>
-          
-
           <div className="hero-actions" id="heroActions">
             {currentUser ? (
               <>
@@ -882,14 +877,7 @@ export default function Home() {
             {authMode === 'signup' && (
               <>
                 <label>{tr.password || homeStrings.password}<input id="suPassword" type="password" required value={suPassword} onChange={(e) => setSuPassword(e.target.value)} /></label>
-                <label className="disclaimer"><input id="dataAccept" type="checkbox" checked={dataAccept} onChange={(e) => setDataAccept(e.target.checked)} /> I accept the <strong>disclaimer</strong> below</label>
-                <div className="disclaimer-box">
-                  {tr.disclaimerText || homeStrings.disclaimerText} <br />
-                  ✔ No ads or tracking
-<br/>✔ Stored locally on your device
-<br/>✔ Clear data anytime
-<br/>✔ Email optional
-                </div>
+                <label className="disclaimer"><input id="dataAccept" type="checkbox" checked={dataAccept} onChange={(e) => setDataAccept(e.target.checked)} /> I accept the local data policy (no ads, no tracking, clear anytime)</label>
               </>
             )}
             <div className="auth-actions">

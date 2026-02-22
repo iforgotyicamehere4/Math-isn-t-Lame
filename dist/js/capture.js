@@ -1287,7 +1287,7 @@ function startRound() {
 
   currentProblem = generateValidatedProblem(level, choiceCount);
 
-  setStatus("Syntax Bugs incoming. Solve to survive.");
+  setStatus("Syntax bugs incoming. Solve to debug.");
   renderTargetFraction(currentProblem.display);
   if (hintEl) setHint(currentProblem.hint || "");
 
@@ -1797,7 +1797,7 @@ function loop(timestamp) {
 // ---------- Events ----------
 if (startBtn) startBtn.addEventListener("click", () => {
   startGame();
-  setStatus("Syntax Bugs incoming. Solve to survive.");
+  setStatus("Syntax bugs incoming. Solve to debug.");
 });
 if (pauseBtn) pauseBtn.addEventListener("click", togglePause);
 

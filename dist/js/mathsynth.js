@@ -566,7 +566,7 @@
       <div class="popup-content">
         <div class="popup-instruction">Solve each equation for x</div>
         <div class="popup-problem"></div>
-        <input type="text" class="popup-input" inputmode="decimal" placeholder="Type answer" />
+        <input type="text" class="popup-input" inputmode="text" placeholder="Type answer" />
         <button class="popup-submit">Submit</button>
         <div class="popup-quote">
           "What's the next right choice?"
@@ -1894,7 +1894,7 @@
     othersInput = document.createElement('input');
     othersInput.className = 'others-input';
     othersInput.type = 'text';
-    othersInput.inputMode = 'numeric';
+    othersInput.inputMode = 'text';
     othersInput.placeholder = 'Type answer';
 
     othersSubmit = document.createElement('button');

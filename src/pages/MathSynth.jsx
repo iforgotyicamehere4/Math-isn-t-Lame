@@ -211,7 +211,7 @@ export default function MathSynth() {
                 type="text" 
                 id="mathSynthAnswer" 
                 className="answer-input" 
-                inputMode="decimal"
+                inputMode="text"
                 placeholder="x = ?" 
                 enterKeyHint="enter"
                 autoComplete="off"

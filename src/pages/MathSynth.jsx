@@ -75,6 +75,12 @@ export default function MathSynth() {
         console.log('[MathSynth] Running cleanup');
         window.__MathSynthCleanup();
       }
+      window.__MathSynthCleanup = null;
+      window.MathSynth = null;
+      const synthScript = document.querySelector('script[data-script-key="mathsynth"]');
+      if (synthScript && synthScript.parentNode) {
+        synthScript.parentNode.removeChild(synthScript);
+      }
     };
   }, []);
 

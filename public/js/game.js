@@ -238,17 +238,23 @@ window.__MathPupStateReset = true;
     return signLine ? `${core} ${signLine}` : core;
   }
 
-  function getPlayBounds() {
+  let cachedPlayBounds = null;
+  function refreshPlayBounds() {
     const nav = document.querySelector('.app-nav');
     const navHeight = nav ? nav.getBoundingClientRect().height : 60;
     const width = Math.max(320, window.innerWidth || 0);
     const height = Math.max(320, window.innerHeight || 0);
-    return {
+    cachedPlayBounds = {
       minX: 8,
       minY: Math.max(70, navHeight + 12),
       maxX: width - 72,
       maxY: height - 88
     };
+  }
+
+  function getPlayBounds() {
+    if (!cachedPlayBounds) refreshPlayBounds();
+    return cachedPlayBounds;
   }
 
   // -----------------------
@@ -688,6 +694,7 @@ window.__MathPupStateReset = true;
 
   let benny = null;
   const bennyState = { x: 0, y: 0, vx: 0, vy: 0 };
+  let perfLiteMode = false;
   let activeBennyColor = null;
   let joystickActive = false;
   let joystickVector = { x: 0, y: 0 };
@@ -1362,6 +1369,20 @@ window.__MathPupStateReset = true;
     return window.matchMedia('(max-width: 880px)').matches;
   }
 
+  function detectPerfLiteMode() {
+    const ua = typeof navigator !== 'undefined' ? String(navigator.userAgent || '') : '';
+    const isiPhoneLike = /iPhone|iPad|iPod/i.test(ua);
+    const hw = Number((typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 0);
+    const mem = Number((typeof navigator !== 'undefined' && navigator.deviceMemory) || 0);
+    const lowPowerDevice = (hw > 0 && hw <= 4) || (mem > 0 && mem <= 4);
+    return isMobileLayout() && (isiPhoneLike || lowPowerDevice);
+  }
+
+  function applyPerformanceMode() {
+    perfLiteMode = detectPerfLiteMode();
+    if (gameArea) gameArea.classList.toggle('perf-lite', perfLiteMode);
+  }
+
   function getBennyDock() {
     if (!bennyDock) bennyDock = qs('#bennyDock');
     return bennyDock;
@@ -1529,7 +1550,10 @@ window.__MathPupStateReset = true;
   function getMiniZombieCount(levelName) {
     const order = ['Easy', 'Easy25', 'Easy50', 'Easy75', 'Medium', 'Medium26', 'Medium60', 'Medium100', 'Mathanomical'];
     const idx = Math.max(0, order.indexOf(levelName));
-    return Math.min(18, 3 + idx + 3);
+    const baseline = Math.min(18, 3 + idx + 3);
+    if (perfLiteMode) return Math.max(4, Math.min(10, Math.ceil(baseline * 0.56)));
+    if (isMobileLayout()) return Math.min(14, baseline);
+    return baseline;
   }
 
   function pickRandom(arr) {
@@ -1614,6 +1638,7 @@ window.__MathPupStateReset = true;
         shieldOnMs,
         shieldOffMs,
         nextShieldToggle: now + shieldOnMs,
+        scale,
         armor
       });
     }
@@ -1796,10 +1821,11 @@ window.__MathPupStateReset = true;
   }
 
   function getMiniZombieScale() {
-    if (!isMobileLayout()) return 1;
+    if (!isMobileLayout()) return perfLiteMode ? 0.95 : 1;
+    if (perfLiteMode) return 1.05;
     const width = window.innerWidth || 0;
-    if (width <= 520) return 1.5;
-    return 1.8;
+    if (width <= 520) return 1.2;
+    return 1.35;
   }
 
   function updateMiniGame(deltaMs) {
@@ -1843,7 +1869,10 @@ window.__MathPupStateReset = true;
       }
       z.w = zW;
       z.h = zH;
-      z.el.style.setProperty('--mini-scale', String(scale));
+      if (z.scale !== scale) {
+        z.scale = scale;
+        z.el.style.setProperty('--mini-scale', String(scale));
+      }
       const dx = z.x - bennyState.x;
       const dy = z.y - bennyState.y;
       const dist = Math.max(1, Math.hypot(dx, dy));
@@ -1853,17 +1882,19 @@ window.__MathPupStateReset = true;
       let dodgeY = 0;
       let nearestShotDist = Infinity;
       let nearestShotVec = null;
-      miniShots.forEach((s) => {
-        const sx = s.x || 0;
-        const sy = s.y || 0;
-        const sdx = z.x - sx;
-        const sdy = z.y - sy;
-        const sdist = Math.hypot(sdx, sdy);
-        if (sdist < nearestShotDist) {
-          nearestShotDist = sdist;
-          nearestShotVec = { dx: sdx, dy: sdy, dist: Math.max(1, sdist) };
-        }
-      });
+      if (!perfLiteMode) {
+        miniShots.forEach((s) => {
+          const sx = s.x || 0;
+          const sy = s.y || 0;
+          const sdx = z.x - sx;
+          const sdy = z.y - sy;
+          const sdist = Math.hypot(sdx, sdy);
+          if (sdist < nearestShotDist) {
+            nearestShotDist = sdist;
+            nearestShotVec = { dx: sdx, dy: sdy, dist: Math.max(1, sdist) };
+          }
+        });
+      }
       if (nearestShotVec && nearestShotDist < 220) {
         const side = (z.id % 2 === 0) ? 1 : -1;
         const perpX = (-nearestShotVec.dy / nearestShotVec.dist) * side;
@@ -1872,7 +1903,7 @@ window.__MathPupStateReset = true;
         dodgeX = perpX * z.speed * deltaMs * dodgeBoost;
         dodgeY = perpY * z.speed * deltaMs * dodgeBoost;
       }
-      if (targetLockActive) {
+      if (targetLockActive && !perfLiteMode) {
         if (nearestShotVec && nearestShotDist < 200) {
           const runBoost = 0.11;
           fleeX += (nearestShotVec.dx / nearestShotVec.dist) * z.speed * deltaMs * runBoost;
@@ -2071,7 +2102,14 @@ window.__MathPupStateReset = true;
 
   function miniGameLoop(timestamp) {
     if (!miniGameActive) return;
-    if (!lastMiniTick) lastMiniTick = timestamp;
+    if (!lastMiniTick) {
+      lastMiniTick = timestamp;
+    }
+    const frameBudgetMs = perfLiteMode ? 33 : 16;
+    if (timestamp - lastMiniTick < frameBudgetMs) {
+      miniGameFrame = requestAnimationFrame(miniGameLoop);
+      return;
+    }
     const delta = Math.min(40, timestamp - lastMiniTick);
     lastMiniTick = timestamp;
     updateMiniGame(delta);
@@ -2093,6 +2131,7 @@ window.__MathPupStateReset = true;
     spawnMiniZombies(levelName);
     const endAt = performance.now() + 180000;
     if (timerEl) timerEl.textContent = 'Mini: 180s';
+    const miniTimerTickMs = perfLiteMode ? 1000 : 300;
     miniGameCountdown = setInterval(() => {
       if (!miniGameActive) return;
       const remaining = endAt - performance.now();
@@ -2100,7 +2139,7 @@ window.__MathPupStateReset = true;
       if (remaining <= 0) {
         clearMiniGame();
       }
-    }, 200);
+    }, miniTimerTickMs);
     miniGameTimeout = setTimeout(() => {
       if (!miniGameActive) return;
       statusEl.textContent = 'Mini game time up!';
@@ -2363,7 +2402,11 @@ window.__MathPupStateReset = true;
     e.preventDefault();
   };
   window.addEventListener('keyup', keyupHandler);
+  applyPerformanceMode();
+  refreshPlayBounds();
   window.addEventListener('resize', () => {
+    refreshPlayBounds();
+    applyPerformanceMode();
     if (miniGameActive) {
       undockBenny();
       return;

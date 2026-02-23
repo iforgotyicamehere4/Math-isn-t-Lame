@@ -76,6 +76,11 @@ export default function Capture() {
         console.log('[Capture] Running cleanup');
         window.__CaptureCleanup();
       }
+      window.__CaptureCleanup = null;
+      const captureScript = document.querySelector('script[data-script-key="capture"]');
+      if (captureScript && captureScript.parentNode) {
+        captureScript.parentNode.removeChild(captureScript);
+      }
     };
   }, []);
 

@@ -23,6 +23,16 @@ export default function BennyWorld() {
   useEffect(() => () => {
     if (window.__BennyWorldCleanup) window.__BennyWorldCleanup();
     if (window.__BennyWorldBabylonCleanup) window.__BennyWorldBabylonCleanup();
+    window.__BennyWorldCleanup = null;
+    window.__BennyWorldBabylonCleanup = null;
+    const bennyWorldScript = document.querySelector('script[data-script-key="bennyworld"]');
+    if (bennyWorldScript && bennyWorldScript.parentNode) {
+      bennyWorldScript.parentNode.removeChild(bennyWorldScript);
+    }
+    const babylonScript = document.querySelector('script[data-script-key="babylon"]');
+    if (babylonScript && babylonScript.parentNode) {
+      babylonScript.parentNode.removeChild(babylonScript);
+    }
   }, []);
 
   return (

@@ -948,6 +948,41 @@
   isolation: isolate;
 }
 
+/* Lite rendering path for low-power mobile devices */
+.game-shell .game-area.perf-lite .mini-zombie {
+  background: linear-gradient(165deg, #162445 0%, #0d1b35 100%);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.42);
+  border-color: rgba(168, 198, 255, 0.45);
+}
+
+.game-shell .game-area.perf-lite .mini-zombie::before,
+.game-shell .game-area.perf-lite .mini-zombie::after,
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__shadow,
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__shield {
+  display: none;
+}
+
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__arm,
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__hand,
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__leg,
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__foot {
+  display: none;
+}
+
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__limb,
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__torso {
+  filter: none;
+  text-shadow: none;
+}
+
+.game-shell .game-area.perf-lite .mini-zombie .mini-zombie__torso {
+  box-shadow: none;
+}
+
+.game-shell .game-area.perf-lite .benny-shot {
+  text-shadow: none;
+}
+
 .game-shell .game-area .mini-zombie .mini-zombie__shadow {
   position: absolute;
   left: 50%;

@@ -77,13 +77,13 @@ export default function Game() {
       document.body.appendChild(script);
     });
 
-    // Load scripts using Vite-resolved URLs
+    // Load scripts in classic mode so they execute again on route re-entry.
     loadScript(mathScript, 'mathjs', { async: false }).then(() => {
       if (cancelled) return null;
-      // Load timer script first (non-module), then load game script (module)
-      return loadScript(timerScript, 'mathpup-timer', { async: false, type: 'module' }).then(() => {
+      // Load timer script first, then game script.
+      return loadScript(timerScript, 'mathpup-timer', { async: false }).then(() => {
         if (cancelled) return null;
-        return loadScript(gameScript, 'mathpup', { type: 'module' });
+        return loadScript(gameScript, 'mathpup', { async: false });
       });
     });
 

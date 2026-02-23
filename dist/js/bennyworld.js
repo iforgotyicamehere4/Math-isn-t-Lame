@@ -242,10 +242,14 @@ window.__BennyWorldBabylonCleanup = null;
   const moveSpeed = 3.2;
   const maxFall = 12;
   const autoJump = true;
+  const offscreenRenderBuffer = 220;
+  const collisionBufferX = 96;
+  const renderEpsilon = 0.1;
 
   const keys = { left: false, right: false, jump: false, glide: false };
   let rafId = 0;
   let lastAutoSaveAt = 0;
+  let jumpPulseTimer = 0;
 
   const benny = document.createElement('div');
   benny.className = 'bw-benny';
@@ -365,6 +369,9 @@ window.__BennyWorldBabylonCleanup = null;
   let bennyState = { x: 40, y: 0, vx: 0, vy: 0, onGround: false };
   let starPos = { x: 0, y: 0 };
   let cameraOffset = 0;
+  let areaWidth = 0;
+  let areaHeight = 0;
+  let currentLevelWidth = 0;
   let platforms = [];
   const obstacles = [];
   let wallContact = 0;
@@ -1422,12 +1429,12 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function spawnDistanceEnemyWave() {
-    const rect = area.getBoundingClientRect();
-    const groundY = rect.height - 40;
-    const levelWidth = rect.width * (8 + levelIndex * 2);
+    if (!areaWidth || !areaHeight) refreshAreaMetrics();
+    const groundY = areaHeight - 40;
+    const levelWidth = currentLevelWidth || (areaWidth * (8 + levelIndex * 2));
     const aheadX = Math.max(
       200,
-      Math.min(levelWidth - 220, bennyState.x + rect.width * 0.9 + Math.random() * 320)
+      Math.min(levelWidth - 220, bennyState.x + areaWidth * 0.9 + Math.random() * 320)
     );
     const diffScale = getDifficultyScale();
     const syntaxWave = Math.max(2, Math.ceil((1 + Math.floor(levelIndex / 12)) * (1 + diffScale)));
@@ -1475,6 +1482,30 @@ window.__BennyWorldBabylonCleanup = null;
     flipActiveUntil = performance.now() + 500;
   }
 
+  function refreshAreaMetrics() {
+    const rect = area.getBoundingClientRect();
+    areaWidth = rect.width;
+    areaHeight = rect.height;
+  }
+
+  function setEntityScreenX(entity, x) {
+    if (entity._sx !== undefined && Math.abs(entity._sx - x) < renderEpsilon) return;
+    entity._sx = x;
+    entity.el.style.left = `${x}px`;
+  }
+
+  function setEntityScreenY(entity, y) {
+    if (entity._sy !== undefined && Math.abs(entity._sy - y) < renderEpsilon) return;
+    entity._sy = y;
+    entity.el.style.top = `${y}px`;
+  }
+
+  function setEntityVisible(entity, visible) {
+    if (entity._visible === visible) return;
+    entity._visible = visible;
+    entity.el.style.display = visible ? '' : 'none';
+  }
+
   function addPlatform(x, y, w, h, type = 'desk') {
     const el = document.createElement('div');
     el.className = `bw-platform ${type}`;
@@ -1483,7 +1514,7 @@ window.__BennyWorldBabylonCleanup = null;
     el.style.width = `${w}px`;
     el.style.height = `${h}px`;
     area.appendChild(el);
-    platforms.push({ x, y, w, h, el, vx: 0 });
+    platforms.push({ x, y, w, h, el, vx: 0, _sx: x, _sy: y, _visible: true });
   }
 
   function addObstacle(x, y, w, h, type = 'eraser') {
@@ -1494,7 +1525,7 @@ window.__BennyWorldBabylonCleanup = null;
     el.style.width = `${w}px`;
     el.style.height = `${h}px`;
     area.appendChild(el);
-    obstacles.push({ x, y, w, h, vx: 0, vy: 0, el, type });
+    obstacles.push({ x, y, w, h, vx: 0, vy: 0, el, type, _sx: x, _sy: y, _visible: true });
   }
 
   function addFallingNumber(x, y, value) {
@@ -1507,7 +1538,7 @@ window.__BennyWorldBabylonCleanup = null;
     el.style.width = `${size}px`;
     el.style.height = `${size}px`;
     area.appendChild(el);
-    obstacles.push({ x, y, w: size, h: size, vx: 0, vy: 1.2, el, type: 'falling-number' });
+    obstacles.push({ x, y, w: size, h: size, vx: 0, vy: 1.2, el, type: 'falling-number', _sx: x, _sy: y, _visible: true });
   }
 
   function spawnBlackHolePartPickup(levelWidth, groundY, safePath = []) {
@@ -1602,12 +1633,13 @@ window.__BennyWorldBabylonCleanup = null;
     deskPlaneEndsAt = 0;
     deskFuel = loadDeskFuel();
 
-    const rect = area.getBoundingClientRect();
-    const groundY = rect.height - 40;
-    const viewportWidth = rect.width;
+    refreshAreaMetrics();
+    const groundY = areaHeight - 40;
+    const viewportWidth = areaWidth;
     
     // Make level MUCH wider - extends far beyond viewport
     const levelWidth = viewportWidth * (8 + levelIndex * 2);
+    currentLevelWidth = levelWidth;
     
     // Ground spans entire level
     addPlatform(0, groundY, levelWidth, 40, 'ground');
@@ -1685,7 +1717,7 @@ window.__BennyWorldBabylonCleanup = null;
     area.appendChild(savedPostVictory);
 
     const lastPath = safePath[safePath.length - 1];
-    const starX = lastPath ? lastPath.x + lastPath.w / 2 : rect.width - 70;
+    const starX = lastPath ? lastPath.x + lastPath.w / 2 : areaWidth - 70;
     const starY = lastPath ? lastPath.y - 26 : 40 + Math.random() * (groundY - 120);
     starPos = { x: starX, y: starY };
     star.style.left = `${starX}px`;
@@ -1710,8 +1742,8 @@ window.__BennyWorldBabylonCleanup = null;
   function applyPhysics() {
     if (gameOver) return;
     if (syntaxIntroActive || postVictoryActive) return;
-    const rect = area.getBoundingClientRect();
-    const groundY = rect.height - 40;
+    if (!areaWidth || !areaHeight) refreshAreaMetrics();
+    const groundY = areaHeight - 40;
     if (bossActive) {
       blackHoleActive = false;
       blackHoleTimer = 0;
@@ -1811,14 +1843,16 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     // Allow Benny to move across the entire level width
     bennyState.x = Math.max(8, bennyState.x);
 
+    const collisionMinX = bennyState.x - collisionBufferX;
+    const collisionMaxX = bennyState.x + 36 + collisionBufferX;
     let landed = false;
     wallContact = 0;
     platforms.forEach((p) => {
       if (p.vx) {
         p.x += p.vx;
-        if (p.x < 20 || p.x + p.w > rect.width - 20) p.vx *= -1;
-        p.el.style.left = `${p.x}px`;
+        if (p.x < 20 || p.x + p.w > areaWidth - 20) p.vx *= -1;
       }
+      if (p.x > collisionMaxX || p.x + p.w < collisionMinX) return;
 
       const bx = bennyState.x;
       const by = bennyState.y;
@@ -1848,25 +1882,22 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     obstacles.forEach((ob) => {
       if (ob.type === 'eraser') {
         ob.x += ob.vx;
-        if (ob.x < 10 || ob.x + ob.w > rect.width - 10) ob.vx *= -1;
-        ob.el.style.left = `${ob.x}px`;
+        if (ob.x < 10 || ob.x + ob.w > areaWidth - 10) ob.vx *= -1;
       } else if (ob.type === 'falling') {
         if (!ob.vy) ob.vy = (0.6 + Math.random() * 0.8) * getDifficultyScale();
         ob.y += ob.vy;
         if (ob.y > groundY - ob.h) {
           ob.y = 24;
         }
-        ob.el.style.top = `${ob.y}px`;
       } else if (ob.type === 'falling-number') {
         if (!ob.vy) ob.vy = 1.2 * getDifficultyScale();
         ob.y += ob.vy;
         if (ob.y > groundY - ob.h) {
           ob.y = 24;
-          ob.x = 30 + Math.random() * (rect.width - 60);
-          ob.el.style.left = `${ob.x}px`;
+          ob.x = 30 + Math.random() * (areaWidth - 60);
         }
-        ob.el.style.top = `${ob.y}px`;
       }
+      if (ob.x > collisionMaxX || ob.x + ob.w < collisionMinX) return;
 
       const bx = bennyState.x;
       const by = bennyState.y;
@@ -1884,9 +1915,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
             setMessage('-50 points!', 800);
           }
           ob.y = 24;
-          ob.x = 30 + Math.random() * (rect.width - 60);
-          ob.el.style.left = `${ob.x}px`;
-          ob.el.style.top = `${ob.y}px`;
+          ob.x = 30 + Math.random() * (areaWidth - 60);
           if (points === 0) {
             triggerGameOver();
             return;
@@ -1910,7 +1939,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         enemy.y = enemy.baseY;
         enemy.vy = 0;
       }
-      if (enemy.x < 12 || enemy.x + enemy.w > (rect.width * (8 + levelIndex * 2)) - 12) {
+      if (enemy.x < 12 || enemy.x + enemy.w > currentLevelWidth - 12) {
         enemy.vx *= -1;
       }
       if (enemy.nextThrowAt <= now && !frozen) {
@@ -1963,7 +1992,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
           return false;
         }
       }
-      const out = proj.x < cameraOffset - 90 || proj.x > cameraOffset + rect.width + 90 || proj.y < -80 || proj.y > rect.height + 80;
+      const out = proj.x < cameraOffset - 90 || proj.x > cameraOffset + areaWidth + 90 || proj.y < -80 || proj.y > areaHeight + 80;
       if (out) {
         proj.el.remove();
         return false;
@@ -2024,7 +2053,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
           return false;
         }
       }
-      const out = shot.x < cameraOffset - 120 || shot.x > cameraOffset + rect.width + 120 || shot.y < -120 || shot.y > rect.height + 120;
+      const out = shot.x < cameraOffset - 120 || shot.x > cameraOffset + areaWidth + 120 || shot.y < -120 || shot.y > areaHeight + 120;
       if (out) {
         shot.el.remove();
         return false;
@@ -2050,22 +2079,31 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       }
     }
 
-    benny.style.left = `${bennyState.x}px`;
-    benny.style.top = `${bennyState.y}px`;
     distance += Math.abs(bennyState.vx) * 0.2;
     
     // Camera follow: Keep Benny in left 25% of viewport
-    const cameraTarget = bennyState.x - rect.width * 0.25;
+    const cameraTarget = bennyState.x - areaWidth * 0.25;
     cameraOffset = Math.max(0, cameraTarget);
-    
-    // Update all platform positions with camera offset
-    platforms.forEach(p => {
-      p.el.style.left = `${p.x - cameraOffset}px`;
+
+    const minVisibleX = -offscreenRenderBuffer;
+    const maxVisibleX = areaWidth + offscreenRenderBuffer;
+
+    // Update visible platform positions with camera offset.
+    platforms.forEach((p) => {
+      const sx = p.x - cameraOffset;
+      const visible = sx + p.w >= minVisibleX && sx <= maxVisibleX;
+      setEntityVisible(p, visible);
+      if (visible) setEntityScreenX(p, sx);
     });
-    
-    // Update all obstacle positions with camera offset
-    obstacles.forEach(ob => {
-      ob.el.style.left = `${ob.x - cameraOffset}px`;
+
+    // Update visible obstacle positions with camera offset.
+    obstacles.forEach((ob) => {
+      const sx = ob.x - cameraOffset;
+      const visible = sx + ob.w >= minVisibleX && sx <= maxVisibleX;
+      setEntityVisible(ob, visible);
+      if (!visible) return;
+      setEntityScreenX(ob, sx);
+      setEntityScreenY(ob, ob.y);
     });
     
     // Update star position with camera offset
@@ -2078,6 +2116,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     
     // Update Benny with camera offset
     benny.style.left = `${bennyState.x - cameraOffset}px`;
+    benny.style.top = `${bennyState.y}px`;
     benny.classList.toggle('bw-benny--nuclear', activeTier() === 6);
 
     if (bossActive) {
@@ -2119,7 +2158,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
           proj.el.remove();
           return false;
         }
-        const tooFar = proj.x < cameraOffset - 120 || proj.x > cameraOffset + rect.width + 120 || proj.y > rect.height + 80 || proj.y < -80;
+        const tooFar = proj.x < cameraOffset - 120 || proj.x > cameraOffset + areaWidth + 120 || proj.y > areaHeight + 80 || proj.y < -80;
         if (tooFar) {
           proj.el.remove();
           return false;
@@ -2328,27 +2367,57 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
 
   function bindButton(btn, key, pressed) {
     if (!btn) return () => {};
+    const clearJumpPulse = () => {
+      if (jumpPulseTimer) {
+        clearTimeout(jumpPulseTimer);
+        jumpPulseTimer = 0;
+      }
+    };
     const onDown = (e) => {
       e.preventDefault();
       if (syntaxIntroActive || postVictoryActive) return;
+      if (key === 'jump') {
+        // Use a short pulse on mobile taps so jump always triggers at least once.
+        keys.jump = true;
+        triggerFlip();
+        triggerBossPulse();
+        clearJumpPulse();
+        jumpPulseTimer = setTimeout(() => {
+          keys.jump = false;
+          jumpPulseTimer = 0;
+        }, 160);
+        return;
+      }
       keys[key] = pressed;
-      if (key === 'jump') triggerFlip();
-      if (key === 'jump') triggerBossPulse();
     };
     const onUp = (e) => {
       e.preventDefault();
       if (syntaxIntroActive || postVictoryActive) return;
+      if (key === 'jump') {
+        clearJumpPulse();
+      }
       keys[key] = false;
     };
     btn.addEventListener('pointerdown', onDown);
     btn.addEventListener('pointerup', onUp);
     btn.addEventListener('pointerleave', onUp);
     btn.addEventListener('pointercancel', onUp);
+    btn.addEventListener('touchstart', onDown, { passive: false });
+    btn.addEventListener('touchend', onUp, { passive: false });
+    btn.addEventListener('touchcancel', onUp, { passive: false });
+    btn.addEventListener('mousedown', onDown);
+    btn.addEventListener('mouseup', onUp);
     return () => {
+      clearJumpPulse();
       btn.removeEventListener('pointerdown', onDown);
       btn.removeEventListener('pointerup', onUp);
       btn.removeEventListener('pointerleave', onUp);
       btn.removeEventListener('pointercancel', onUp);
+      btn.removeEventListener('touchstart', onDown);
+      btn.removeEventListener('touchend', onUp);
+      btn.removeEventListener('touchcancel', onUp);
+      btn.removeEventListener('mousedown', onDown);
+      btn.removeEventListener('mouseup', onUp);
     };
   }
 
@@ -2376,6 +2445,9 @@ const cleanupKeys = bindKeyEvents();
   const cleanupGlide = bindButton(glideBtn, 'glide', true);
   const cleanupPlane = bindActionButton(planeBtn, triggerDeskPlane);
   const cleanupFire = bindActionButton(fireBtn, fireBennyShot);
+  refreshAreaMetrics();
+  const handleResize = () => refreshAreaMetrics();
+  window.addEventListener('resize', handleResize);
 
   // Joystick event handlers
   function handleJoystickStart(clientX, clientY) {
@@ -2463,6 +2535,12 @@ const cleanupKeys = bindKeyEvents();
     airEnemies.forEach((enemy) => enemy.el.remove());
     enemyErrors.forEach((proj) => proj.el.remove());
     bennyShots.forEach((shot) => shot.el.remove());
+    if (jumpPulseTimer) {
+      clearTimeout(jumpPulseTimer);
+      jumpPulseTimer = 0;
+    }
+    keys.jump = false;
+    keys.glide = false;
     cleanupKeys();
     cleanupLeft();
     cleanupRight();
@@ -2470,6 +2548,7 @@ const cleanupKeys = bindKeyEvents();
     cleanupGlide();
     cleanupPlane();
     cleanupFire();
+    window.removeEventListener('resize', handleResize);
     cleanupProgressBtn();
     // Also call the Babylon cleanup if present
     if (window.__BennyWorldBabylonCleanup) {

@@ -245,6 +245,17 @@ window.__BennyWorldBabylonCleanup = null;
   const offscreenRenderBuffer = 220;
   const collisionBufferX = 96;
   const renderEpsilon = 0.1;
+  const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+  const lowMemoryDevice = typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 4;
+  const perfModeMobile = isMobileDevice || lowMemoryDevice;
+  const levelWidthBaseMultiplier = perfModeMobile ? 5 : 8;
+  const levelWidthPerLevelMultiplier = perfModeMobile ? 1 : 2;
+  const levelWidthMax = perfModeMobile ? 14000 : 28000;
+  const maxPathSteps = perfModeMobile ? 120 : 260;
+  const extraPlatformScale = perfModeMobile ? 0.6 : 1;
+  const movingDeskScale = perfModeMobile ? 0.55 : 1;
+  const obstacleScale = perfModeMobile ? 0.65 : 1;
+  const maxActiveAirEnemies = perfModeMobile ? 14 : 26;
 
   const keys = { left: false, right: false, jump: false, glide: false };
   let rafId = 0;
@@ -1431,14 +1442,21 @@ window.__BennyWorldBabylonCleanup = null;
   function spawnDistanceEnemyWave() {
     if (!areaWidth || !areaHeight) refreshAreaMetrics();
     const groundY = areaHeight - 40;
-    const levelWidth = currentLevelWidth || (areaWidth * (8 + levelIndex * 2));
+    const levelWidth = currentLevelWidth || Math.min(
+      levelWidthMax,
+      areaWidth * (levelWidthBaseMultiplier + levelIndex * levelWidthPerLevelMultiplier)
+    );
     const aheadX = Math.max(
       200,
       Math.min(levelWidth - 220, bennyState.x + areaWidth * 0.9 + Math.random() * 320)
     );
     const diffScale = getDifficultyScale();
-    const syntaxWave = Math.max(2, Math.ceil((1 + Math.floor(levelIndex / 12)) * (1 + diffScale)));
-    const bugWave = Math.max(1, Math.ceil((1 + Math.floor(levelIndex / 16)) * (0.9 + diffScale)));
+    const enemySlots = Math.max(0, maxActiveAirEnemies - airEnemies.length);
+    if (enemySlots <= 0) return;
+    const syntaxWaveRaw = Math.max(2, Math.ceil((1 + Math.floor(levelIndex / 12)) * (1 + diffScale)));
+    const bugWaveRaw = Math.max(1, Math.ceil((1 + Math.floor(levelIndex / 16)) * (0.9 + diffScale)));
+    const syntaxWave = Math.min(enemySlots, Math.max(1, Math.floor(syntaxWaveRaw * obstacleScale)));
+    const bugWave = Math.min(enemySlots - syntaxWave, Math.max(0, Math.floor(bugWaveRaw * obstacleScale)));
     for (let i = 0; i < syntaxWave; i += 1) {
       spawnAirEnemy('syntax', aheadX + (Math.random() - 0.5) * 220, groundY);
     }
@@ -1477,8 +1495,7 @@ window.__BennyWorldBabylonCleanup = null;
 
   function triggerFlip() {
     benny.classList.remove('bw-benny--flip');
-    void benny.offsetWidth;
-    benny.classList.add('bw-benny--flip');
+    requestAnimationFrame(() => benny.classList.add('bw-benny--flip'));
     flipActiveUntil = performance.now() + 500;
   }
 
@@ -1638,7 +1655,10 @@ window.__BennyWorldBabylonCleanup = null;
     const viewportWidth = areaWidth;
     
     // Make level MUCH wider - extends far beyond viewport
-    const levelWidth = viewportWidth * (8 + levelIndex * 2);
+    const levelWidth = Math.min(
+      levelWidthMax,
+      viewportWidth * (levelWidthBaseMultiplier + levelIndex * levelWidthPerLevelMultiplier)
+    );
     currentLevelWidth = levelWidth;
     
     // Ground spans entire level
@@ -1646,7 +1666,7 @@ window.__BennyWorldBabylonCleanup = null;
 
     const safePath = [];
     // Create safe path from start to end of level
-    const pathSteps = Math.floor(levelWidth / 80);
+    const pathSteps = Math.min(maxPathSteps, Math.floor(levelWidth / 80));
     const startX = 60;
     const endX = levelWidth - 120;
     const stepX = (endX - startX) / pathSteps;
@@ -1661,7 +1681,10 @@ window.__BennyWorldBabylonCleanup = null;
       addPlatform(x, y, w, 10, 'desk');
     }
 
-    const extraCount = 20 + Math.min(40, Math.floor(levelIndex / 2));
+    const extraCount = Math.max(
+      12,
+      Math.floor((20 + Math.min(40, Math.floor(levelIndex / 2))) * extraPlatformScale)
+    );
     for (let i = 0; i < extraCount; i += 1) {
       const w = 55 + Math.random() * 40;
       const x = 60 + Math.random() * (levelWidth - w - 60);
@@ -1670,7 +1693,7 @@ window.__BennyWorldBabylonCleanup = null;
     }
 
     // Add moving desks throughout level
-    const movingDeskCount = 5 + Math.floor(levelIndex / 4);
+    const movingDeskCount = Math.max(3, Math.floor((5 + Math.floor(levelIndex / 4)) * movingDeskScale));
     for (let m = 0; m < movingDeskCount; m += 1) {
       const moverW = 55;
       const moverX = 80 + (m * (levelWidth / (movingDeskCount + 1)));
@@ -1680,7 +1703,10 @@ window.__BennyWorldBabylonCleanup = null;
       platforms[platforms.length - 1].vx = mover.vx;
     }
 
-    const eraserCount = Math.max(5, Math.ceil((5 + Math.min(10, Math.floor(levelIndex / 3))) * getDifficultyScale()));
+    const eraserCount = Math.max(
+      4,
+      Math.floor((5 + Math.min(10, Math.floor(levelIndex / 3))) * getDifficultyScale() * obstacleScale)
+    );
     for (let i = 0; i < eraserCount; i += 1) {
       const w = 24;
       const h = 12;
@@ -1691,7 +1717,7 @@ window.__BennyWorldBabylonCleanup = null;
       obstacles[obstacles.length - 1].vx = speed;
     }
 
-    const fallingCount = Math.max(5, Math.ceil((levelIndex + 5) * getDifficultyScale()));
+    const fallingCount = Math.max(4, Math.floor((levelIndex + 5) * getDifficultyScale() * obstacleScale));
     for (let i = 0; i < fallingCount; i += 1) {
       const w = 40;
       const h = 8;
@@ -1699,7 +1725,10 @@ window.__BennyWorldBabylonCleanup = null;
       addObstacle(x, 24, w, h, 'falling');
     }
 
-    const numberCount = Math.max(5, Math.ceil((5 + Math.floor(levelIndex / 2)) * getDifficultyScale()));
+    const numberCount = Math.max(
+      4,
+      Math.floor((5 + Math.floor(levelIndex / 2)) * getDifficultyScale() * obstacleScale)
+    );
     for (let i = 0; i < numberCount; i += 1) {
       const x = 40 + Math.random() * (levelWidth - 80);
       const value = `-${1 + Math.floor(Math.random() * 9)}`;

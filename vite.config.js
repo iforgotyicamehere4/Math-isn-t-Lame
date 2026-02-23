@@ -2,7 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ command }) => ({
-  base: command === 'serve' ? '/' : '/Math-isn-t-Lame/', // Dev vs GitHub Pages build
+  // Android/Capacitor must use "/" while GitHub Pages uses "/Math-isn-t-Lame/".
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [react()],
   server: {
     host: true,

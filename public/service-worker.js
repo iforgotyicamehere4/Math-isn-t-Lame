@@ -1,13 +1,16 @@
 // Benny Service Worker
 // Enables offline functionality and app-like experience
 
-const CACHE_NAME = 'mathpop-v1';
+const CACHE_NAME = 'mathpop-v2';
+
+const toScopedPath = (path) => new URL(path, self.registration.scope).pathname;
+
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/favicon.svg',
-  '/favicon.ico',
-  '/manifest.json'
+  toScopedPath('./'),
+  toScopedPath('./index.html'),
+  toScopedPath('./favicon.svg'),
+  toScopedPath('./favicon.ico'),
+  toScopedPath('./manifest.json')
 ];
 
 // Install: Cache essential assets
@@ -75,7 +78,7 @@ self.addEventListener('fetch', (event) => {
           }
           // Return offline page if available
           if (request.destination === 'document') {
-            return caches.match('/index.html');
+            return caches.match(toScopedPath('./index.html'));
           }
         });
       })

@@ -140,7 +140,7 @@ window.__BennyWorldBabylonCleanup = null;
           engine.stopRenderLoop();
           scene.dispose();
           engine.dispose();
-        } catch (e) {
+        } catch {
           // ignore cleanup errors
         }
       };
@@ -222,6 +222,7 @@ window.__BennyWorldBabylonCleanup = null;
   let blackHoleTimer = 0;
   let debrisInterval = null;
   const blackHoleDelay = 5000; // 5 seconds after level starts
+  let floorCrumbling = false;
 
   function currentUser() {
     return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -274,8 +275,6 @@ window.__BennyWorldBabylonCleanup = null;
   function triggerBlackHoleDeath() {
     // Reset black hole state
     blackHoleActive = false;
-    stationaryTime = 0;
-    isBeingPulled = false;
     floorCrumbling = false;
     crumblingFloor.classList.remove('crumpling');
     area.classList.remove('shake');
@@ -302,8 +301,6 @@ window.__BennyWorldBabylonCleanup = null;
       const rect = area.getBoundingClientRect();
       const groundY = rect.height - 40;
       bennyState = { x: 40, y: groundY - 36, vx: 0, vy: 0, onGround: true };
-      lastMovementTime = performance.now();
-      
       // Restart level
       startLevel();
     }, 1000);
@@ -538,14 +535,9 @@ window.__BennyWorldBabylonCleanup = null;
     const isMoving = keys.left || keys.right || keys.jump || bennyState.vx !== 0 || bennyState.vy !== 0;
     
     if (isMoving) {
-      lastMovementTime = performance.now();
-      stationaryTime = 0;
-      isBeingPulled = false;
       floorCrumbling = false;
       crumblingFloor.classList.remove('crumpling');
       area.classList.remove('shake');
-    } else {
-      stationaryTime = performance.now() - lastMovementTime;
     }
     
     // Automatic black hole timer - activates 5 seconds after level starts
@@ -567,7 +559,6 @@ window.__BennyWorldBabylonCleanup = null;
       const nearBlackHole = bennyState.x < 100 && bennyState.y > groundY - 80;
       
       if (nearBlackHole) {
-        isBeingPulled = true;
         // Pull Benny toward the black hole
         const pullStrength = 0.15;
         bennyState.vy += pullStrength * 0.3;
@@ -580,7 +571,6 @@ window.__BennyWorldBabylonCleanup = null;
           area.appendChild(warning);
         }
       } else {
-        isBeingPulled = false;
         const warning = qs('.bw-warning');
         if (warning) warning.remove();
       }
@@ -935,7 +925,7 @@ window.__BennyWorldBabylonCleanup = null;
     cleanupPlane();
     // Also call the Babylon cleanup if present
     if (window.__BennyWorldBabylonCleanup) {
-      try { window.__BennyWorldBabylonCleanup(); } catch (e) {}
+      try { window.__BennyWorldBabylonCleanup(); } catch { /* ignore cleanup errors */ }
       window.__BennyWorldBabylonCleanup = null;
     }
   };

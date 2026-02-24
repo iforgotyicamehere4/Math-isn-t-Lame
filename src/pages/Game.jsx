@@ -12,15 +12,6 @@ import gameScript from '/js/game.js?url';
 
 export default function Game() {
   const location = useLocation();
-  if (typeof window !== 'undefined' && window.performance) {
-    const Perf = window.Performance || window.performance.constructor;
-    if (Perf && typeof Perf.now !== 'function') {
-      Perf.now = () => window.performance.now();
-    }
-    if (!window.Performance) {
-      window.Performance = Perf;
-    }
-  }
   useEffect(() => {
     let cancelled = false;
     // Make Vite base URL available to the legacy game script loaded from /public.
@@ -51,7 +42,7 @@ export default function Game() {
         window.screen.orientation.lock('landscape').catch(() => {
           // Silently fail if orientation lock not supported
         });
-      } catch (e) {
+      } catch {
         // Orientation lock not supported
       }
     }
@@ -96,7 +87,7 @@ export default function Game() {
       if (window.screen && window.screen.orientation) {
         try {
           window.screen.orientation.unlock();
-        } catch (e) {
+        } catch {
           // Ignore
         }
       }

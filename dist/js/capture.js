@@ -57,6 +57,8 @@ let roundRemainingMs = 0;       // ms remaining for the current round
 let retryUsedThisRound = false;
 let reviewPauseTimer = null;
 let reviewPauseToken = 0;
+let reviewPauseCountdownTimer = null;
+let reviewPauseUntil = 0;
 
 const recentTargets = [];
 const RECENT_LIMIT = 8;
@@ -1256,6 +1258,25 @@ function clearReviewPauseTimer() {
     clearTimeout(reviewPauseTimer);
     reviewPauseTimer = null;
   }
+  if (reviewPauseCountdownTimer) {
+    clearInterval(reviewPauseCountdownTimer);
+    reviewPauseCountdownTimer = null;
+  }
+  reviewPauseUntil = 0;
+}
+
+function startReviewPauseCountdown(ms, hintText) {
+  clearReviewPauseTimer();
+  reviewPauseUntil = Date.now() + ms;
+  if (hintEl) setHint(hintText || "");
+  const render = () => {
+    const left = Math.max(0, Math.ceil((reviewPauseUntil - Date.now()) / 1000));
+    if (left > 0) {
+      setStatus(`Nice try. Read this, then you get one more chance in ${left}s.`);
+    }
+  };
+  render();
+  reviewPauseCountdownTimer = setInterval(render, 250);
 }
 
 function handleRoundTimeout() {
@@ -1348,13 +1369,12 @@ function handleSelection(fraction) {
       gamePaused = true;
       if (inputEl) inputEl.disabled = true;
       if (pauseBtn) pauseBtn.disabled = true;
-      setStatus("Nice try. Read this, then you get one more chance in 20 seconds.");
-      setHint(buildCorrectiveHint(currentProblem));
+      startReviewPauseCountdown(20000, buildCorrectiveHint(currentProblem));
       const token = ++reviewPauseToken;
-      clearReviewPauseTimer();
       reviewPauseTimer = setTimeout(() => {
         reviewPauseTimer = null;
         if (!gameStarted || miniGameActive || token !== reviewPauseToken) return;
+        clearReviewPauseTimer();
         gamePaused = false;
         roundActive = true;
         if (inputEl) inputEl.disabled = false;

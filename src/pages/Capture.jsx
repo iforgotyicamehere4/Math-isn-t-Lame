@@ -10,7 +10,7 @@ const BASE_PATH = import.meta.env.BASE_URL || '/Math-isn-t-Lame/';
 
 export default function Capture() {
   const location = useLocation();
-  const { loadScript, isLoaded } = useScriptOnce(`${BASE_PATH}js/capture.js`, 'capture');
+  const { loadScript } = useScriptOnce(`${BASE_PATH}js/capture.js`, 'capture');
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   useGameMusic({

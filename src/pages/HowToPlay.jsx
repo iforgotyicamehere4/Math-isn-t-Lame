@@ -4,7 +4,6 @@ import '../styles/howtoplay.css';
 
 export default function HowToPlay() {
   const [error, setError] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -22,7 +21,6 @@ export default function HowToPlay() {
       }
 
       if (mounted) {
-        setIsInitialized(true);
         console.log('[HowToPlay] Page initialized');
       }
     };

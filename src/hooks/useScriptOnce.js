@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 /**
  * Enhanced script loader hook that properly waits for scripts to load
@@ -7,6 +7,8 @@ import { useEffect, useRef, useCallback } from 'react';
 export default function useScriptOnce(src, key) {
   const loadedRef = useRef(false);
   const loadingRef = useRef(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadScript = useCallback(() => {
     if (!src || !key) {
@@ -21,6 +23,8 @@ export default function useScriptOnce(src, key) {
       if (loadedRef.current || domLoaded) {
         loadedRef.current = true;
         loadingRef.current = false;
+        setIsLoaded(true);
+        setIsLoading(false);
         return Promise.resolve(existing);
       }
       // If still loading, wait for it
@@ -51,6 +55,8 @@ export default function useScriptOnce(src, key) {
 
     loadingRef.current = true;
     loadedRef.current = false;
+    setIsLoading(true);
+    setIsLoaded(false);
 
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -61,6 +67,8 @@ export default function useScriptOnce(src, key) {
       script.onload = () => {
         loadedRef.current = true;
         loadingRef.current = false;
+        setIsLoaded(true);
+        setIsLoading(false);
         script.dataset.loaded = 'true';
         console.log(`[useScriptOnce] Loaded: ${src}`);
         resolve(script);
@@ -69,6 +77,8 @@ export default function useScriptOnce(src, key) {
       script.onerror = () => {
         loadedRef.current = false;
         loadingRef.current = false;
+        setIsLoaded(false);
+        setIsLoading(false);
         console.error(`[useScriptOnce] Failed to load: ${src}`);
         reject(new Error(`Failed to load script: ${src}`));
       };
@@ -78,22 +88,18 @@ export default function useScriptOnce(src, key) {
   }, [src, key]);
 
   useEffect(() => {
-    // Only load on mount, cleanup on unmount
-    if (!src || !key) return;
-
     const cleanup = () => {
       // Mark as not loaded so it can be reloaded on remount
       loadedRef.current = false;
+      loadingRef.current = false;
+      setIsLoaded(false);
+      setIsLoading(false);
     };
 
-    loadScript().catch((err) => {
-      console.error(`[useScriptOnce] Error loading ${key}:`, err.message);
-    });
-
     return cleanup;
-  }, [src, key, loadScript]);
+  }, []);
 
-  return { loadScript, isLoaded: loadedRef.current, isLoading: loadingRef.current };
+  return { loadScript, isLoaded, isLoading };
 }
 
 /**
@@ -101,6 +107,7 @@ export default function useScriptOnce(src, key) {
  */
 export function useScriptsOnce(scripts) {
   const loadedRef = useRef({});
+  const [loadedMap, setLoadedMap] = useState({});
 
   useEffect(() => {
     if (!Array.isArray(scripts)) return;
@@ -115,6 +122,7 @@ export function useScriptsOnce(scripts) {
         const existing = document.querySelector(`script[data-script-key="${key}"]`);
         if (existing) {
           loadedRef.current[key] = true;
+          setLoadedMap((prev) => ({ ...prev, [key]: true }));
           continue;
         }
 
@@ -126,6 +134,7 @@ export function useScriptsOnce(scripts) {
 
           script.onload = () => {
             loadedRef.current[key] = true;
+            setLoadedMap((prev) => ({ ...prev, [key]: true }));
             console.log(`[useScriptsOnce] Loaded: ${src}`);
             resolve(script);
           };
@@ -145,5 +154,5 @@ export function useScriptsOnce(scripts) {
     });
   }, [scripts]);
 
-  return loadedRef.current;
+  return loadedMap;
 }

@@ -2396,6 +2396,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
 
   function bindButton(btn, key, pressed) {
     if (!btn) return () => {};
+    let activePointerId = null;
     const clearJumpPulse = () => {
       if (jumpPulseTimer) {
         clearTimeout(jumpPulseTimer);
@@ -2405,6 +2406,10 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     const onDown = (e) => {
       e.preventDefault();
       if (syntaxIntroActive || postVictoryActive) return;
+      activePointerId = e.pointerId;
+      if (btn.setPointerCapture && e.pointerId !== undefined) {
+        try { btn.setPointerCapture(e.pointerId); } catch (_err) {}
+      }
       if (key === 'jump') {
         // Use a short pulse on mobile taps so jump always triggers at least once.
         keys.jump = true;
@@ -2421,49 +2426,52 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     };
     const onUp = (e) => {
       e.preventDefault();
+      if (activePointerId !== null && e.pointerId !== undefined && e.pointerId !== activePointerId) return;
       if (syntaxIntroActive || postVictoryActive) return;
       if (key === 'jump') {
         clearJumpPulse();
       }
       keys[key] = false;
+      if (activePointerId !== null && btn.releasePointerCapture && e.pointerId !== undefined) {
+        try { btn.releasePointerCapture(e.pointerId); } catch (_err) {}
+      }
+      activePointerId = null;
     };
     btn.addEventListener('pointerdown', onDown);
     btn.addEventListener('pointerup', onUp);
     btn.addEventListener('pointerleave', onUp);
     btn.addEventListener('pointercancel', onUp);
-    btn.addEventListener('touchstart', onDown, { passive: false });
-    btn.addEventListener('touchend', onUp, { passive: false });
-    btn.addEventListener('touchcancel', onUp, { passive: false });
-    btn.addEventListener('mousedown', onDown);
-    btn.addEventListener('mouseup', onUp);
     return () => {
       clearJumpPulse();
       btn.removeEventListener('pointerdown', onDown);
       btn.removeEventListener('pointerup', onUp);
       btn.removeEventListener('pointerleave', onUp);
       btn.removeEventListener('pointercancel', onUp);
-      btn.removeEventListener('touchstart', onDown);
-      btn.removeEventListener('touchend', onUp);
-      btn.removeEventListener('touchcancel', onUp);
-      btn.removeEventListener('mousedown', onDown);
-      btn.removeEventListener('mouseup', onUp);
+      activePointerId = null;
     };
   }
 
   function bindActionButton(btn, action) {
     if (!btn) return () => {};
+    let activePointerId = null;
     const onDown = (e) => {
       e.preventDefault();
       if (syntaxIntroActive || postVictoryActive) return;
+      activePointerId = e.pointerId;
       action();
     };
+    const onUp = (e) => {
+      if (activePointerId !== null && e.pointerId !== undefined && e.pointerId !== activePointerId) return;
+      activePointerId = null;
+    };
     btn.addEventListener('pointerdown', onDown);
-    btn.addEventListener('touchstart', onDown, { passive: false });
-    btn.addEventListener('click', onDown);
+    btn.addEventListener('pointerup', onUp);
+    btn.addEventListener('pointercancel', onUp);
     return () => {
       btn.removeEventListener('pointerdown', onDown);
-      btn.removeEventListener('touchstart', onDown);
-      btn.removeEventListener('click', onDown);
+      btn.removeEventListener('pointerup', onUp);
+      btn.removeEventListener('pointercancel', onUp);
+      activePointerId = null;
     };
   }
 
@@ -2521,37 +2529,48 @@ const cleanupKeys = bindKeyEvents();
     joystickKnob.style.transform = 'translate(0, 0)';
   }
 
-  // Touch events for joystick
-  if (joystick) {
-    joystick.addEventListener('touchstart', (e) => {
+  function bindJoystickPointerEvents() {
+    if (!joystick) return () => {};
+    let activePointerId = null;
+    const onPointerDown = (e) => {
       e.preventDefault();
-      const touch = e.touches[0];
-      handleJoystickStart(touch.clientX, touch.clientY);
-    }, { passive: false });
-
-    joystick.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      handleJoystickMove(touch.clientX, touch.clientY);
-    }, { passive: false });
-
-    joystick.addEventListener('touchend', handleJoystickEnd);
-    joystick.addEventListener('touchcancel', handleJoystickEnd);
-    
-    // Mouse events for testing on desktop
-    joystick.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      handleJoystickStart(e.clientX, e.clientY);
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-      if (joystickActive) {
-        handleJoystickMove(e.clientX, e.clientY);
+      activePointerId = e.pointerId;
+      if (joystick.setPointerCapture && e.pointerId !== undefined) {
+        try { joystick.setPointerCapture(e.pointerId); } catch (_err) {}
       }
-    });
-    
-    document.addEventListener('mouseup', handleJoystickEnd);
+      handleJoystickStart(e.clientX, e.clientY);
+    };
+    const onPointerMove = (e) => {
+      if (!joystickActive) return;
+      if (activePointerId !== null && e.pointerId !== undefined && e.pointerId !== activePointerId) return;
+      e.preventDefault();
+      handleJoystickMove(e.clientX, e.clientY);
+    };
+    const onPointerUp = (e) => {
+      if (activePointerId !== null && e.pointerId !== undefined && e.pointerId !== activePointerId) return;
+      e.preventDefault();
+      if (activePointerId !== null && joystick.releasePointerCapture && e.pointerId !== undefined) {
+        try { joystick.releasePointerCapture(e.pointerId); } catch (_err) {}
+      }
+      activePointerId = null;
+      handleJoystickEnd();
+    };
+    joystick.addEventListener('pointerdown', onPointerDown);
+    joystick.addEventListener('pointermove', onPointerMove);
+    joystick.addEventListener('pointerup', onPointerUp);
+    joystick.addEventListener('pointercancel', onPointerUp);
+    joystick.addEventListener('lostpointercapture', onPointerUp);
+    return () => {
+      joystick.removeEventListener('pointerdown', onPointerDown);
+      joystick.removeEventListener('pointermove', onPointerMove);
+      joystick.removeEventListener('pointerup', onPointerUp);
+      joystick.removeEventListener('pointercancel', onPointerUp);
+      joystick.removeEventListener('lostpointercapture', onPointerUp);
+      activePointerId = null;
+      handleJoystickEnd();
+    };
   }
+  const cleanupJoystick = bindJoystickPointerEvents();
 
   startLevel();
   rafId = requestAnimationFrame(tick);
@@ -2577,6 +2596,7 @@ const cleanupKeys = bindKeyEvents();
     cleanupGlide();
     cleanupPlane();
     cleanupFire();
+    cleanupJoystick();
     window.removeEventListener('resize', handleResize);
     cleanupProgressBtn();
     // Also call the Babylon cleanup if present

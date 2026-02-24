@@ -16,9 +16,21 @@ export default function BennyWorld() {
     enableHeadsetControls: false
   });
 
-  useScriptOnce('https://cdn.babylonjs.com/babylon.js', 'babylon');
+  const { loadScript: loadBabylonScript } = useScriptOnce('https://cdn.babylonjs.com/babylon.js', 'babylon');
   // bennyworld.js already contains the Babylon 3D placeholder code
-  useScriptOnce(`${BASE_PATH}js/bennyworld.js`, 'bennyworld');
+  const { loadScript: loadBennyWorldScript } = useScriptOnce(`${BASE_PATH}js/bennyworld.js`, 'bennyworld');
+
+  useEffect(() => {
+    let cancelled = false;
+    loadBabylonScript()
+      .then(() => (cancelled ? null : loadBennyWorldScript()))
+      .catch((err) => {
+        console.error('[BennyWorld] Failed to load scripts:', err?.message || err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadBabylonScript, loadBennyWorldScript]);
 
   useEffect(() => () => {
     if (window.__BennyWorldCleanup) window.__BennyWorldCleanup();

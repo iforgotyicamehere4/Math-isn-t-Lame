@@ -13,8 +13,17 @@ export default function useGameMusic({
   enableHeadsetControls = true,
   sequenceWindowMs = 5000
 }) {
+  const playOnIdsKey = playOnIds.join('|');
+  const pauseOnIdsKey = pauseOnIds.join('|');
+  const togglePauseIdsKey = togglePauseIds.join('|');
+  const interactionSelectorsKey = interactionSelectors.join('|');
+
   useEffect(() => {
     if (typeof window === 'undefined' || typeof Audio === 'undefined') return undefined;
+    const playIds = playOnIdsKey ? playOnIdsKey.split('|') : [];
+    const pauseIds = pauseOnIdsKey ? pauseOnIdsKey.split('|') : [];
+    const toggleIds = togglePauseIdsKey ? togglePauseIdsKey.split('|') : [];
+    const interactionIds = interactionSelectorsKey ? interactionSelectorsKey.split('|') : [];
 
     const baseRaw = import.meta.env.BASE_URL || '/';
     const base = baseRaw.endsWith('/') ? baseRaw : `${baseRaw}/`;
@@ -302,7 +311,7 @@ export default function useGameMusic({
     }
 
     const playHandlers = [];
-    playOnIds.forEach((id) => {
+    playIds.forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       const handler = () => playMusic();
@@ -311,7 +320,7 @@ export default function useGameMusic({
     });
 
     const pauseHandlers = [];
-    pauseOnIds.forEach((id) => {
+    pauseIds.forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       const handler = () => pauseMusic();
@@ -320,7 +329,7 @@ export default function useGameMusic({
     });
 
     const togglePauseHandlers = [];
-    togglePauseIds.forEach((id) => {
+    toggleIds.forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       const handler = () => {
@@ -338,7 +347,7 @@ export default function useGameMusic({
     });
 
     const interactionHandlers = [];
-    interactionSelectors.forEach((selector) => {
+    interactionIds.forEach((selector) => {
       const el = document.querySelector(selector);
       if (!el) return;
       const handler = () => playMusic();
@@ -366,10 +375,10 @@ export default function useGameMusic({
     toggleId,
     popupId,
     statusId,
-    playOnIds.join('|'),
-    pauseOnIds.join('|'),
-    togglePauseIds.join('|'),
-    interactionSelectors.join('|'),
+    playOnIdsKey,
+    pauseOnIdsKey,
+    togglePauseIdsKey,
+    interactionSelectorsKey,
     startChecked,
     enableHeadsetControls,
     sequenceWindowMs

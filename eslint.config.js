@@ -43,4 +43,27 @@ export default [
       ],
     },
   },
+  {
+    files: ['src/__tests__/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
+  },
+  {
+    files: ['src/decimal/decimal.js'],
+    rules: {
+      'no-unused-vars': 'off',
+      'no-useless-escape': 'off',
+      'no-redeclare': 'off',
+    },
+  },
+  {
+    files: ['src/decimal/decimal.logic.js'],
+    rules: {
+      'no-useless-escape': 'off',
+    },
+  },
 ];

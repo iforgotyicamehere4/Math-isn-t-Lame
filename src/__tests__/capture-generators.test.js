@@ -22,7 +22,7 @@ function mountCaptureDom() {
   const proto = HTMLCanvasElement.prototype;
   if (!proto.getContext) {
     // fallback for non-canvas test envs
-    // eslint-disable-next-line no-param-reassign
+     
     proto.getContext = () => null;
   } else {
     vi.spyOn(proto, 'getContext').mockImplementation(() => null);
@@ -103,7 +103,7 @@ describe('Capture generators', () => {
   it('medium25 emits valid add/subtract problems with one correct choice', () => {
     for (let i = 0; i < 80; i += 1) {
       const p = hooks.generateProblemForLevel('medium25', 4);
-      expect(/\+|\-/.test(p.display)).toBe(true);
+      expect(/[+-]/.test(p.display)).toBe(true);
       expect(p.choices.length).toBe(4);
 
       const exactMatches = p.choices.filter((c) => hooks.fractionsEqual(c, p.correct));

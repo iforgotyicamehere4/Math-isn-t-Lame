@@ -45,19 +45,17 @@ async function translateText(text, targetLang) {
 
 export default function useAutoTranslate(stringsByKey, enabled = true) {
   const [language] = useState(() => detectLanguage());
-  const [translated, setTranslated] = useState(stringsByKey);
+  const [translatedState, setTranslatedState] = useState(stringsByKey);
   const [isTranslating, setIsTranslating] = useState(false);
 
   const input = useMemo(() => stringsByKey || {}, [stringsByKey]);
   const inputHash = useMemo(() => JSON.stringify(input), [input]);
   const baseLang = language.split('-')[0];
   const targetLang = baseLang || 'en';
+  const translated = !enabled || targetLang === 'en' ? input : translatedState;
 
   useEffect(() => {
-    if (!enabled || targetLang === 'en') {
-      setTranslated(input);
-      return;
-    }
+    if (!enabled || targetLang === 'en') return undefined;
 
     let cancelled = false;
     const cache = readCache();
@@ -84,13 +82,13 @@ export default function useAutoTranslate(stringsByKey, enabled = true) {
       }
       if (cancelled) return;
       writeCache(cache);
-      setTranslated(next);
+      setTranslatedState(next);
       setIsTranslating(false);
     };
 
     run().catch(() => {
       if (!cancelled) {
-        setTranslated(input);
+        setTranslatedState(input);
         setIsTranslating(false);
       }
     });
@@ -102,4 +100,3 @@ export default function useAutoTranslate(stringsByKey, enabled = true) {
 
   return { translated, language: targetLang, isTranslating };
 }
-

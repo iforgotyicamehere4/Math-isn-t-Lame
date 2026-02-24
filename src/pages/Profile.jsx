@@ -56,9 +56,6 @@ const BENNY_COLORS = [
   { id: 'tone-25', name: 'Rose/Mint', type: 'tone', primary: '#fb7185', secondary: '#6ee7b7' }
 ];
 
-
-
-const EASY_LEVELS = ['Easy', 'Easy25', 'Easy50', 'Easy75'];
 const MEDIUM_LEVELS = ['Medium', 'Medium26', 'Medium60', 'Medium100'];
 
 const BENNY_TIERS = [
@@ -159,17 +156,27 @@ function getColorFill(color) {
 }
 
 export default function Profile() {
-  const [refresh, setRefresh] = useState(0);
+  const [, setRefresh] = useState(0);
   const [dashDeleteMode, setDashDeleteMode] = useState('easy');
   const currentUser = useMemo(() => localStorage.getItem('mathpop_current_user'), []);
   const [jukeboxState, setJukeboxState] = useState(() => loadJukeboxState(currentUser));
-  const profile = useMemo(() => {
+  const [mobileSelections, setMobileSelections] = useState({
+    points: 'mathpup',
+    correct: 'mathpup',
+    attempted: 'mathpup',
+    accuracy: 'mathpup',
+    levels: 'mathpup',
+    streak: 'mathpup',
+    colors: 'mathpup',
+    tiers: 'mathpup'
+  });
+  const profile = (() => {
     if (!currentUser) return null;
     const raw = localStorage.getItem(`mathpop_profile_${currentUser}`);
     return raw ? JSON.parse(raw) : null;
-  }, [currentUser, refresh]);
-  const stats = useMemo(() => loadProfileStats(currentUser), [currentUser, refresh]);
-  const availableJukeboxSongs = useMemo(() => getAvailableJukeboxSongs(currentUser), [currentUser, refresh]);
+  })();
+  const stats = loadProfileStats(currentUser);
+  const availableJukeboxSongs = getAvailableJukeboxSongs(currentUser);
 
   if (!currentUser || !profile || !stats) {
     return (
@@ -345,26 +352,15 @@ export default function Profile() {
     }
   ];
 
-  const gameMap = useMemo(() => {
+  const gameMap = (() => {
     const map = {};
     games.forEach((game) => {
       map[game.id] = game;
     });
     return map;
-  }, [games]);
+  })();
 
   const gameOptions = games.map((game) => ({ id: game.id, title: game.title }));
-
-  const [mobileSelections, setMobileSelections] = useState({
-    points: 'mathpup',
-    correct: 'mathpup',
-    attempted: 'mathpup',
-    accuracy: 'mathpup',
-    levels: 'mathpup',
-    streak: 'mathpup',
-    colors: 'mathpup',
-    tiers: 'mathpup'
-  });
 
   const selectGame = (key, value) => {
     setMobileSelections((prev) => ({ ...prev, [key]: value }));
@@ -705,7 +701,6 @@ export default function Profile() {
               {BENNY_TIERS.map((tier) => {
                 const unlocked = tierUnlocked(tier);
                 const reqsMet = tierRequirementsMet(tier);
-                const canBuy = canPurchaseTier(tier);
               return (
                 <div
                   key={tier.id}

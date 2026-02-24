@@ -656,6 +656,8 @@ window.__MathPupStateReset = true;
   let nextRoundTimeout = null;
   let correctivePauseTimeout = null;
   let correctivePauseToken = 0;
+  let correctiveCountdownTimer = null;
+  let correctiveLockUntil = 0;
   let timerLevelName = null;
   let miniGameActive = false;
   let miniGameFrame = null;
@@ -1435,6 +1437,11 @@ window.__MathPupStateReset = true;
       clearTimeout(correctivePauseTimeout);
       correctivePauseTimeout = null;
     }
+    if (correctiveCountdownTimer) {
+      clearInterval(correctiveCountdownTimer);
+      correctiveCountdownTimer = null;
+    }
+    correctiveLockUntil = 0;
   }
 
   function clearMiniGame() {
@@ -2238,12 +2245,25 @@ window.__MathPupStateReset = true;
       recordProblemTiming(levelName, activeProblem, elapsedMs, 'incorrect');
       clearCorrectivePauseTimeout();
       const token = ++correctivePauseToken;
-      statusEl.textContent = 'Read this help for 30 seconds, then try the same problem again.';
       setHint(buildCorrectiveHint(activeProblem, answerStr, expected));
+      correctiveLockUntil = Date.now() + 30000;
+      const renderCorrectiveCountdown = () => {
+        const left = Math.max(0, Math.ceil((correctiveLockUntil - Date.now()) / 1000));
+        if (left <= 0) return;
+        statusEl.textContent = `Read this help for ${left}s, then try the same problem again.`;
+        if (timerEl && !miniGameActive) {
+          const levelSec = Math.max(0, Math.ceil(levelTimeRemaining / 1000));
+          timerEl.classList.remove('timer-urgent');
+          timerEl.textContent = `Read: ${left}s | Level: ${levelSec}s`;
+        }
+      };
+      renderCorrectiveCountdown();
+      correctiveCountdownTimer = setInterval(renderCorrectiveCountdown, 250);
       correctivePauseTimeout = setTimeout(() => {
         if (!running || miniGameActive || levelExpired) return;
         if (token !== correctivePauseToken) return;
         if (!engine.currentProblem) return;
+        clearCorrectivePauseTimeout();
         roundActive = true;
         timerLevelName = levelName;
         problemStartAt = performance.now();

@@ -1,11 +1,5 @@
 export const JUKEBOX_SONGS = [
   {
-    "id": "song-01",
-    "label": "Math isn’t lame",
-    "filename": "01-math-isnt-lame.mp3",
-    "originalFilename": " Math isn’t lame.mp3"
-  },
-  {
     "id": "song-02",
     "label": "5ever is a long time",
     "filename": "02-5ever-is-a-long-time.mp3",
@@ -132,12 +126,6 @@ export const JUKEBOX_SONGS = [
     "originalFilename": "The Ballad of Miguel de Guzmán.mp3"
   },
   {
-    "id": "song-23",
-    "label": "The Lovelace Loop",
-    "filename": "23-the-lovelace-loop.mp3",
-    "originalFilename": "The Lovelace Loop.mp3"
-  },
-  {
     "id": "song-24",
     "label": "The Mirzakhani Method",
     "filename": "24-the-mirzakhani-method.mp3",
@@ -164,7 +152,6 @@ export const JUKEBOX_SONGS = [
 ];
 
 const BENNY_DASH_DIFFICULTIES = ['easy', 'medium', 'mathanomical'];
-const BOSS_UNLOCK_SONG_IDS = new Set(['song-26', 'song-27']);
 
 function readStorage(storage) {
   if (storage) return storage;
@@ -199,9 +186,5 @@ export function hasBennyDashCompletion(user, storage) {
 }
 
 export function getAvailableJukeboxSongs(user, storage) {
-  const unlocked = hasBennyDashCompletion(user, storage);
-  return JUKEBOX_SONGS.filter((song) => {
-    if (!BOSS_UNLOCK_SONG_IDS.has(song.id)) return true;
-    return unlocked;
-  });
+  return JUKEBOX_SONGS;
 }

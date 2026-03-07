@@ -1031,7 +1031,9 @@ window.__MathPupStateReset = true;
         pupStreakRecord: Number(parsed.pupStreakRecord) || 0,
         levelsCompleted: Array.isArray(parsed.levelsCompleted) ? parsed.levelsCompleted : [],
         spentPoints: Number(parsed.spentPoints) || 0,
-        tierUnlocks: Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : [],
+        tierUnlocks: Array.isArray(parsed.tierUnlocks)
+          ? [...new Set(parsed.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
+          : [],
         activeTier: Number(parsed.activeTier) || 1,
         games: parsed.games && typeof parsed.games === 'object' ? parsed.games : {}
       };
@@ -1226,7 +1228,12 @@ window.__MathPupStateReset = true;
 
   function isTierUnlocked(tierId) {
     const stats = loadProfileStats();
-    const unlocks = new Set(stats.tierUnlocks || []);
+    const unlocks = new Set(
+      (stats.tierUnlocks || [])
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id >= 1)
+        .map((id) => Math.floor(id))
+    );
     unlocks.add(1);
     return unlocks.has(tierId);
   }

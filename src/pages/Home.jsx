@@ -466,6 +466,7 @@ export default function Home() {
     navProfile: 'Profile',
     signUp: 'Sign Up',
     signIn: 'Sign In',
+    tutorial: 'Tutorial',
     continue: 'Continue',
     continueEmpty: 'Play',
     dailyChallenge: 'Daily Challenge',
@@ -764,7 +765,14 @@ export default function Home() {
               <>
                 <button
                   className="start-btn"
+                  onClick={() => navigate('/howto')}
+                >
+                  {tr.tutorial || homeStrings.tutorial}
+                </button>
+                <button
+                  className="start-btn"
                   id="openSignUp"
+                  style={{ marginLeft: 8 }}
                   onClick={() => {
                     setAuthMode('signup');
                     setShowModal(true);

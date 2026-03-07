@@ -31,6 +31,7 @@ window.__BennyWorldBabylonCleanup = null;
   (() => {
     // Ensure a canvas exists with id 'bwBabylon' (if not, create one and append to root)
     let canvas = document.getElementById('bwBabylon');
+    let createdCanvas = false;
     if (!canvas) {
       canvas = document.createElement('canvas');
       canvas.id = 'bwBabylon';
@@ -42,20 +43,26 @@ window.__BennyWorldBabylonCleanup = null;
       canvas.style.height = '200px';
       canvas.style.pointerEvents = 'none'; // prevent interfering with game input
       root.appendChild(canvas);
+      createdCanvas = true;
     }
 
     let tries = 0;
+    let waitTimer = 0;
+    let resizeHandler = null;
+    let destroyed = false;
     const waitForBabylon = () => {
+      if (destroyed) return;
       if (window.BABYLON) {
         initBabylon();
         return;
       }
       tries += 1;
       if (tries > 40) return;
-      setTimeout(waitForBabylon, 250);
+      waitTimer = setTimeout(waitForBabylon, 250);
     };
 
     const initBabylon = () => {
+      if (destroyed) return;
       const BABYLON = window.BABYLON;
       let engine;
       try {
@@ -133,15 +140,28 @@ window.__BennyWorldBabylonCleanup = null;
         scene.render();
       });
 
-      window.addEventListener('resize', () => engine.resize());
+      resizeHandler = () => engine.resize();
+      window.addEventListener('resize', resizeHandler);
       window.BennyWorld3D = { scene, bennyRoot, camera };
       window.__BennyWorldBabylonCleanup = () => {
+        destroyed = true;
+        if (waitTimer) {
+          clearTimeout(waitTimer);
+          waitTimer = 0;
+        }
+        if (resizeHandler) {
+          window.removeEventListener('resize', resizeHandler);
+          resizeHandler = null;
+        }
         try {
           engine.stopRenderLoop();
           scene.dispose();
           engine.dispose();
         } catch {
           // ignore cleanup errors
+        }
+        if (createdCanvas && canvas && canvas.parentNode) {
+          canvas.parentNode.removeChild(canvas);
         }
       };
     };
@@ -917,6 +937,7 @@ window.__BennyWorldBabylonCleanup = null;
 
   window.__BennyWorldCleanup = () => {
     if (rafId) cancelAnimationFrame(rafId);
+    stopDebrisFall();
     cleanupKeys();
     cleanupLeft();
     cleanupRight();

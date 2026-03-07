@@ -32,33 +32,11 @@ export default function HowToPlay() {
     };
   }, []);
 
-  useEffect(() => {
-    let rafId = null;
-    let opened = false;
-    const tick = () => {
-      const door = document.querySelector('.exit-door');
-      const bennyHead = document.querySelector('.howto-benny .head');
-      if (!door || !bennyHead) return;
-      const doorRect = door.getBoundingClientRect();
-      const headRect = bennyHead.getBoundingClientRect();
-      if (!opened && headRect.right >= doorRect.left - 4 && headRect.left < doorRect.right) {
-        door.classList.add('is-open');
-        opened = true;
-      }
-      if (opened && headRect.left > doorRect.right + 4) {
-        door.classList.add('is-close');
-        return;
-      }
-      rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      if (window.__HowToPlayCleanup) {
-        console.log('[HowToPlay] Running cleanup');
-        window.__HowToPlayCleanup();
-      }
-    };
+  useEffect(() => () => {
+    if (window.__HowToPlayCleanup) {
+      console.log('[HowToPlay] Running cleanup');
+      window.__HowToPlayCleanup();
+    }
   }, []);
 
   if (error) {
@@ -76,151 +54,85 @@ export default function HowToPlay() {
 
   return (
     <div className="background howto-page">
-      <header className="howto-header">
-        <div className="hero-card small">
-          <h1>Few Rules from the dev</h1>
-          <p className="tagline">
-            Play fair, avoid calculators, and have fun learning. This world is
-            about steady progress, not rushing the answer.
-          </p>
-        </div>
-      </header>
-
-      <section className="tutorial-banner" aria-label="Benny tutorial animation">
-        <div className="tutorial-banner__arena">
-          <div className="tutorial-banner__benny" aria-hidden="true">
-            <div className="benny-base">
-              <div className="benny-shape">
-                <div className="back" />
-                <div className="leg-left" />
-                <div className="leg-right" />
-                <div className="head" />
-              </div>
-            </div>
-          </div>
-          <div className="tutorial-banner__bug bug-1" aria-hidden="true">x÷?</div>
-          <div className="tutorial-banner__bug bug-2" aria-hidden="true">2/?</div>
-          <div className="tutorial-banner__bug bug-3" aria-hidden="true">??</div>
-          <p className="tutorial-banner__caption">Benny is tracking Syntax Bugs...</p>
-        </div>
-      </section>
-
       <main className="campfire-scene" aria-label="Campfire scene">
-        <section className="campfire-stage" aria-label="Campfire characters">
-          <div className="exit-door" aria-hidden="true">
-            <div className="door-frame" />
-            <div className="door-panel" />
-            <div className="door-knob" />
-            <div className="door-blackhole" aria-hidden="true">
-              <div className="blackhole-core" />
-              <div className="blackhole-ring" />
-              <div className="blackhole-ring" />
-              <div className="blackhole-ring" />
-              <div className="blackhole-particles" />
-            </div>
-          </div>
-          <div className="booiiii-duo" aria-label="Mr. Boooiiii walking Benny">
-            <div className="leash" aria-hidden="true" />
-            <div className="booiiii" aria-label="Mr. Boooiiii">
-              <div className="hat">
-                <div className="hat-brim" />
-                <span className="dot" />
-                <div className="hat-top" />
-              </div>
-              <div className="head">
-                <span className="eye" />
-                <span className="eye" />
-                <span className="mouth" />
-              </div>
-              <div className="collar">
-                <span className="collar-left" />
-                <span className="collar-right" />
-              </div>
-              <div className="torso">
-                <span className="torso-left" />
-                <span className="torso-right" />
-              </div>
-              <div className="arms">
-                <span className="arm left" />
-                <span className="arm right" />
-                <span className="hand left" />
-                <span className="hand right" />
-              </div>
-              <div className="lap-top">
-                <span className="laptop-back" />
-                <span className="laptop-seat" />
-              </div>
-              <div className="legs">
-                <span className="leg left" />
-                <span className="leg right" />
-                <span className="foot left" />
-                <span className="foot right" />
-              </div>
-            </div>
-
-            <div className="howto-benny" aria-label="Benny">
-              <div className="benny-base">
-                <div className="benny-shape">
-                  <div className="back" />
-                  <div className="leg-left" />
-                  <div className="leg-right" />
-                  <div className="head" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="instructions" aria-label="Benny tutorial">
-          <h2>Benny&apos;s Tutorial</h2>
+        <section className="instructions" aria-label="How to Play">
+          <h2>How to Play</h2>
           <p className="tutorial-lead">
-            Benny&apos;s Mathanomical Adventure is a basic math hangout for parents and kids. Team up,
-            solve math, and help Benny clear out the dev&apos;s Syntax Bugs.
+            Start here if you&apos;re new. This quick guide explains setup, what each game does, and how to unlock
+            Benny&apos;s powers, music, and stats.
           </p>
 
-          <div className="tutorial-block">
-            <h3>How Benny&apos;s Mathanomical Adventure Works</h3>
-            <ol>
-              <li>Pick a game and choose a difficulty.</li>
-              <li>Solve each problem before the bugs get away.</li>
-              <li>Build points to trigger mini-games and clear more Syntax Bugs.</li>
-              <li>Use retries and hints to learn the method, then keep moving.</li>
-            </ol>
-          </div>
-
-          <div className="tutorial-block">
-            <h3>Game Modes</h3>
+          <div className="tutorial-block tutorial-block--important">
+            <h3>Step 1: Create Your Profile First</h3>
+            <p className="tutorial-text">
+              Go to Home and tap <strong>Sign Up</strong>. Your profile is required to save progress and unlock core features.
+            </p>
             <ul>
-              <li><strong>Math Pup:</strong> Core warm-up math and unlockable Benny upgrades.</li>
-              <li><strong>Capture The Fraction:</strong> Pop the bubble with the correct fraction answer.</li>
-              <li><strong>Deci-What?:</strong> Translate decimal words into number form.</li>
-              <li><strong>Ma+h5Yn+h3:</strong> Algebra challenge mode with speed pressure.</li>
+              <li><strong>Benny Powers:</strong> Buy and activate unlocked tiers.</li>
+              <li><strong>Benny Jukebox:</strong> Unlock and toggle music tracks.</li>
+              <li><strong>Stats Dashboard:</strong> Track points, accuracy, streaks, and best scores by game.</li>
             </ul>
           </div>
 
           <div className="tutorial-block">
-            <h3>How To Unlock Benny Dash</h3>
+            <h3>First 5 Minutes (Recommended Path)</h3>
             <ol>
-              <li>Play the math games above and stack points + completions.</li>
-              <li>Keep unlocking features and mini-games as you progress.</li>
-              <li>Once enough progress is saved, jump into <strong>Benny Dash</strong> from Games.</li>
+              <li>Create profile on Home.</li>
+              <li>Play <strong>Math Pup</strong> first to learn the core pace.</li>
+              <li>Try <strong>Capture</strong> and <strong>Deci-What?</strong> for fractions and decimals.</li>
+              <li>Play <strong>Ma+h5Yn+h3</strong> when ready for algebra speed rounds.</li>
+              <li>Open <strong>Profile</strong> to spend points on powers/music and review your stats.</li>
             </ol>
           </div>
 
           <div className="tutorial-block">
-            <h3>Profile Page</h3>
-            <ul>
-              <li>Check total points, accuracy, streaks, and best scores.</li>
-              <li>Review each game&apos;s stats and your unlock progress.</li>
-              <li>Manage Benny tiers, color unlocks, and jukebox settings.</li>
-            </ul>
+            <h3>Game Walkthrough</h3>
+            <div className="tutorial-game-grid">
+              <article className="tutorial-game-card">
+                <h4>Math Pup</h4>
+                <p><strong>Goal:</strong> Build fundamentals and points fast.</p>
+                <p><strong>How it works:</strong> Pick a difficulty, solve quickly, and maintain streaks.</p>
+                <p><strong>Why it matters:</strong> Main path for Benny upgrades and early unlocks.</p>
+              </article>
+              <article className="tutorial-game-card">
+                <h4>Capture The Fraction</h4>
+                <p><strong>Goal:</strong> Match fraction answers correctly.</p>
+                <p><strong>How it works:</strong> Read prompt, select correct fraction bubble, keep your streak alive.</p>
+                <p><strong>Why it matters:</strong> Adds profile points and improves fraction fluency.</p>
+              </article>
+              <article className="tutorial-game-card">
+                <h4>Deci-What?</h4>
+                <p><strong>Goal:</strong> Convert decimal words into number form.</p>
+                <p><strong>How it works:</strong> Read carefully, enter the decimal value, and stay accurate.</p>
+                <p><strong>Why it matters:</strong> Strengthens decimal fluency and feeds unlock progress.</p>
+              </article>
+              <article className="tutorial-game-card">
+                <h4>Ma+h5Yn+h3 (MathSynth)</h4>
+                <p><strong>Goal:</strong> Solve algebra-style prompts under pressure.</p>
+                <p><strong>How it works:</strong> Move quickly, avoid mistakes, and push high scores.</p>
+                <p><strong>Why it matters:</strong> High-skill mode that boosts points and color unlocks.</p>
+              </article>
+            </div>
+          </div>
+
+          <div className="tutorial-block">
+            <h3>Unlocking Benny Dash</h3>
+            <ol>
+              <li>Build progress across Math Pup, Capture, Deci-What?, and Ma+h5Yn+h3.</li>
+              <li>Keep increasing points and completions in your profile.</li>
+              <li>When unlocked, launch <strong>Benny Dash (Zone 1)</strong> from the Games page.</li>
+            </ol>
           </div>
 
           <blockquote className="queen-line">
-            <p><strong>Syntax Bug Queen:</strong> &quot;Good luck silly goober...... nah nah boo boo.&quot;</p>
+            <p><strong>Reminder:</strong> No profile = no saved unlocks, powers, jukebox, or long-term stats.</p>
           </blockquote>
 
-          <Link id="backLink" to="/" className="back-link">Back Home</Link>
+          <div className="tutorial-links">
+            <Link to="/" className="back-link">Home</Link>
+            <Link to="/list" className="back-link">Games</Link>
+            <Link to="/profile" className="back-link">Profile</Link>
+          </div>
         </section>
       </main>
       <div id="nightOverlay" />

@@ -135,6 +135,7 @@ let miniClearBonusCooldownUntil = 0;
 let miniJoystick = null;
 let miniStick = null;
 let miniShootBtn = null;
+let utilityPumpHeld = false;
 let miniJoystickActive = false;
 let miniJoystickVector = { x: 0, y: 0 };
 let miniJoystickCenter = { x: 0, y: 0 };
@@ -1207,6 +1208,12 @@ function getActiveBennyTier() {
   const stats = loadProfileStats();
   return Number(stats.activeTier) || 1;
 }
+function isTierUnlocked(tierId) {
+  const stats = loadProfileStats();
+  const unlocks = new Set(stats.tierUnlocks || []);
+  unlocks.add(1);
+  return unlocks.has(tierId);
+}
 function awardPoints(points) {
   score += points;
   const stats = loadProfileStats();
@@ -1496,6 +1503,7 @@ function startMiniGame() {
 function finishMiniGame() {
   miniGameActive = false;
   miniGameDone = true;
+  utilityPumpHeld = false;
   setStatus("Mini game complete! Back to fractions.");
   if (inputEl) inputEl.disabled = false;
   miniCircles = [];
@@ -1577,12 +1585,68 @@ function updateMiniGame(deltaSec) {
   }
 
   miniCircles.forEach((circle) => {
+    if (circle.cured) return;
     circle.x += circle.vx * deltaSec;
     circle.y += circle.vy * deltaSec;
     circle.wobble += deltaSec * (2.8 + Math.random() * 0.3);
     if (circle.x - circle.r < 0 || circle.x + circle.r > canvas.width) circle.vx *= -1;
     if (circle.y - circle.r < 0 || circle.y + circle.r > canvas.height) circle.vy *= -1;
   });
+
+  const curedCircles = miniCircles.filter((circle) => circle.cured);
+  if (curedCircles.length > 0) {
+    curedCircles.forEach((cured) => {
+      const targets = miniCircles.filter((circle) => !circle.cured);
+      if (!targets.length) return;
+      let target = null;
+      let nearest = Infinity;
+      targets.forEach((circle) => {
+        const dxC = circle.x - cured.x;
+        const dyC = circle.y - cured.y;
+        const dist = Math.hypot(dxC, dyC);
+        if (dist < nearest) {
+          nearest = dist;
+          target = circle;
+        }
+      });
+      if (!target) return;
+      const dxC = target.x - cured.x;
+      const dyC = target.y - cured.y;
+      const dist = Math.max(1, Math.hypot(dxC, dyC));
+      const strikeSpeed = 280 * deltaSec;
+      cured.x += (dxC / dist) * strikeSpeed;
+      cured.y += (dyC / dist) * strikeSpeed;
+      if (dist <= target.r + 14) {
+        const idx = miniCircles.indexOf(target);
+        if (idx >= 0) miniCircles.splice(idx, 1);
+        awardPoints(MINI_POINTS_PER_CIRCLE);
+        setStatus(`Cured bug rewrote a syntax bug! +${MINI_POINTS_PER_CIRCLE}`);
+      }
+    });
+  }
+
+  const utilityPumpActive = utilityPumpHeld && getActiveBennyTier() === 8 && isTierUnlocked(8);
+  if (utilityPumpActive) {
+    const pullRange = 260;
+    const pullStep = 240 * deltaSec;
+    const targetX = bennyState.x;
+    const targetY = bennyState.y;
+    miniCircles = miniCircles.filter((circle) => {
+      const dx = targetX - circle.x;
+      const dy = targetY - circle.y;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      if (dist <= pullRange) {
+        circle.x += (dx / dist) * pullStep;
+        circle.y += (dy / dist) * pullStep;
+      }
+      if (dist <= circle.r + 18) {
+        awardPoints(MINI_POINTS_PER_CIRCLE);
+        setStatus(`Utility Pump! +${MINI_POINTS_PER_CIRCLE}`);
+        return false;
+      }
+      return true;
+    });
+  }
 
   // collisions: potty bonus
   miniCircles = miniCircles.filter((circle) => {
@@ -1605,6 +1669,15 @@ function updateMiniGame(deltaSec) {
       const dyC = circle.y - shot.y;
       if (Math.hypot(dxC, dyC) < circle.r + 8) {
         hit = true;
+        if (shot.cureBeam) {
+          if (!circle.cured) {
+            circle.cured = true;
+            circle.vx = 0;
+            circle.vy = 0;
+            setStatus('Concept Clarity! Syntax bug cured.');
+          }
+          return true;
+        }
         awardPoints(MINI_POINTS_PER_CIRCLE);
         setStatus(`Syntax Bug zapped! +${MINI_POINTS_PER_CIRCLE}`);
         return false;
@@ -1614,6 +1687,10 @@ function updateMiniGame(deltaSec) {
     if (!hit) remainingShots.push(shot);
   });
   miniShots = remainingShots;
+
+  if (miniCircles.length > 0 && miniCircles.every((circle) => circle.cured)) {
+    miniCircles = [];
+  }
 
   if (miniCircles.length === 0) {
     const now = performance.now();
@@ -1641,6 +1718,15 @@ function drawMiniGame() {
   miniCircles.forEach((circle) => {
     const wobbleX = Math.sin(circle.wobble) * 6;
     const wobbleY = Math.cos(circle.wobble * 1.2) * 4;
+    if (circle.cured) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(circle.x, circle.y, circle.r + 8, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(110, 231, 183, 0.9)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    }
     drawSyntaxBug(
       ctx,
       circle.x + wobbleX,
@@ -1736,11 +1822,37 @@ function ensureMiniControls() {
     miniShootBtn.className = 'capture-mini-shoot';
     miniShootBtn.textContent = 'Shoot';
     anchor.appendChild(miniShootBtn);
+    const isUtilityPumpEnabled = () => miniGameActive && getActiveBennyTier() === 8 && isTierUnlocked(8);
+    const startUtilityPump = (e) => {
+      if (e) e.preventDefault();
+      if (!isUtilityPumpEnabled()) return false;
+      utilityPumpHeld = true;
+      return true;
+    };
+    const stopUtilityPump = () => {
+      utilityPumpHeld = false;
+    };
     miniShootBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault();
+      if (startUtilityPump(e)) return;
       fireMiniShots();
     }, { passive: false });
-    miniShootBtn.addEventListener('click', () => fireMiniShots());
+    miniShootBtn.addEventListener('touchend', stopUtilityPump);
+    miniShootBtn.addEventListener('touchcancel', stopUtilityPump);
+    miniShootBtn.addEventListener('pointerdown', (e) => {
+      if (startUtilityPump(e)) return;
+      fireMiniShots();
+      e.preventDefault();
+    });
+    miniShootBtn.addEventListener('pointerup', stopUtilityPump);
+    miniShootBtn.addEventListener('pointercancel', stopUtilityPump);
+    miniShootBtn.addEventListener('pointerleave', stopUtilityPump);
+    miniShootBtn.addEventListener('click', (e) => {
+      if (isUtilityPumpEnabled()) {
+        e.preventDefault();
+        return;
+      }
+      fireMiniShots();
+    });
   }
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
   miniJoystick.style.display = isMobile && miniGameActive ? 'flex' : 'none';
@@ -1851,14 +1963,16 @@ function fireMiniShots() {
   if (now - lastShotAt < MINI_SHOT_COOLDOWN) return;
   lastShotAt = now;
   const tier = getActiveBennyTier();
-  const shotCount = tier >= 3 ? 3 : 2;
-  const spread = shotCount === 3 ? [-0.2, 0, 0.2] : [-0.15, 0.15];
+  const isTeacher = tier === 10 && isTierUnlocked(10);
+  const shotCount = isTeacher ? 1 : (tier >= 3 ? 3 : 2);
+  const spread = isTeacher ? [0] : (shotCount === 3 ? [-0.2, 0, 0.2] : [-0.15, 0.15]);
   spread.forEach((offset) => {
     miniShots.push({
       x: bennyState.x,
       y: bennyState.y - 16,
       vx: Math.cos(offset) * 420,
-      vy: Math.sin(offset) * 420 - 220
+      vy: Math.sin(offset) * 420 - 220,
+      cureBeam: isTeacher
     });
   });
 }

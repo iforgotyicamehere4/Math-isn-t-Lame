@@ -56,20 +56,85 @@ const BENNY_COLORS = [
   { id: 'tone-25', name: 'Rose/Mint', type: 'tone', primary: '#fb7185', secondary: '#6ee7b7' }
 ];
 
+const DECIMAL_ACRYLICS = [
+  { id: 'dp-01', primary: '#0c0b18', secondary: '#3b0f58' },
+  { id: 'dp-02', primary: '#0b1026', secondary: '#0f6b6d' },
+  { id: 'dp-03', primary: '#160a2a', secondary: '#5b1e57' },
+  { id: 'dp-04', primary: '#071a24', secondary: '#164c70' },
+  { id: 'dp-05', primary: '#140b1f', secondary: '#6b2a3f' },
+  { id: 'dp-06', primary: '#09131c', secondary: '#246b4f' },
+  { id: 'dp-07', primary: '#0e0f1e', secondary: '#4a2f8a' },
+  { id: 'dp-08', primary: '#0a1a1f', secondary: '#1e5a7a' },
+  { id: 'dp-09', primary: '#131126', secondary: '#3f2d78' },
+  { id: 'dp-10', primary: '#0d1a2d', secondary: '#1b5ea5' },
+  { id: 'dp-11', primary: '#150b24', secondary: '#6d1f5f' },
+  { id: 'dp-12', primary: '#111629', secondary: '#3c5bdc' },
+  { id: 'dp-13', primary: '#0f0e1d', secondary: '#7a2bff' },
+  { id: 'dp-14', primary: '#0b1426', secondary: '#2f8bff' },
+  { id: 'dp-15', primary: '#120d1a', secondary: '#ff2f92' },
+  { id: 'dp-16', primary: '#0f1216', secondary: '#27f2ff' },
+  { id: 'dp-17', primary: '#170f25', secondary: '#8a4bff' },
+  { id: 'dp-18', primary: '#0f1a24', secondary: '#22d3ee' },
+  { id: 'dp-19', primary: '#120a1c', secondary: '#ff5e5e' },
+  { id: 'dp-20', primary: '#10121d', secondary: '#c97bff' },
+  { id: 'dp-21', primary: '#0b0f18', secondary: '#19b5a5' },
+  { id: 'dp-22', primary: '#0f1422', secondary: '#ff8a3d' },
+  { id: 'dp-23', primary: '#0c1520', secondary: '#3dd6ff' },
+  { id: 'dp-24', primary: '#140c1c', secondary: '#ff42c7' },
+  { id: 'dp-25', primary: '#0d1420', secondary: '#40ff8a' },
+  { id: 'dp-26', primary: '#0b1222', secondary: '#7c7cff' },
+  { id: 'dp-27', primary: '#0f0b18', secondary: '#ff6a00' },
+  { id: 'dp-28', primary: '#0d1a2b', secondary: '#00d1ff' },
+  { id: 'dp-29', primary: '#0f0f1b', secondary: '#ff4f7b' },
+  { id: 'dp-30', primary: '#101821', secondary: '#23c3ff' },
+  { id: 'dp-31', primary: '#120b1e', secondary: '#a855f7' },
+  { id: 'dp-32', primary: '#0a1622', secondary: '#00f5a0' },
+  { id: 'dp-33', primary: '#0c101f', secondary: '#4ade80' },
+  { id: 'dp-34', primary: '#0f1428', secondary: '#60a5fa' },
+  { id: 'dp-35', primary: '#150c20', secondary: '#f472b6' },
+  { id: 'dp-36', primary: '#0d1821', secondary: '#14b8a6' },
+  { id: 'dp-37', primary: '#140c24', secondary: '#e879f9' },
+  { id: 'dp-38', primary: '#0b151f', secondary: '#22d3ee' },
+  { id: 'dp-39', primary: '#0f0c1f', secondary: '#a3e635' },
+  { id: 'dp-40', primary: '#0e1420', secondary: '#38bdf8' },
+  { id: 'dp-41', primary: '#130d22', secondary: '#f97316' },
+  { id: 'dp-42', primary: '#0c1723', secondary: '#06b6d4' },
+  { id: 'dp-43', primary: '#120c1a', secondary: '#fb7185' },
+  { id: 'dp-44', primary: '#0d1524', secondary: '#3b82f6' },
+  { id: 'dp-45', primary: '#130c1f', secondary: '#d946ef' },
+  { id: 'dp-46', primary: '#0b1620', secondary: '#10b981' },
+  { id: 'dp-47', primary: '#0f0d18', secondary: '#facc15' },
+  { id: 'dp-48', primary: '#0c1326', secondary: '#6366f1' },
+  { id: 'dp-49', primary: '#100b1d', secondary: '#f43f5e' },
+  { id: 'dp-50', primary: '#0c1726', secondary: '#0ea5e9' }
+];
+
 const MEDIUM_LEVELS = ['Medium', 'Medium26', 'Medium60', 'Medium100'];
+const JUKEBOX_FREE_SONG_COUNT = 5;
+const JUKEBOX_SONG_COST = 300;
 
 const BENNY_TIERS = [
   { id: 1, name: 'Starter Pup', power: 'Subtraction eyes', points: 0, streak: 0 },
   { id: 2, name: 'Greater Signs', power: 'Greater-than blast', points: 3000, streak: 0, requires: ['Easy25'] },
   { id: 3, name: 'Arrow Blaster', power: 'Arrow keys + space', points: 6000, streak: 5, requires: MEDIUM_LEVELS },
   { id: 4, name: 'Playful Benny', power: 'Benny jumps on target', points: 12000, streak: 6 },
-  { id: 5, name: "You're a Wizard, Benny", power: 'Pi wand blast', points: 24000, streak: 8 },
+  { id: 5, name: 'Your a Math Wiz Benny', power: 'Pi wand blast', points: 24000, streak: 8 },
   { id: 6, name: 'Nuclear Gauge', power: 'Gamma / neutron beam', points: 36000, streak: 10 },
   { id: 7, name: 'Nurse Benny', power: 'Crash cart charge', points: 48000, streak: 12 },
-  { id: 8, name: 'Dogko RKO', power: 'Dogko finisher', points: 60000, streak: 14 },
-  { id: 9, name: 'Mythic Pup', power: 'Mythic finisher', points: 80000, streak: 16 },
-  { id: 10, name: 'Mathtality', power: 'All zombies cleared', points: 100000, streak: 18 }
+  { id: 8, name: 'Your a Plumber Benny', power: 'Utility Pump', points: 60000, streak: 14 },
+  { id: 9, name: 'Your a Electrician Benny', power: 'Short Circuit', points: 80000, streak: 16 },
+  { id: 10, name: 'Your a Math Teacher Benny', power: 'Concept Clarity Beam', points: 100000, streak: 18 }
 ];
+
+function normalizeTierUnlocks(unlocks) {
+  if (!Array.isArray(unlocks)) return [];
+  return [...new Set(
+    unlocks
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id) && id >= 1)
+      .map((id) => Math.floor(id))
+  )];
+}
 
 function buildDefaultJukeboxState(availableSongs = JUKEBOX_SONGS) {
   return availableSongs.reduce((acc, song) => {
@@ -78,21 +143,82 @@ function buildDefaultJukeboxState(availableSongs = JUKEBOX_SONGS) {
   }, {});
 }
 
-function loadJukeboxState(user) {
-  const availableSongs = getAvailableJukeboxSongs(user);
+function buildDefaultJukeboxOwnedState(availableSongs = JUKEBOX_SONGS) {
+  return availableSongs.reduce((acc, song, index) => {
+    acc[song.id] = index < JUKEBOX_FREE_SONG_COUNT;
+    return acc;
+  }, {});
+}
+
+function loadJukeboxState(user, availableSongs = JUKEBOX_SONGS) {
   const defaults = buildDefaultJukeboxState(availableSongs);
   if (!user) return defaults;
   const raw = localStorage.getItem(`mathpop_jukebox_${user}`);
-  if (!raw) return defaults;
+  if (!raw) {
+    const starterState = availableSongs.reduce((acc, song, index) => {
+      acc[song.id] = index < JUKEBOX_FREE_SONG_COUNT;
+      return acc;
+    }, {});
+    localStorage.setItem(`mathpop_jukebox_${user}`, JSON.stringify(starterState));
+    return starterState;
+  }
   try {
     const parsed = JSON.parse(raw);
-    return availableSongs.reduce((acc, song) => {
+    const normalized = availableSongs.reduce((acc, song) => {
       acc[song.id] = Boolean(parsed?.[song.id]);
       return acc;
     }, {});
+    localStorage.setItem(`mathpop_jukebox_${user}`, JSON.stringify(normalized));
+    return normalized;
   } catch {
     return defaults;
   }
+}
+
+function loadJukeboxOwnedState(user, availableSongs = JUKEBOX_SONGS) {
+  const defaults = buildDefaultJukeboxOwnedState(availableSongs);
+  if (!user) return defaults;
+  const rawOwned = localStorage.getItem(`mathpop_jukebox_owned_${user}`);
+  const rawEnabled = localStorage.getItem(`mathpop_jukebox_${user}`);
+  let parsedOwned = {};
+  let parsedEnabled = {};
+  let saveOwned = false;
+  if (rawOwned) {
+    try {
+      parsedOwned = JSON.parse(rawOwned) || {};
+    } catch {
+      parsedOwned = {};
+      saveOwned = true;
+    }
+  } else {
+    saveOwned = true;
+  }
+  if (rawEnabled) {
+    try {
+      parsedEnabled = JSON.parse(rawEnabled) || {};
+    } catch {
+      parsedEnabled = {};
+    }
+  }
+  const normalized = availableSongs.reduce((acc, song, index) => {
+    const isStarterSong = index < JUKEBOX_FREE_SONG_COUNT;
+    const enabledAlready = Boolean(parsedEnabled?.[song.id]);
+    acc[song.id] = Boolean(parsedOwned?.[song.id]) || isStarterSong || enabledAlready;
+    return acc;
+  }, {});
+  if (saveOwned) {
+    localStorage.setItem(`mathpop_jukebox_owned_${user}`, JSON.stringify(normalized));
+  }
+  return normalized;
+}
+
+function loadJukeboxSpent(user) {
+  if (!user) return 0;
+  const raw = localStorage.getItem(`mathpop_jukebox_spent_${user}`);
+  if (!raw) return 0;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return Math.floor(parsed);
 }
 
 function loadProfileStats(user) {
@@ -118,7 +244,7 @@ function loadProfileStats(user) {
       totalAttempted: Number(parsed.totalAttempted) || 0,
       pupStreakRecord: Number(parsed.pupStreakRecord) || 0,
       levelsCompleted: Array.isArray(parsed.levelsCompleted) ? parsed.levelsCompleted : [],
-      tierUnlocks: Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : [],
+      tierUnlocks: normalizeTierUnlocks(parsed.tierUnlocks),
       activeTier: Number(parsed.activeTier) || 1,
       games: parsed.games && typeof parsed.games === 'object' ? parsed.games : {}
     };
@@ -155,11 +281,25 @@ function getColorFill(color) {
   return color.primary;
 }
 
+function buildMathSynthSchemes(count) {
+  const list = [];
+  for (let i = 0; i < count; i += 1) {
+    const hue = Math.round((i / count) * 360);
+    const primary = `hsl(${hue}, 95%, 60%)`;
+    const secondary = `hsl(${(hue + 30) % 360}, 95%, 52%)`;
+    list.push({ id: `ms-${i + 1}`, primary, secondary });
+  }
+  return list;
+}
+
 export default function Profile() {
   const [, setRefresh] = useState(0);
   const [dashDeleteMode, setDashDeleteMode] = useState('easy');
   const currentUser = useMemo(() => localStorage.getItem('mathpop_current_user'), []);
-  const [jukeboxState, setJukeboxState] = useState(() => loadJukeboxState(currentUser));
+  const availableJukeboxSongs = useMemo(() => getAvailableJukeboxSongs(currentUser), [currentUser]);
+  const [jukeboxOwned, setJukeboxOwned] = useState(() => loadJukeboxOwnedState(currentUser, availableJukeboxSongs));
+  const [jukeboxState, setJukeboxState] = useState(() => loadJukeboxState(currentUser, availableJukeboxSongs));
+  const [jukeboxSpent, setJukeboxSpent] = useState(() => loadJukeboxSpent(currentUser));
   const [mobileSelections, setMobileSelections] = useState({
     points: 'mathpup',
     correct: 'mathpup',
@@ -176,7 +316,6 @@ export default function Profile() {
     return raw ? JSON.parse(raw) : null;
   })();
   const stats = loadProfileStats(currentUser);
-  const availableJukeboxSongs = getAvailableJukeboxSongs(currentUser);
 
   if (!currentUser || !profile || !stats) {
     return (
@@ -200,7 +339,7 @@ export default function Profile() {
   const availablePoints = Math.max(0, totalPoints);
   const levelsCompleted = stats.levelsCompleted || [];
   const pupStreakRecord = stats.pupStreakRecord || 0;
-  const tierUnlocks = Array.isArray(stats.tierUnlocks) ? stats.tierUnlocks : [];
+  const tierUnlocks = normalizeTierUnlocks(stats.tierUnlocks);
   const activeTier = Number(stats.activeTier) || 1;
 
   const bestMathPup = readMathPupBest(currentUser);
@@ -218,6 +357,16 @@ export default function Profile() {
   const unlockedColorCount = Math.min(Math.floor(mathPupPoints / 2500), BENNY_COLORS.length);
   const currentColorId = localStorage.getItem(`mathpup_benny_color_${currentUser}`) || BENNY_COLORS[0].id;
   const currentColor = BENNY_COLORS.find((c) => c.id === currentColorId) || BENNY_COLORS[0];
+  const mobileGame = mobileSelections.points;
+  const mathSynthSchemes = buildMathSynthSchemes(50);
+  const mathSynthUnlockedCount = Math.min(
+    Math.max(parseInt(localStorage.getItem('mathsynth-unlocked') || '3', 10) || 1, 1),
+    mathSynthSchemes.length
+  );
+  const mathSynthSelectedIndex = Math.min(
+    Math.max(parseInt(localStorage.getItem('mathsynth-color') || '0', 10) || 0, 0),
+    mathSynthSchemes.length - 1
+  );
 
   // Check if tier requirements are met (e.g., Tier 2 requires EASY_LEVELS)
   const tierRequirementsMet = (tier) => {
@@ -255,12 +404,13 @@ export default function Profile() {
   const purchaseTier = (tier) => {
     if (!currentUser || !stats) return;
     if (!canPurchaseTier(tier)) return;
+    if (tierUnlocks.includes(tier.id)) return;
     const mathEval = window.math?.evaluate;
     const remaining = mathEval ? Number(mathEval(`${totalPoints}-${tier.points}`)) : totalPoints - tier.points;
     const next = {
       ...stats,
       totalPoints: Math.max(0, remaining),
-      tierUnlocks: [...tierUnlocks, tier.id]
+      tierUnlocks: [...new Set([...tierUnlocks, tier.id])]
     };
     const msg = 'Congratulations, Mr. or Ms. Big Spender';
     if (typeof window !== 'undefined' && typeof window.showUnifyMessage === 'function') {
@@ -361,9 +511,18 @@ export default function Profile() {
   })();
 
   const gameOptions = games.map((game) => ({ id: game.id, title: game.title }));
+  const selectedGameTitle = gameMap[mobileGame]?.title || 'Math Pup';
+  const earnedJukeboxPoints = games.reduce((sum, game) => sum + (Number(game.stats?.points) || 0), 0);
+  const remainingJukeboxPoints = Math.max(0, earnedJukeboxPoints - jukeboxSpent);
 
-  const selectGame = (key, value) => {
-    setMobileSelections((prev) => ({ ...prev, [key]: value }));
+  const selectGame = (value) => {
+    setMobileSelections((prev) => {
+      const next = {};
+      Object.keys(prev).forEach((key) => {
+        next[key] = value;
+      });
+      return next;
+    });
   };
 
   const getGameStats = (gameId) => gameMap[gameId]?.stats || {};
@@ -374,6 +533,7 @@ export default function Profile() {
   };
   const toggleSong = (songId) => {
     if (!currentUser) return;
+    if (!jukeboxOwned[songId]) return;
     setJukeboxState((prev) => {
       const next = {
         ...prev,
@@ -382,6 +542,34 @@ export default function Profile() {
       localStorage.setItem(`mathpop_jukebox_${currentUser}`, JSON.stringify(next));
       return next;
     });
+  };
+  const buySong = (songId) => {
+    if (!currentUser || !songId) return;
+    if (jukeboxOwned[songId]) return;
+    if (remainingJukeboxPoints < JUKEBOX_SONG_COST) {
+      const msg = `You need ${JUKEBOX_SONG_COST} points from Math Pup, Capture, Deci-What, or Ma+h5Yn+h3 to buy this song.`;
+      if (typeof window !== 'undefined' && typeof window.showUnifyMessage === 'function') {
+        window.showUnifyMessage({ text: msg, topic: 'profile' });
+      } else {
+        window.alert(msg);
+      }
+      return;
+    }
+    const nextOwned = {
+      ...jukeboxOwned,
+      [songId]: true
+    };
+    const nextState = {
+      ...jukeboxState,
+      [songId]: true
+    };
+    const nextSpent = jukeboxSpent + JUKEBOX_SONG_COST;
+    localStorage.setItem(`mathpop_jukebox_owned_${currentUser}`, JSON.stringify(nextOwned));
+    localStorage.setItem(`mathpop_jukebox_${currentUser}`, JSON.stringify(nextState));
+    localStorage.setItem(`mathpop_jukebox_spent_${currentUser}`, String(nextSpent));
+    setJukeboxOwned(nextOwned);
+    setJukeboxState(nextState);
+    setJukeboxSpent(nextSpent);
   };
   const deleteBennyDashProgress = () => {
     if (!currentUser) return;
@@ -399,12 +587,65 @@ export default function Profile() {
     }
     setRefresh((v) => v + 1);
   };
+  const deleteProfileAndAppData = () => {
+    const runDelete = () => {
+      try {
+        localStorage.clear();
+      } catch {
+        // Ignore storage clear failures.
+      }
+      try {
+        sessionStorage.clear();
+      } catch {
+        // Ignore storage clear failures.
+      }
+      window.location.href = '/';
+    };
+    if (typeof window !== 'undefined' && typeof window.showUnifyConfirm === 'function') {
+      window.showUnifyConfirm({
+        text: 'Delete profile and clear all app data on this device?',
+        topic: 'profile',
+        yesLabel: 'Delete all',
+        noLabel: 'Cancel',
+        onYes: runDelete
+      });
+      return;
+    }
+    const confirmed = window.confirm('Delete profile and clear all app data on this device?');
+    if (!confirmed) return;
+    runDelete();
+  };
   const renderJukebox = () => (
     <>
-      <p className="profile-subtitle">Tap a song to switch it On or Off.</p>
+      <p className="profile-subtitle">
+        First {JUKEBOX_FREE_SONG_COUNT} songs are free. All other songs cost {JUKEBOX_SONG_COST} points each.
+      </p>
+      <p className="profile-subtitle">
+        Jukebox points (non-Benny Dash): {remainingJukeboxPoints}
+      </p>
       <div className="jukebox-list">
         {availableJukeboxSongs.map((song) => {
+          const owned = Boolean(jukeboxOwned[song.id]);
           const enabled = Boolean(jukeboxState[song.id]);
+          if (!owned) {
+            return (
+              <div
+                key={song.id}
+                className="jukebox-song jukebox-song--locked"
+                title={`${song.label} (${song.originalFilename})`}
+              >
+                <span>{song.label}</span>
+                <button
+                  type="button"
+                  className="jukebox-buy"
+                  onClick={() => buySong(song.id)}
+                  disabled={remainingJukeboxPoints < JUKEBOX_SONG_COST}
+                >
+                  Buy {JUKEBOX_SONG_COST}
+                </button>
+              </div>
+            );
+          }
           return (
             <button
               key={song.id}
@@ -420,7 +661,7 @@ export default function Profile() {
           );
         })}
       </div>
-      <p className="jukebox-filename">Syntax Queen Theme unlocks after beating Benny Dash.</p>
+      <p className="jukebox-filename">Any song unlocked by gameplay is saved in your Benny Jukebox.</p>
     </>
   );
 
@@ -442,99 +683,57 @@ export default function Profile() {
           <div className="box-header">
             <h2>Total Points</h2>
             <select
-              value={mobileSelections.points}
-              onChange={(e) => selectGame('points', e.target.value)}
+              value={mobileGame}
+              onChange={(e) => selectGame(e.target.value)}
             >
               {gameOptions.map((game) => (
                 <option key={game.id} value={game.id}>{game.title}</option>
               ))}
             </select>
           </div>
-          <p className="metric">{getGameStats(mobileSelections.points).points || 0}</p>
+          <p className="metric">{getGameStats(mobileGame).points || 0}</p>
         </div>
         <div className="profile-box">
           <div className="box-header">
             <h2>Total Correct</h2>
-            <select
-              value={mobileSelections.correct}
-              onChange={(e) => selectGame('correct', e.target.value)}
-            >
-              {gameOptions.map((game) => (
-                <option key={game.id} value={game.id}>{game.title}</option>
-              ))}
-            </select>
+            <p className="profile-subtitle">{selectedGameTitle}</p>
           </div>
-          <p className="metric">{getGameStats(mobileSelections.correct).correct || 0}</p>
+          <p className="metric">{getGameStats(mobileGame).correct || 0}</p>
         </div>
         <div className="profile-box benny-colors-box">
           <div className="box-header">
             <h2>Total Attempted</h2>
-            <select
-              value={mobileSelections.attempted}
-              onChange={(e) => selectGame('attempted', e.target.value)}
-            >
-              {gameOptions.map((game) => (
-                <option key={game.id} value={game.id}>{game.title}</option>
-              ))}
-            </select>
+            <p className="profile-subtitle">{selectedGameTitle}</p>
           </div>
-          <p className="metric">{getGameStats(mobileSelections.attempted).attempted || 0}</p>
+          <p className="metric">{getGameStats(mobileGame).attempted || 0}</p>
         </div>
         <div className="profile-box">
           <div className="box-header">
             <h2>Accuracy</h2>
-            <select
-              value={mobileSelections.accuracy}
-              onChange={(e) => selectGame('accuracy', e.target.value)}
-            >
-              {gameOptions.map((game) => (
-                <option key={game.id} value={game.id}>{game.title}</option>
-              ))}
-            </select>
+            <p className="profile-subtitle">{selectedGameTitle}</p>
           </div>
-          <p className="metric">{getAccuracy(getGameStats(mobileSelections.accuracy))}%</p>
+          <p className="metric">{getAccuracy(getGameStats(mobileGame))}%</p>
         </div>
         <div className="profile-box">
           <div className="box-header">
             <h2>Levels Completed</h2>
-            <select
-              value={mobileSelections.levels}
-              onChange={(e) => selectGame('levels', e.target.value)}
-            >
-              {gameOptions.map((game) => (
-                <option key={game.id} value={game.id}>{game.title}</option>
-              ))}
-            </select>
+            <p className="profile-subtitle">{selectedGameTitle}</p>
           </div>
-          <p className="metric">{getGameStats(mobileSelections.levels).levels || 0}</p>
+          <p className="metric">{getGameStats(mobileGame).levels || 0}</p>
         </div>
         <div className="profile-box">
           <div className="box-header">
             <h2>Pup Streak Record</h2>
-            <select
-              value={mobileSelections.streak}
-              onChange={(e) => selectGame('streak', e.target.value)}
-            >
-              {gameOptions.map((game) => (
-                <option key={game.id} value={game.id}>{game.title}</option>
-              ))}
-            </select>
+            <p className="profile-subtitle">{selectedGameTitle}</p>
           </div>
-          <p className="metric">{getGameStats(mobileSelections.streak).streakRecord || 0}</p>
+          <p className="metric">{getGameStats(mobileGame).streakRecord || 0}</p>
         </div>
         <div className="profile-box">
           <div className="box-header">
             <h2>Benny Colors</h2>
-            <select
-              value={mobileSelections.colors}
-              onChange={(e) => selectGame('colors', e.target.value)}
-            >
-              {gameOptions.map((game) => (
-                <option key={game.id} value={game.id}>{game.title}</option>
-              ))}
-            </select>
+            <p className="profile-subtitle">{selectedGameTitle}</p>
           </div>
-          {mobileSelections.colors === 'mathpup' ? (
+          {mobileGame === 'mathpup' ? (
             <>
               <p className="profile-subtitle">
                 Unlocked colors: {unlockedColorCount}/{BENNY_COLORS.length}
@@ -553,71 +752,89 @@ export default function Profile() {
                 })}
               </div>
             </>
+          ) : mobileGame === 'decimal' ? (
+            <>
+              <p className="profile-subtitle">Deci-What palette: {DECIMAL_ACRYLICS.length} acrylic colors.</p>
+              <div className="benny-colors">
+                {DECIMAL_ACRYLICS.map((swatch) => (
+                  <span
+                    key={swatch.id}
+                    className="benny-color unlocked"
+                    title={swatch.id}
+                    style={{ background: `linear-gradient(135deg, ${swatch.primary} 0%, ${swatch.secondary} 100%)` }}
+                  />
+                ))}
+              </div>
+            </>
+          ) : mobileGame === 'mathsynth' ? (
+            <>
+              <p className="profile-subtitle">Ma+h5Yn+h3 colors unlocked: {mathSynthUnlockedCount}/{mathSynthSchemes.length}</p>
+              <div className="benny-colors">
+                {mathSynthSchemes.map((swatch, idx) => (
+                  <span
+                    key={swatch.id}
+                    className={`benny-color ${idx < mathSynthUnlockedCount ? 'unlocked' : 'locked'}`}
+                    title={swatch.id}
+                    style={{
+                      background: `linear-gradient(135deg, ${swatch.primary} 0%, ${swatch.secondary} 100%)`,
+                      outline: idx === mathSynthSelectedIndex ? '2px solid rgba(255, 255, 255, 0.85)' : 'none'
+                    }}
+                  />
+                ))}
+              </div>
+            </>
           ) : (
-            <p className="profile-subtitle">Only Math Pup</p>
+            <p className="profile-subtitle">Capture the Fraction does not have a color palette.</p>
           )}
         </div>
         <div className="profile-box benny-powers-box">
           <div className="box-header">
             <h2>Benny Powers</h2>
-            <select
-              value={mobileSelections.tiers}
-              onChange={(e) => selectGame('tiers', e.target.value)}
-            >
-              {gameOptions.map((game) => (
-                <option key={game.id} value={game.id}>{game.title}</option>
-              ))}
-            </select>
+            <p className="profile-subtitle">{selectedGameTitle}</p>
           </div>
-          {mobileSelections.tiers === 'mathpup' ? (
-            <>
-              <p className="profile-subtitle">Power shop uses your total points from Math Pup, Capture, Deci-What, and Ma+h5Yn+h3.</p>
-              <div className="tier-track">
-                {BENNY_TIERS.map((tier) => {
-                  const unlocked = tierUnlocked(tier);
-                  const reqsMet = tierRequirementsMet(tier);
-                  const canBuy = canPurchaseTier(tier);
-                  return (
-                    <div
-                      key={tier.id}
-                      className={`tier-card ${unlocked ? 'unlocked' : 'locked'}${activeTier === tier.id ? ' active' : ''}`}
-                      role={unlocked ? 'button' : undefined}
-                      tabIndex={unlocked ? 0 : -1}
-                      onClick={() => activateTier(tier)}
-                      onKeyDown={(e) => {
-                        if (unlocked && (e.key === 'Enter' || e.key === ' ')) activateTier(tier);
-                      }}
-                    >
-                      <h3>Tier {tier.id}</h3>
-                      <p className="tier-name">{tier.name}</p>
-                      {renderTierPower(tier)}
-                      <p className="tier-req">Points: {tier.points}</p>
-                      {tier.streak > 0 && <p className="tier-req">Pup streak: {tier.streak}</p>}
-                      {tier.requires && tier.requires.length > 0 && (
-                        <p className="tier-req tier-requires" aria-label="Level requirements">
-                          Requires: {tier.requires.join(', ')}
-                        </p>
-                      )}
-                      {!unlocked && !reqsMet && tier.requires && (
-                        <p className="tier-locked-reason">Complete required levels first</p>
-                      )}
-                      {!unlocked && reqsMet && <span className="tier-ticket">Ticket price: {tier.points} pts</span>}
-                      {!unlocked && !canBuy && (
-                        <p className="tier-locked-badge">Locked</p>
-                      )}
-                      {!unlocked && canBuy && (
-                        <button type="button" className="tier-buy" onClick={() => purchaseTier(tier)}>
-                          Buy
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <p className="profile-subtitle">Benny powers are in Math Pup.</p>
-          )}
+          <p className="profile-subtitle">Benny powers are available across all games.</p>
+          <div className="tier-track">
+            {BENNY_TIERS.map((tier) => {
+              const unlocked = tierUnlocked(tier);
+              const reqsMet = tierRequirementsMet(tier);
+              const canBuy = canPurchaseTier(tier);
+              return (
+                <div
+                  key={tier.id}
+                  className={`tier-card ${unlocked ? 'unlocked' : 'locked'}${activeTier === tier.id ? ' active' : ''}`}
+                  role={unlocked ? 'button' : undefined}
+                  tabIndex={unlocked ? 0 : -1}
+                  onClick={() => activateTier(tier)}
+                  onKeyDown={(e) => {
+                    if (unlocked && (e.key === 'Enter' || e.key === ' ')) activateTier(tier);
+                  }}
+                >
+                  <h3>Tier {tier.id}</h3>
+                  <p className="tier-name">{tier.name}</p>
+                  {renderTierPower(tier)}
+                  <p className="tier-req">Points: {tier.points}</p>
+                  {tier.streak > 0 && <p className="tier-req">Pup streak: {tier.streak}</p>}
+                  {tier.requires && tier.requires.length > 0 && (
+                    <p className="tier-req tier-requires" aria-label="Level requirements">
+                      Requires: {tier.requires.join(', ')}
+                    </p>
+                  )}
+                  {!unlocked && !reqsMet && tier.requires && (
+                    <p className="tier-locked-reason">Complete required levels first</p>
+                  )}
+                  {!unlocked && reqsMet && <span className="tier-ticket">Ticket price: {tier.points} pts</span>}
+                  {!unlocked && !canBuy && (
+                    <p className="tier-locked-badge">Locked</p>
+                  )}
+                  {!unlocked && canBuy && (
+                    <button type="button" className="tier-buy" onClick={() => purchaseTier(tier)}>
+                      Buy
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
         <div className="profile-box jukebox-box">
           <div className="box-header">
@@ -637,6 +854,15 @@ export default function Profile() {
           </select>
           <button type="button" className="tier-buy" onClick={deleteBennyDashProgress}>
             Delete Benny Saved Progress
+          </button>
+        </div>
+        <div className="profile-box profile-delete-box">
+          <div className="box-header">
+            <h2>Delete Profile</h2>
+          </div>
+          <p className="profile-subtitle">Delete profile and clear all app data on this device.</p>
+          <button type="button" className="tier-buy tier-buy--danger" onClick={deleteProfileAndAppData}>
+            Delete Profile + App Data
           </button>
         </div>
       </section>

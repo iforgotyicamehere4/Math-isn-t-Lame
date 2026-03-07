@@ -26,6 +26,68 @@ window.__BennyWorldBabylonCleanup = null;
   const glideBtn = qs('#bwGlide');
   const planeBtn = qs('#bwPlane');
   const fireBtn = qs('#bwFire');
+
+  const debugEnabled = (() => {
+    try {
+      if (typeof window === 'undefined') return false;
+      const params = new URLSearchParams(window.location.search || '');
+      if (params.get('debug') === '1') return true;
+      return localStorage.getItem('mathpop_debug') === 'true';
+    } catch {
+      return false;
+    }
+  })();
+
+  const debugState = debugEnabled ? {
+    timeouts: new Set(),
+    intervals: new Set(),
+    rafs: new Set()
+  } : null;
+
+  const dbgSetTimeout = (fn, ms) => {
+    if (!debugEnabled) return setTimeout(fn, ms);
+    const id = setTimeout(() => {
+      debugState.timeouts.delete(id);
+      fn();
+    }, ms);
+    debugState.timeouts.add(id);
+    return id;
+  };
+
+  const dbgClearTimeout = (id) => {
+    if (!debugEnabled) return clearTimeout(id);
+    if (id) debugState.timeouts.delete(id);
+    clearTimeout(id);
+  };
+
+  const dbgSetInterval = (fn, ms) => {
+    if (!debugEnabled) return setInterval(fn, ms);
+    const id = setInterval(fn, ms);
+    debugState.intervals.add(id);
+    return id;
+  };
+
+  const dbgClearInterval = (id) => {
+    if (!debugEnabled) return clearInterval(id);
+    if (id) debugState.intervals.delete(id);
+    clearInterval(id);
+  };
+
+  const dbgRequestAnimationFrame = (fn) => {
+    if (!debugEnabled) return requestAnimationFrame(fn);
+    const id = requestAnimationFrame((ts) => {
+      debugState.rafs.delete(id);
+      fn(ts);
+    });
+    debugState.rafs.add(id);
+    return id;
+  };
+
+  const dbgCancelAnimationFrame = (id) => {
+    if (!debugEnabled) return cancelAnimationFrame(id);
+    if (id) debugState.rafs.delete(id);
+    cancelAnimationFrame(id);
+  };
   
   // Joystick elements
   const joystickContainer = qs('#bwJoystickContainer');
@@ -44,6 +106,7 @@ window.__BennyWorldBabylonCleanup = null;
   (() => {
     // Ensure a canvas exists with id 'bwBabylon' (if not, create one and append to root)
     let canvas = document.getElementById('bwBabylon');
+    let createdCanvas = false;
     if (!canvas) {
       canvas = document.createElement('canvas');
       canvas.id = 'bwBabylon';
@@ -55,20 +118,26 @@ window.__BennyWorldBabylonCleanup = null;
       canvas.style.height = '200px';
       canvas.style.pointerEvents = 'none'; // prevent interfering with game input
       root.appendChild(canvas);
+      createdCanvas = true;
     }
 
     let tries = 0;
+    let waitTimer = 0;
+    let resizeHandler = null;
+    let destroyed = false;
     const waitForBabylon = () => {
+      if (destroyed) return;
       if (window.BABYLON) {
         initBabylon();
         return;
       }
       tries += 1;
       if (tries > 40) return;
-      setTimeout(waitForBabylon, 250);
+      waitTimer = dbgSetTimeout(waitForBabylon, 250);
     };
 
     const initBabylon = () => {
+      if (destroyed) return;
       const BABYLON = window.BABYLON;
       let engine;
       try {
@@ -146,15 +215,28 @@ window.__BennyWorldBabylonCleanup = null;
         scene.render();
       });
 
-      window.addEventListener('resize', () => engine.resize());
+      resizeHandler = () => engine.resize();
+      window.addEventListener('resize', resizeHandler);
       window.BennyWorld3D = { scene, bennyRoot, camera };
       window.__BennyWorldBabylonCleanup = () => {
+        destroyed = true;
+        if (waitTimer) {
+          dbgClearTimeout(waitTimer);
+          waitTimer = 0;
+        }
+        if (resizeHandler) {
+          window.removeEventListener('resize', resizeHandler);
+          resizeHandler = null;
+        }
         try {
           engine.stopRenderLoop();
           scene.dispose();
           engine.dispose();
         } catch (e) {
           // ignore cleanup errors
+        }
+        if (createdCanvas && canvas && canvas.parentNode) {
+          canvas.parentNode.removeChild(canvas);
         }
       };
     };
@@ -164,6 +246,8 @@ window.__BennyWorldBabylonCleanup = null;
   /* --- end Babylon placeholder --- */
 
   const themeIds = [
+    'notebook-classic', 'notebook-soft', 'notes-spiral',
+    'aged-looseleaf', 'antique-frame', 'vintage-paper',
     'looseleaf', 'pencil', 'markers', 'whiteboard', 'locker',
     'cafeteria', 'bus', 'library', 'chalkboard', 'gym',
     'artroom', 'music', 'science', 'desk', 'backpack',
@@ -223,8 +307,12 @@ window.__BennyWorldBabylonCleanup = null;
     { id: 'tone-25', type: 'tone', primary: '#fb7185', secondary: '#6ee7b7' }
   ];
 
-  const totalLevels = 75;
-  const TEST_START_LEVEL_75_ON_EASY = true;
+  const LEVEL_TOTALS = {
+    easy: 25,
+    medium: 50,
+    mathanomical: 75
+  };
+  const TEST_START_LEVEL_75_ON_EASY = false;
   const TEST_START_DISTANCE_METERS = 9000;
   const TEST_FINAL_STAR_METERS = 10000;
   let levelIndex = 0;
@@ -245,6 +333,7 @@ window.__BennyWorldBabylonCleanup = null;
   const offscreenRenderBuffer = 220;
   const collisionBufferX = 96;
   const renderEpsilon = 0.1;
+  const worldChunkWidth = 320;
   const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
   const lowMemoryDevice = typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 4;
   const perfModeMobile = isMobileDevice || lowMemoryDevice;
@@ -264,7 +353,7 @@ window.__BennyWorldBabylonCleanup = null;
 
   const benny = document.createElement('div');
   benny.className = 'bw-benny';
-  benny.innerHTML = '<div class="benny-base"><div class="benny-shape"><div class="back"></div><div class="leg-left"></div><div class="leg-right"></div><div class="head"></div><div class="hardhat"><span class="hardhat-brand">S+L Dogineers</span></div><div class="nuclear-gauge"><span class="g-handle"></span><span class="g-knob"></span><span class="g-post g-post-left"></span><span class="g-post g-post-right"></span><span class="g-base"></span></div></div></div>';
+  benny.innerHTML = '<div class="benny-base"><div class="benny-shape"><div class="back"></div><div class="leg-left"></div><div class="leg-right"></div><div class="head"></div><div class="hardhat"><span class="hardhat-brand">S+L Dogineers</span></div><div class="nuclear-gauge"><span class="g-handle"></span><span class="g-knob"></span><span class="g-post g-post-left"></span><span class="g-post g-post-right"></span><span class="g-base"></span></div><div class="plumber-cap"></div><div class="utility-pump"><span class="p-hose"></span><span class="p-nozzle"></span></div><div class="electric-visor"></div><div class="wire-caster"><span class="wire-tip"></span><span class="wire-spark"></span></div><div class="teacher-glasses"></div><div class="clarity-book"><span class="book-glyph">Σ</span></div></div></div>';
   const star = document.createElement('div');
   star.className = 'bw-star';
   star.textContent = '★';
@@ -366,12 +455,48 @@ window.__BennyWorldBabylonCleanup = null;
         </div>
       </div>
     </div>
+    <div class="bw-drive-scene" aria-label="Benny futuristic desert drive">
+      <div class="bw-drive-sky">
+        <div class="bw-drive-sun"></div>
+        <div class="bw-drive-stars"></div>
+      </div>
+      <div class="bw-drive-horizon"></div>
+      <div class="bw-drive-road" aria-hidden="true">
+        <div class="bw-drive-road__lane"></div>
+      </div>
+      <div class="bw-drive-cacti" aria-hidden="true">
+        <span class="cactus c1"></span>
+        <span class="cactus c2"></span>
+        <span class="cactus c3"></span>
+        <span class="cactus c4"></span>
+      </div>
+      <div class="bw-drive-car" aria-hidden="true">
+        <div class="car-body"></div>
+        <div class="car-glow"></div>
+        <div class="car-window"></div>
+        <div class="car-wheel wheel-front"></div>
+        <div class="car-wheel wheel-back"></div>
+        <div class="car-benny bw-benny">
+          <div class="benny-base">
+            <div class="benny-shape">
+              <div class="back"></div>
+              <div class="leg-left"></div>
+              <div class="leg-right"></div>
+              <div class="head"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bw-drive-caption">Benny revs the '69 Chevelle and hunts fresh syntax errors.</div>
+    </div>
   `;
   const postVictoryMessageEl = postVictoryOverlay.querySelector('.bw-post-victory__message');
   const creditsRootEl = postVictoryOverlay.querySelector('.bw-credits');
   const creditsSheetEl = postVictoryOverlay.querySelector('.bw-credits__sheet');
   const creditsPageLabelEl = postVictoryOverlay.querySelector('.bw-credits__page-label');
   const creditsTextEl = postVictoryOverlay.querySelector('.bw-credits__text');
+  const driveSceneEl = postVictoryOverlay.querySelector('.bw-drive-scene');
+  const driveCaptionEl = postVictoryOverlay.querySelector('.bw-drive-caption');
   area.appendChild(bossArena);
   area.appendChild(debugKing);
   area.appendChild(syntaxIntroOverlay);
@@ -385,6 +510,14 @@ window.__BennyWorldBabylonCleanup = null;
   let currentLevelWidth = 0;
   let platforms = [];
   const obstacles = [];
+  let staticPlatforms = [];
+  let movingPlatforms = [];
+  let staticObstacles = [];
+  let dynamicObstacles = [];
+  const platformChunks = new Map();
+  const obstacleChunks = new Map();
+  let visiblePlatforms = [];
+  let visibleObstacles = [];
   let wallContact = 0;
   let gameOver = false;
   let flipActiveUntil = 0;
@@ -412,6 +545,11 @@ window.__BennyWorldBabylonCleanup = null;
   let enemyErrors = [];
   let bennyShots = [];
   let lastBennyShotAt = 0;
+  let utilityPumpActive = false;
+  let utilityPumpLastMessageAt = 0;
+  let electricianFxUntil = 0;
+  let teacherFxUntil = 0;
+  let debugLogInterval = 0;
   let slowUntil = 0;
   let freezeUntil = 0;
   let nextEnemyWaveDistance = 500;
@@ -432,17 +570,33 @@ window.__BennyWorldBabylonCleanup = null;
   const postVictoryMessageFadeMs = 30000;
   const postVictoryMessageHideMs = 33000;
   const postVictoryPageTurnMs = 15000;
+  const postVictoryFinalHoldMs = 2500;
+  const postVictoryDriveMinMs = 8000;
+  const postVictoryFallbackMs = 240000;
+  const postVictoryTrackFilename = 'For the Dev.mp3';
+  const postVictoryDriveSubtitleMs = 3800;
+  const postVictoryDriveSubtitles = [
+    "Benny revs the '69 Chevelle and hunts fresh syntax errors.",
+    'Tonight: zero mercy for rogue brackets and runaway loops.',
+    'Sirens in the dunes. The Syntax Syndicate just crossed state lines.',
+    'He drifts through cactus neon, paws on the wheel, mission locked.',
+    'Next stop: bug town. Benny exits the frame before the explosion.'
+  ];
   const postVictoryCreditsPages = [
     '"Bark Bark its all fun and games until you try to make em"',
     '"Dedicated to Benny a good dog in a strange world"\n\nSpecial thanks to all my math teachers growing up. I wasn\'t a easy kid i know..... I hope this Game makes up for all the bad behavior!',
     '"Thank you Andrea and Richard. 2 great human beings Benny can always count on!. Can you believe Benny made this with out any thumbs?????"',
     '"Thank you Mom and Thank you Dad, I love both of you and this game in some ways is me watching yall growing up."',
-    '"Dedicated to My Aunt Shila and Aunt Monkey. Amazing human beings with warm hearts and tenacious spirits."',
+    '"Dedicated to My Aunt Shelia and Aunt Cathy. Amazing human beings with warm hearts and tenacious spirits."',
     'The End'
   ];
   let postVictoryActive = false;
   let postVictoryStartedAt = 0;
   let postVictoryPageIndex = 0;
+  let postVictoryRedirected = false;
+  let postVictoryDriveActive = false;
+  let postVictoryTrackEnded = false;
+  let postVictorySubtitleIndex = -1;
   const tierPowerNames = {
     1: 'Subtraction eyes',
     2: 'Greater-than blast',
@@ -451,9 +605,9 @@ window.__BennyWorldBabylonCleanup = null;
     5: 'Pi wand blast',
     6: 'Gamma / neutron beam',
     7: 'Crash cart charge',
-    8: 'Dogko finisher',
-    9: 'Mythic finisher',
-    10: 'Mathtality'
+    8: 'Utility Pump',
+    9: 'Short Circuit',
+    10: 'Concept Clarity Beam'
   };
   
   // Black hole and crumbling floor state
@@ -472,6 +626,84 @@ window.__BennyWorldBabylonCleanup = null;
   let blackHoleReady = false;
   let blackHoleCooldownUntilLevel = 0;
   let activeBlackHolePart = null;
+  let debugOverlay = null;
+
+  function startDebugLogging() {
+    if (!debugEnabled || debugLogInterval) return;
+    if (!debugOverlay) {
+      debugOverlay = document.createElement('div');
+      debugOverlay.className = 'bw-debug-overlay';
+      debugOverlay.style.position = 'fixed';
+      debugOverlay.style.right = '12px';
+      debugOverlay.style.bottom = '12px';
+      debugOverlay.style.zIndex = '9999';
+      debugOverlay.style.background = 'rgba(12, 18, 32, 0.9)';
+      debugOverlay.style.color = '#e2e8f0';
+      debugOverlay.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace';
+      debugOverlay.style.fontSize = '12px';
+      debugOverlay.style.lineHeight = '1.4';
+      debugOverlay.style.padding = '10px 12px';
+      debugOverlay.style.borderRadius = '10px';
+      debugOverlay.style.boxShadow = '0 8px 28px rgba(0,0,0,0.35)';
+      debugOverlay.style.pointerEvents = 'none';
+      document.body.appendChild(debugOverlay);
+    }
+    debugLogInterval = dbgSetInterval(() => {
+      const memory = (typeof performance !== 'undefined' && performance.memory)
+        ? {
+          usedMB: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+          totalMB: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
+          limitMB: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
+        }
+        : null;
+      const nodeCounts = area
+        ? {
+          total: area.querySelectorAll('*').length,
+          debris: area.querySelectorAll('.bw-debris').length,
+          cracks: area.querySelectorAll('.bw-crack').length
+        }
+        : { total: 0, debris: 0, cracks: 0 };
+      const payload = {
+        timers: {
+          timeouts: debugState.timeouts.size,
+          intervals: debugState.intervals.size,
+          rafs: debugState.rafs.size
+        },
+        arrays: {
+          airEnemies: airEnemies.length,
+          enemyErrors: enemyErrors.length,
+          bennyShots: bennyShots.length,
+          bossProjectiles: bossProjectiles.length,
+          bossPatternNodes: bossPatternNodes.length
+        },
+        nodes: nodeCounts,
+        memory
+      };
+      console.log('[BennyDashDebug]', payload);
+      if (debugOverlay) {
+        const memoryText = memory
+          ? `mem ${memory.usedMB}/${memory.totalMB} MB (limit ${memory.limitMB})`
+          : 'mem n/a';
+        debugOverlay.textContent = [
+          `timers t:${payload.timers.timeouts} i:${payload.timers.intervals} r:${payload.timers.rafs}`,
+          `arrays air:${payload.arrays.airEnemies} err:${payload.arrays.enemyErrors} shots:${payload.arrays.bennyShots}`,
+          `arrays bossP:${payload.arrays.bossProjectiles} bossN:${payload.arrays.bossPatternNodes}`,
+          `nodes total:${payload.nodes.total} debris:${payload.nodes.debris} cracks:${payload.nodes.cracks}`,
+          memoryText
+        ].join(' | ');
+      }
+    }, 15000);
+  }
+
+  function stopDebugLogging() {
+    if (!debugLogInterval) return;
+    dbgClearInterval(debugLogInterval);
+    debugLogInterval = 0;
+    if (debugOverlay && debugOverlay.parentNode) {
+      debugOverlay.parentNode.removeChild(debugOverlay);
+    }
+    debugOverlay = null;
+  }
 
   function currentUser() {
     return localStorage.getItem('mathpop_current_user') || 'guest';
@@ -479,6 +711,11 @@ window.__BennyWorldBabylonCleanup = null;
 
   function normalizeDifficulty(mode) {
     return ['easy', 'medium', 'mathanomical'].includes(mode) ? mode : 'easy';
+  }
+
+  function getTotalLevels(mode = difficulty) {
+    const normalized = normalizeDifficulty(mode);
+    return LEVEL_TOTALS[normalized] || 75;
   }
 
   function progressKey(mode = difficulty) {
@@ -489,14 +726,14 @@ window.__BennyWorldBabylonCleanup = null;
   function applyEasyTestStartLevel() {
     if (!TEST_START_LEVEL_75_ON_EASY) return;
     if (difficulty !== 'easy') return;
-    levelIndex = totalLevels - 1;
+    levelIndex = getTotalLevels('easy') - 1;
     bossWonThisLevel = false;
   }
 
   function applyEasyTestStartDistance() {
     if (!TEST_START_LEVEL_75_ON_EASY) return;
     if (difficulty !== 'easy') return;
-    if (levelIndex !== totalLevels - 1) return;
+    if (levelIndex !== getTotalLevels('easy') - 1) return;
     const meters = Math.max(0, Number(TEST_START_DISTANCE_METERS) || 0);
     distance = meters;
     bennyState.x = Math.max(bennyState.x, meters);
@@ -507,7 +744,7 @@ window.__BennyWorldBabylonCleanup = null;
   function applyEasyTestStarPosition() {
     if (!TEST_START_LEVEL_75_ON_EASY) return;
     if (difficulty !== 'easy') return;
-    if (levelIndex !== totalLevels - 1) return;
+    if (levelIndex !== getTotalLevels('easy') - 1) return;
     const starMeters = Math.max(0, Number(TEST_FINAL_STAR_METERS) || 0);
     starPos.x = starMeters;
     star.style.left = `${starMeters - cameraOffset}px`;
@@ -551,10 +788,11 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function saveProgress(mode = 'auto') {
+    const maxLevelIndex = Math.max(0, getTotalLevels(difficulty) - 1);
     const payload = {
       version: 2,
       savedAt: Date.now(),
-      levelIndex: Math.max(0, Math.min(totalLevels - 1, Math.floor(levelIndex))),
+      levelIndex: Math.max(0, Math.min(maxLevelIndex, Math.floor(levelIndex))),
       points: Math.max(0, Math.floor(points)),
       distance: Math.max(0, Math.floor(distance)),
       difficulty: ['easy', 'medium', 'mathanomical'].includes(difficulty) ? difficulty : 'easy',
@@ -586,7 +824,8 @@ window.__BennyWorldBabylonCleanup = null;
       const nextDifficulty = ['easy', 'medium', 'mathanomical'].includes(data.difficulty)
         ? data.difficulty
         : 'easy';
-      levelIndex = Math.max(0, Math.min(totalLevels - 1, Number(data.levelIndex) || 0));
+      const maxLevelIndex = Math.max(0, getTotalLevels(nextDifficulty) - 1);
+      levelIndex = Math.max(0, Math.min(maxLevelIndex, Number(data.levelIndex) || 0));
       points = Math.max(0, Number(data.points) || 0);
       distance = Math.max(0, Number(data.distance) || 0);
       difficulty = nextDifficulty;
@@ -600,7 +839,10 @@ window.__BennyWorldBabylonCleanup = null;
         lens: Boolean(rawParts.lens)
       };
       blackHoleReady = Boolean(data.blackHoleReady);
-      blackHoleCooldownUntilLevel = Math.max(0, Math.floor(Number(data.blackHoleCooldownUntilLevel) || 0));
+      blackHoleCooldownUntilLevel = Math.max(
+        0,
+        Math.min(maxLevelIndex, Math.floor(Number(data.blackHoleCooldownUntilLevel) || 0))
+      );
       if (!data.blackHolePartsCollected && !data.blackHoleReady) {
         resetBlackHolePartsForWindow(Math.floor(levelIndex / 10));
       }
@@ -644,7 +886,7 @@ window.__BennyWorldBabylonCleanup = null;
     if (!msgEl) return;
     msgEl.textContent = text;
     if (holdMs <= 0) return;
-    setTimeout(() => {
+    dbgSetTimeout(() => {
       if (msgEl.textContent === text) msgEl.textContent = '';
     }, holdMs);
   }
@@ -710,11 +952,11 @@ window.__BennyWorldBabylonCleanup = null;
   function triggerBlackHoleShortcut() {
     if (!canUseBlackHoleShortcut()) return false;
     const fromLevel = levelIndex;
-    const targetLevel = Math.min(totalLevels - 1, fromLevel + 10);
+    const targetLevel = Math.min(getTotalLevels() - 1, fromLevel + 10);
     if (targetLevel <= fromLevel) return false;
     blackHoleReady = false;
     blackHolePartsCollected = { core: false, fuelCell: false, lens: false };
-    blackHoleCooldownUntilLevel = Math.min(totalLevels - 1, fromLevel + 20);
+    blackHoleCooldownUntilLevel = Math.min(getTotalLevels() - 1, fromLevel + 20);
     clearBlackHolePartOnMap();
     levelIndex = targetLevel;
     points += 200;
@@ -741,7 +983,7 @@ window.__BennyWorldBabylonCleanup = null;
     
     setMessage('Sucked into the void!', 2000);
     
-    setTimeout(() => {
+    dbgSetTimeout(() => {
       // Reset Benny
       benny.style.transition = '';
       benny.style.transform = '';
@@ -761,7 +1003,7 @@ window.__BennyWorldBabylonCleanup = null;
   function startDebrisFall() {
     if (debrisInterval) return;
     
-    debrisInterval = setInterval(() => {
+    debrisInterval = dbgSetInterval(() => {
       if (!blackHoleActive) return;
       
       // Create falling debris
@@ -773,21 +1015,21 @@ window.__BennyWorldBabylonCleanup = null;
       area.appendChild(debris);
       
       // Remove debris after animation
-      setTimeout(() => {
+      dbgSetTimeout(() => {
         if (debris.parentNode) debris.parentNode.removeChild(debris);
       }, 3000);
     }, 500);
     
     // Create crack effects on the floor
     for (let i = 0; i < 5; i++) {
-      setTimeout(() => {
+      dbgSetTimeout(() => {
         const crack = document.createElement('div');
         crack.className = 'bw-crack';
         crack.style.left = `${Math.random() * 80}%`;
         crack.style.bottom = '0';
         area.appendChild(crack);
         
-        setTimeout(() => {
+        dbgSetTimeout(() => {
           if (crack.parentNode) crack.parentNode.removeChild(crack);
         }, 2000);
       }, i * 300);
@@ -796,7 +1038,7 @@ window.__BennyWorldBabylonCleanup = null;
 
   function stopDebrisFall() {
     if (debrisInterval) {
-      clearInterval(debrisInterval);
+      dbgClearInterval(debrisInterval);
       debrisInterval = null;
     }
     
@@ -841,7 +1083,7 @@ window.__BennyWorldBabylonCleanup = null;
 
   function stopSyntaxQueenIntro(startBoss = true, unlockMusic = true) {
     if (syntaxIntroTimeoutId) {
-      clearTimeout(syntaxIntroTimeoutId);
+      dbgClearTimeout(syntaxIntroTimeoutId);
       syntaxIntroTimeoutId = 0;
     }
     syntaxIntroActive = false;
@@ -869,6 +1111,41 @@ window.__BennyWorldBabylonCleanup = null;
     }
   }
 
+  function unlockJukeboxSongs(songIds = [], turnOn = true) {
+    const user = currentUser();
+    if (!user || user === 'guest' || !Array.isArray(songIds) || !songIds.length) return;
+    const key = `mathpop_jukebox_${user}`;
+    const ownedKey = `mathpop_jukebox_owned_${user}`;
+    let state = {};
+    let ownedState = {};
+    try {
+      state = JSON.parse(localStorage.getItem(key) || '{}') || {};
+    } catch {
+      state = {};
+    }
+    try {
+      ownedState = JSON.parse(localStorage.getItem(ownedKey) || '{}') || {};
+    } catch {
+      ownedState = {};
+    }
+    let changed = false;
+    let ownedChanged = false;
+    songIds.forEach((id) => {
+      if (!id) return;
+      const nextValue = turnOn ? true : Boolean(state[id]);
+      if (state[id] !== nextValue) {
+        state[id] = nextValue;
+        changed = true;
+      }
+      if (!ownedState[id]) {
+        ownedState[id] = true;
+        ownedChanged = true;
+      }
+    });
+    if (changed) localStorage.setItem(key, JSON.stringify(state));
+    if (ownedChanged) localStorage.setItem(ownedKey, JSON.stringify(ownedState));
+  }
+
   function setCreditsPage(index, turn = false) {
     const safeIndex = Math.max(0, Math.min(postVictoryCreditsPages.length - 1, index));
     if (safeIndex === postVictoryPageIndex && creditsTextEl && creditsTextEl.textContent) return;
@@ -886,21 +1163,32 @@ window.__BennyWorldBabylonCleanup = null;
     postVictoryActive = false;
     postVictoryStartedAt = 0;
     postVictoryPageIndex = 0;
+    postVictoryRedirected = false;
+    postVictoryDriveActive = false;
+    postVictoryTrackEnded = false;
+    postVictorySubtitleIndex = -1;
     dispatchMusicControl('unlock');
     area.classList.remove('post-victory-active');
-    postVictoryOverlay.classList.remove('active', 'hide-message', 'show-credits');
+    postVictoryOverlay.classList.remove('active', 'hide-message', 'show-credits', 'show-drive');
     if (creditsSheetEl) creditsSheetEl.classList.remove('turning');
     if (creditsRootEl) creditsRootEl.classList.remove('active');
     if (postVictoryMessageEl) postVictoryMessageEl.classList.remove('fade-out');
+    if (driveSceneEl) driveSceneEl.classList.remove('active');
+    if (driveCaptionEl) driveCaptionEl.textContent = postVictoryDriveSubtitles[0];
     if (clearOnly && statusEl) statusEl.textContent = 'Run to the star!';
   }
 
   function startPostVictorySequence() {
     if (postVictoryActive) return;
     ensureBossRewardSongUnlocked();
+    unlockJukeboxSongs(['song-27'], true);
     postVictoryActive = true;
     postVictoryStartedAt = performance.now();
     postVictoryPageIndex = 0;
+    postVictoryRedirected = false;
+    postVictoryDriveActive = false;
+    postVictoryTrackEnded = false;
+    postVictorySubtitleIndex = -1;
     stopSyntaxQueenIntro(false, true);
     setBossMode(false);
     stopDebrisFall();
@@ -908,17 +1196,33 @@ window.__BennyWorldBabylonCleanup = null;
     blackHole.style.display = 'none';
     area.classList.add('post-victory-active');
     postVictoryOverlay.classList.add('active');
-    postVictoryOverlay.classList.remove('hide-message', 'show-credits');
+    postVictoryOverlay.classList.remove('hide-message', 'show-credits', 'show-drive');
     if (postVictoryMessageEl) {
       postVictoryMessageEl.classList.remove('fade-out');
     }
     if (creditsRootEl) creditsRootEl.classList.remove('active');
+    if (driveSceneEl) driveSceneEl.classList.remove('active');
+    if (driveCaptionEl) driveCaptionEl.textContent = postVictoryDriveSubtitles[0];
     setCreditsPage(0, false);
     dispatchMusicControl('play-track', {
       title: 'For the Dev',
       filename: 'For the Dev.mp3',
-      lock: true
+      lock: true,
+      stopOnEnd: true
     });
+  }
+
+  const onMusicTrackEnded = (event) => {
+    if (!postVictoryActive) return;
+    const filename = String(event?.detail?.filename || '');
+    if (!filename || filename !== postVictoryTrackFilename) return;
+    postVictoryTrackEnded = true;
+  };
+  window.addEventListener('mathpop:track-ended', onMusicTrackEnded);
+
+  function redirectToHomeFromCredits() {
+    const base = String(window.__MathPopBaseUrl || '/');
+    window.location.assign(base.endsWith('/') ? base : `${base}/`);
   }
 
   function updatePostVictorySequence(now = performance.now()) {
@@ -936,6 +1240,30 @@ window.__BennyWorldBabylonCleanup = null;
         Math.max(0, Math.floor(creditsElapsed / postVictoryPageTurnMs))
       );
       setCreditsPage(pageIndex, pageIndex !== postVictoryPageIndex);
+    }
+    const creditsTotalMs = postVictoryMessageHideMs + (postVictoryCreditsPages.length * postVictoryPageTurnMs) + postVictoryFinalHoldMs;
+    if (!postVictoryDriveActive && elapsed >= creditsTotalMs) {
+      postVictoryDriveActive = true;
+      postVictoryOverlay.classList.remove('show-credits');
+      postVictoryOverlay.classList.add('show-drive');
+      if (driveSceneEl) driveSceneEl.classList.add('active');
+    }
+    if (!postVictoryRedirected && postVictoryDriveActive) {
+      const driveElapsed = elapsed - creditsTotalMs;
+      if (driveCaptionEl) {
+        const subtitleIndex = Math.min(
+          postVictoryDriveSubtitles.length - 1,
+          Math.max(0, Math.floor(driveElapsed / postVictoryDriveSubtitleMs))
+        );
+        if (subtitleIndex !== postVictorySubtitleIndex) {
+          postVictorySubtitleIndex = subtitleIndex;
+          driveCaptionEl.textContent = postVictoryDriveSubtitles[subtitleIndex];
+        }
+      }
+      if ((postVictoryTrackEnded && driveElapsed >= postVictoryDriveMinMs) || elapsed >= postVictoryFallbackMs) {
+        postVictoryRedirected = true;
+        redirectToHomeFromCredits();
+      }
     }
   }
 
@@ -981,7 +1309,7 @@ window.__BennyWorldBabylonCleanup = null;
       stopOnEnd: true
     });
 
-    syntaxIntroTimeoutId = setTimeout(() => stopSyntaxQueenIntro(true, false), syntaxQueenThemeDurationMs);
+    syntaxIntroTimeoutId = dbgSetTimeout(() => stopSyntaxQueenIntro(true, false), syntaxQueenThemeDurationMs);
   }
 
   function spawnBossProjectile(type = 'syntax') {
@@ -1011,7 +1339,7 @@ window.__BennyWorldBabylonCleanup = null;
     ring.style.left = `${bennyState.x - cameraOffset - 28}px`;
     ring.style.top = `${bennyState.y - 28}px`;
     area.appendChild(ring);
-    setTimeout(() => ring.remove(), 260);
+    dbgSetTimeout(() => ring.remove(), 260);
 
     const bennyCx = bennyState.x + 18;
     const bennyCy = bennyState.y + 18;
@@ -1019,7 +1347,7 @@ window.__BennyWorldBabylonCleanup = null;
     if (bossPhase < 3 && bossDist < 160) {
       bossHealth = Math.max(0, bossHealth - 1);
       debugKing.classList.add('hit');
-      setTimeout(() => debugKing.classList.remove('hit'), 160);
+      dbgSetTimeout(() => debugKing.classList.remove('hit'), 160);
     }
   }
 
@@ -1061,6 +1389,7 @@ window.__BennyWorldBabylonCleanup = null;
       if (!isGround && p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el);
       return isGround;
     });
+    rebuildWorldIndex();
     blackHoleActive = false;
     blackHoleTimer = 0;
     clearBlackHolePartOnMap();
@@ -1074,8 +1403,8 @@ window.__BennyWorldBabylonCleanup = null;
     bossPatternProgress = 0;
     bossPatternGraceUntil = 0;
     bossLastSpawnAt = performance.now();
-    const rect = area.getBoundingClientRect();
-    const groundY = rect.height - 40;
+    if (!areaHeight) refreshAreaMetrics();
+    const groundY = areaHeight - 40;
     const fightAnchorX = Math.max(80, starPos.x - 260);
     bennyState.x = fightAnchorX;
     bennyState.y = groundY - 36;
@@ -1092,9 +1421,10 @@ window.__BennyWorldBabylonCleanup = null;
   function finishDebugKingFight() {
     setBossMode(false);
     bossWonThisLevel = true;
+    unlockJukeboxSongs(['song-26'], true);
     points += 500;
     setMessage('Syntax Queen defeated! +500', 1800);
-    levelIndex = Math.min(totalLevels - 1, levelIndex + 1);
+    levelIndex = Math.min(getTotalLevels() - 1, levelIndex + 1);
     saveProgress('auto');
     startPostVictorySequence();
   }
@@ -1104,7 +1434,9 @@ window.__BennyWorldBabylonCleanup = null;
     if (dashEl) dashEl.textContent = `Dash: ${Math.floor(distance)}m`;
     if (statusEl) {
       if (postVictoryActive) {
-        statusEl.textContent = 'BARK BARK!!!!! Victory credits rolling.';
+        statusEl.textContent = postVictoryDriveActive
+          ? "BARK BARK!!!!! Benny's desert cruise is live."
+          : 'BARK BARK!!!!! Victory credits rolling.';
         return;
       }
       if (syntaxIntroActive) {
@@ -1204,6 +1536,7 @@ window.__BennyWorldBabylonCleanup = null;
       freezeMs: 0,
       killBonus: 0,
       clearChance: 0,
+      cureBeam: false,
       symbol: '−',
       shotClass: 'shot-subtraction'
     };
@@ -1256,40 +1589,42 @@ window.__BennyWorldBabylonCleanup = null;
       cfg.cooldown = 165;
       cfg.shotClass = 'shot-nurse';
     } else if (tier === 8) {
-      cfg.symbol = '🐾';
-      cfg.shotCount = 4;
-      cfg.spread = 0.24;
-      cfg.damage = 4;
-      cfg.splashRadius = 70;
-      cfg.splashDamage = 3;
+      cfg.symbol = '🌀';
+      cfg.shotCount = 1;
+      cfg.spread = 0;
+      cfg.damage = 0;
+      cfg.splashRadius = 0;
+      cfg.splashDamage = 0;
       cfg.killBonus = 20;
-      cfg.clearChance = 0.12;
-      cfg.cooldown = 160;
-      cfg.shotClass = 'shot-dogko';
+      cfg.clearChance = 0;
+      cfg.cooldown = 140;
+      cfg.shotClass = 'shot-plumber';
     } else if (tier === 9) {
-      cfg.symbol = '✦';
-      cfg.shotCount = 5;
-      cfg.spread = 0.26;
-      cfg.damage = 4;
-      cfg.splashRadius = 78;
-      cfg.splashDamage = 3;
+      cfg.symbol = '⚡';
+      cfg.shotCount = 2;
+      cfg.spread = 0.1;
+      cfg.damage = 5;
+      cfg.splashRadius = 64;
+      cfg.splashDamage = 2;
       cfg.pierce = 2;
       cfg.killBonus = 30;
-      cfg.clearChance = 0.2;
-      cfg.cooldown = 150;
-      cfg.shotClass = 'shot-mythic';
+      cfg.clearChance = 0;
+      cfg.cooldown = 145;
+      cfg.shotClass = 'shot-electrician';
     } else if (tier >= 10) {
-      cfg.symbol = '⚡';
-      cfg.shotCount = 6;
-      cfg.spread = 0.28;
-      cfg.damage = 5;
-      cfg.splashRadius = 90;
-      cfg.splashDamage = 4;
-      cfg.pierce = 4;
+      cfg.symbol = '│';
+      cfg.shotCount = 1;
+      cfg.spread = 0;
+      cfg.speed = 8.8;
+      cfg.damage = 0;
+      cfg.splashRadius = 0;
+      cfg.splashDamage = 0;
+      cfg.pierce = 0;
       cfg.killBonus = 40;
-      cfg.clearChance = 0.35;
-      cfg.cooldown = 140;
-      cfg.shotClass = 'shot-mathtality';
+      cfg.clearChance = 0;
+      cfg.cooldown = 130;
+      cfg.cureBeam = true;
+      cfg.shotClass = 'shot-clarity';
     }
 
     return cfg;
@@ -1312,7 +1647,8 @@ window.__BennyWorldBabylonCleanup = null;
       baseY: baseY - 120 - Math.random() * 80,
       nextHopAt: performance.now() + 500 + Math.random() * 700,
       nextThrowAt: performance.now() + 800 + Math.random() * 1100,
-      hp: hitsNeededForTier()
+      hp: hitsNeededForTier(),
+      cured: false
     });
   }
 
@@ -1351,6 +1687,17 @@ window.__BennyWorldBabylonCleanup = null;
     points += 120 + Math.max(0, killBonus);
     setMessage(`${enemy.type === 'syntax' ? 'Syntax Error' : 'Bug'} eliminated!`, 900);
     removeEnemy(enemy);
+  }
+
+  function cureAirEnemy(enemy) {
+    if (!enemy || enemy.cured) return false;
+    enemy.cured = true;
+    enemy.hp = Math.max(1, enemy.hp || 1);
+    enemy.el.classList.add('cured');
+    enemy.vx = (Math.random() < 0.5 ? -1 : 1) * (1.2 + Math.random() * 0.8);
+    enemy.vy = -1.6;
+    setMessage('Concept Clarity! Error cured.', 700);
+    return true;
   }
 
   function applySplashDamage(shot, centerEnemy) {
@@ -1401,6 +1748,8 @@ window.__BennyWorldBabylonCleanup = null;
       freezeMs: cfg.freezeMs,
       killBonus: cfg.killBonus,
       clearChance: cfg.clearChance
+      ,
+      cureBeam: cfg.cureBeam === true
     });
   }
 
@@ -1437,6 +1786,8 @@ window.__BennyWorldBabylonCleanup = null;
         spawnShot(cfg, baseDir + offset);
       }
     }
+    if (cfg.tier === 9) electricianFxUntil = now + 260;
+    if (cfg.tier >= 10) teacherFxUntil = now + 280;
   }
 
   function spawnDistanceEnemyWave() {
@@ -1474,6 +1825,9 @@ window.__BennyWorldBabylonCleanup = null;
   function triggerGameOver() {
     const overlay = qs('#bwGameOver');
     gameOver = true;
+    utilityPumpActive = false;
+    electricianFxUntil = 0;
+    teacherFxUntil = 0;
     keys.left = false;
     keys.right = false;
     keys.jump = false;
@@ -1481,7 +1835,7 @@ window.__BennyWorldBabylonCleanup = null;
       overlay.textContent = 'Benny needs a nap\nTry again later.';
       overlay.classList.add('is-visible');
     }
-    setTimeout(() => {
+    dbgSetTimeout(() => {
       gameOver = false;
       points = 0;
       saveProgress('auto');
@@ -1495,7 +1849,7 @@ window.__BennyWorldBabylonCleanup = null;
 
   function triggerFlip() {
     benny.classList.remove('bw-benny--flip');
-    requestAnimationFrame(() => benny.classList.add('bw-benny--flip'));
+    dbgRequestAnimationFrame(() => benny.classList.add('bw-benny--flip'));
     flipActiveUntil = performance.now() + 500;
   }
 
@@ -1503,6 +1857,55 @@ window.__BennyWorldBabylonCleanup = null;
     const rect = area.getBoundingClientRect();
     areaWidth = rect.width;
     areaHeight = rect.height;
+  }
+
+  function chunkKeyAt(x) {
+    return Math.floor(x / worldChunkWidth);
+  }
+
+  function addToChunkMap(map, entity) {
+    const start = chunkKeyAt(entity.x);
+    const end = chunkKeyAt(entity.x + entity.w);
+    for (let c = start; c <= end; c += 1) {
+      let bucket = map.get(c);
+      if (!bucket) {
+        bucket = [];
+        map.set(c, bucket);
+      }
+      bucket.push(entity);
+    }
+  }
+
+  function rebuildWorldIndex() {
+    platformChunks.clear();
+    obstacleChunks.clear();
+    visiblePlatforms = [];
+    visibleObstacles = [];
+
+    movingPlatforms = platforms.filter((p) => p.vx);
+    staticPlatforms = platforms.filter((p) => !p.vx);
+    staticObstacles = obstacles.filter((ob) => ob.type === 'falling');
+    dynamicObstacles = obstacles.filter((ob) => ob.type !== 'falling');
+
+    staticPlatforms.forEach((p) => addToChunkMap(platformChunks, p));
+    staticObstacles.forEach((ob) => addToChunkMap(obstacleChunks, ob));
+  }
+
+  function collectChunkRange(map, minX, maxX, out) {
+    const minChunk = chunkKeyAt(minX);
+    const maxChunk = chunkKeyAt(maxX);
+    out.length = 0;
+    const seen = new Set();
+    for (let c = minChunk; c <= maxChunk; c += 1) {
+      const bucket = map.get(c);
+      if (!bucket) continue;
+      for (let i = 0; i < bucket.length; i += 1) {
+        const entity = bucket[i];
+        if (seen.has(entity)) continue;
+        seen.add(entity);
+        out.push(entity);
+      }
+    }
   }
 
   function setEntityScreenX(entity, x) {
@@ -1639,6 +2042,10 @@ window.__BennyWorldBabylonCleanup = null;
     enemyErrors = [];
     bennyShots.forEach((shot) => shot.el.remove());
     bennyShots = [];
+    utilityPumpActive = false;
+    utilityPumpLastMessageAt = 0;
+    electricianFxUntil = 0;
+    teacherFxUntil = 0;
     slowUntil = 0;
     freezeUntil = 0;
     nextEnemyWaveDistance = 500;
@@ -1763,6 +2170,7 @@ window.__BennyWorldBabylonCleanup = null;
     }
 
     spawnBlackHolePartPickup(levelWidth, groundY, safePath);
+    rebuildWorldIndex();
 
     benny.style.left = `${bennyState.x}px`;
     benny.style.top = `${groundY - 36}px`;
@@ -1874,15 +2282,38 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
 
     const collisionMinX = bennyState.x - collisionBufferX;
     const collisionMaxX = bennyState.x + 36 + collisionBufferX;
+    const platformCollisionCandidates = [];
+    const obstacleCollisionCandidates = [];
+    collectChunkRange(platformChunks, collisionMinX, collisionMaxX, platformCollisionCandidates);
+    collectChunkRange(obstacleChunks, collisionMinX, collisionMaxX, obstacleCollisionCandidates);
     let landed = false;
     wallContact = 0;
-    platforms.forEach((p) => {
+    movingPlatforms.forEach((p) => {
       if (p.vx) {
         p.x += p.vx;
         if (p.x < 20 || p.x + p.w > areaWidth - 20) p.vx *= -1;
       }
       if (p.x > collisionMaxX || p.x + p.w < collisionMinX) return;
 
+      const bx = bennyState.x;
+      const by = bennyState.y;
+      const bw = 36;
+      const bh = 36;
+      const overlapX = bx + bw > p.x && bx < p.x + p.w;
+      const overlapY = by + bh > p.y && by + bh < p.y + p.h + 8;
+      if (overlapX && overlapY && bennyState.vy >= 0) {
+        bennyState.y = p.y - bh;
+        bennyState.vy = 0;
+        bennyState.onGround = true;
+        landed = true;
+      }
+
+      const leftWall = Math.abs((bx + bw) - p.x) < 6 && by + bh > p.y && by < p.y + p.h;
+      const rightWall = Math.abs(bx - (p.x + p.w)) < 6 && by + bh > p.y && by < p.y + p.h;
+      if (leftWall) wallContact = 1;
+      if (rightWall) wallContact = -1;
+    });
+    platformCollisionCandidates.forEach((p) => {
       const bx = bennyState.x;
       const by = bennyState.y;
       const bw = 36;
@@ -1908,7 +2339,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       if (!deskPlaneActive) keys.glide = false;
     }
 
-    obstacles.forEach((ob) => {
+    dynamicObstacles.forEach((ob) => {
       if (ob.type === 'eraser') {
         ob.x += ob.vx;
         if (ob.x < 10 || ob.x + ob.w > areaWidth - 10) ob.vx *= -1;
@@ -1955,8 +2386,33 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         }
       }
     });
+    staticObstacles.forEach((ob) => {
+      if (!ob.vy) ob.vy = (0.6 + Math.random() * 0.8) * getDifficultyScale();
+      ob.y += ob.vy;
+      if (ob.y > groundY - ob.h) {
+        ob.y = 24;
+      }
+    });
+    obstacleCollisionCandidates.forEach((ob) => {
+      const bx = bennyState.x;
+      const by = bennyState.y;
+      const bw = 36;
+      const bh = 36;
+      const overlapX = bx + bw > ob.x && bx < ob.x + ob.w;
+      const overlapY = by + bh > ob.y && by < ob.y + ob.h;
+      if (overlapX && overlapY) {
+        setMessage('Oof! Try again.', 1200);
+        startLevel();
+      }
+    });
 
     airEnemies.forEach((enemy) => {
+      if (enemy.cured) {
+        enemy.el.classList.add('cured');
+        enemy.el.style.left = `${enemy.x - cameraOffset}px`;
+        enemy.el.style.top = `${enemy.y}px`;
+        return;
+      }
       if (enemy.nextHopAt <= now && Math.abs(enemy.vy) < 0.2) {
         enemy.vy = -(7.8 + Math.random() * 3.2);
         enemy.nextHopAt = now + 520 + Math.random() * 720;
@@ -1978,6 +2434,75 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       enemy.el.style.left = `${enemy.x - cameraOffset}px`;
       enemy.el.style.top = `${enemy.y}px`;
     });
+
+    const curedEnemies = airEnemies.filter((enemy) => enemy.cured);
+    if (curedEnemies.length > 0) {
+      curedEnemies.forEach((curedEnemy) => {
+        const uncured = airEnemies.filter((enemy) => !enemy.cured);
+        if (uncured.length === 0) {
+          awardEnemyElimination(curedEnemy, 25);
+          return;
+        }
+        let target = null;
+        let nearest = Infinity;
+        uncured.forEach((enemy) => {
+          const dx = (enemy.x + enemy.w * 0.5) - (curedEnemy.x + curedEnemy.w * 0.5);
+          const dy = (enemy.y + enemy.h * 0.5) - (curedEnemy.y + curedEnemy.h * 0.5);
+          const dist = Math.hypot(dx, dy);
+          if (dist < nearest) {
+            nearest = dist;
+            target = enemy;
+          }
+        });
+        if (!target) return;
+        const dx = (target.x + target.w * 0.5) - (curedEnemy.x + curedEnemy.w * 0.5);
+        const dy = (target.y + target.h * 0.5) - (curedEnemy.y + curedEnemy.h * 0.5);
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const strikeStep = 4.6;
+        curedEnemy.x += (dx / dist) * strikeStep;
+        curedEnemy.y += (dy / dist) * strikeStep;
+        curedEnemy.el.style.left = `${curedEnemy.x - cameraOffset}px`;
+        curedEnemy.el.style.top = `${curedEnemy.y}px`;
+        if (dist <= 24) {
+          awardEnemyElimination(target, 20);
+          setMessage('Cured error rewrote a syntax bug!', 700);
+        }
+      });
+    }
+
+    const tier = activeTier();
+    if (utilityPumpActive && tier === 8 && airEnemies.length) {
+      const bennyCenterX = bennyState.x + 18;
+      const bennyCenterY = bennyState.y + 18;
+      const pullRange = 320;
+      const catchDistance = 26;
+      const pullStep = 6.2;
+      const killBonus = getShotPowerConfig().killBonus || 0;
+      let sucked = 0;
+      for (let i = airEnemies.length - 1; i >= 0; i -= 1) {
+        const enemy = airEnemies[i];
+        const enemyCenterX = enemy.x + enemy.w * 0.5;
+        const enemyCenterY = enemy.y + enemy.h * 0.5;
+        const dx = bennyCenterX - enemyCenterX;
+        const dy = bennyCenterY - enemyCenterY;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        if (dist <= pullRange) {
+          enemy.x += (dx / dist) * pullStep;
+          enemy.y += (dy / dist) * pullStep;
+          enemy.el.style.left = `${enemy.x - cameraOffset}px`;
+          enemy.el.style.top = `${enemy.y}px`;
+        }
+        if (dist <= catchDistance) {
+          points += 120 + Math.max(0, killBonus);
+          removeEnemy(enemy);
+          sucked += 1;
+        }
+      }
+      if (sucked > 0 && now - utilityPumpLastMessageAt > 450) {
+        setMessage(`Utility Pump! ${sucked} bug${sucked === 1 ? '' : 's'} cleared.`, 700);
+        utilityPumpLastMessageAt = now;
+      }
+    }
 
     enemyErrors = enemyErrors.filter((proj) => {
       proj.x += proj.vx;
@@ -2057,6 +2582,11 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         }
       }
       if (hitEnemy) {
+        if (shot.cureBeam) {
+          cureAirEnemy(hitEnemy);
+          shot.el.remove();
+          return false;
+        }
         hitEnemy.hp -= shot.damage;
         if (hitEnemy.hp <= 0) {
           awardEnemyElimination(hitEnemy, shot.killBonus || 0);
@@ -2117,8 +2647,34 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     const minVisibleX = -offscreenRenderBuffer;
     const maxVisibleX = areaWidth + offscreenRenderBuffer;
 
+    const staticVisiblePlatforms = [];
+    const staticVisibleObstacles = [];
+    collectChunkRange(
+      platformChunks,
+      cameraOffset - offscreenRenderBuffer,
+      cameraOffset + areaWidth + offscreenRenderBuffer,
+      staticVisiblePlatforms
+    );
+    collectChunkRange(
+      obstacleChunks,
+      cameraOffset - offscreenRenderBuffer,
+      cameraOffset + areaWidth + offscreenRenderBuffer,
+      staticVisibleObstacles
+    );
+    const nextVisiblePlatforms = [...staticVisiblePlatforms, ...movingPlatforms];
+    const nextVisibleObstacles = [...staticVisibleObstacles, ...dynamicObstacles];
+
+    for (let i = 0; i < visiblePlatforms.length; i += 1) {
+      const oldEntity = visiblePlatforms[i];
+      if (!nextVisiblePlatforms.includes(oldEntity)) setEntityVisible(oldEntity, false);
+    }
+    for (let i = 0; i < visibleObstacles.length; i += 1) {
+      const oldEntity = visibleObstacles[i];
+      if (!nextVisibleObstacles.includes(oldEntity)) setEntityVisible(oldEntity, false);
+    }
+
     // Update visible platform positions with camera offset.
-    platforms.forEach((p) => {
+    nextVisiblePlatforms.forEach((p) => {
       const sx = p.x - cameraOffset;
       const visible = sx + p.w >= minVisibleX && sx <= maxVisibleX;
       setEntityVisible(p, visible);
@@ -2126,7 +2682,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     });
 
     // Update visible obstacle positions with camera offset.
-    obstacles.forEach((ob) => {
+    nextVisibleObstacles.forEach((ob) => {
       const sx = ob.x - cameraOffset;
       const visible = sx + ob.w >= minVisibleX && sx <= maxVisibleX;
       setEntityVisible(ob, visible);
@@ -2134,6 +2690,8 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       setEntityScreenX(ob, sx);
       setEntityScreenY(ob, ob.y);
     });
+    visiblePlatforms = nextVisiblePlatforms;
+    visibleObstacles = nextVisibleObstacles;
     
     // Update star position with camera offset
     star.style.left = `${starPos.x - cameraOffset}px`;
@@ -2146,7 +2704,15 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     // Update Benny with camera offset
     benny.style.left = `${bennyState.x - cameraOffset}px`;
     benny.style.top = `${bennyState.y}px`;
-    benny.classList.toggle('bw-benny--nuclear', activeTier() === 6);
+    const tierNow = activeTier();
+    const fxNow = performance.now();
+    benny.classList.toggle('bw-benny--nuclear', tierNow === 6);
+    benny.classList.toggle('bw-benny--plumber', tierNow === 8);
+    benny.classList.toggle('bw-benny--plumber-pumping', tierNow === 8 && utilityPumpActive);
+    benny.classList.toggle('bw-benny--electrician', tierNow === 9);
+    benny.classList.toggle('bw-benny--teacher', tierNow >= 10);
+    benny.classList.toggle('bw-benny--electrician-cast', tierNow === 9 && fxNow < electricianFxUntil);
+    benny.classList.toggle('bw-benny--teacher-cast', tierNow >= 10 && fxNow < teacherFxUntil);
 
     if (bossActive) {
       const now = performance.now();
@@ -2269,16 +2835,17 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     // Use the stored star position instead of getBoundingClientRect
     const hit = bennyState.x + 30 > starPos.x && bennyState.x < starPos.x + 30 && bennyState.y + 30 > starPos.y && bennyState.y < starPos.y + 30;
     if (hit) {
-      const isFinalLevel = levelIndex === totalLevels - 1;
+      const finalLevelIndex = getTotalLevels() - 1;
+      const isFinalLevel = levelIndex === finalLevelIndex;
       if (isFinalLevel && !bossWonThisLevel) {
         points += 200;
         saveProgress('auto');
-        setMessage('Level 75 cleared. Syntax Queen intro starts!', 1600);
+        setMessage(`Level ${finalLevelIndex + 1} cleared. Syntax Queen intro starts!`, 1600);
         startSyntaxQueenIntro();
         return;
       }
       points += 200;
-      levelIndex = Math.min(totalLevels - 1, levelIndex + 1);
+      levelIndex = Math.min(finalLevelIndex, levelIndex + 1);
       // Keep boss completion state on the final level so the encounter
       // does not re-trigger on every star touch after victory.
       if (!isFinalLevel) bossWonThisLevel = false;
@@ -2308,7 +2875,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     } else if (bennyState.vx > 0.1) {
       benny.classList.remove('bw-benny--left');
     }
-    rafId = requestAnimationFrame(tick);
+    rafId = dbgRequestAnimationFrame(tick);
   }
 
   function startLevel() {
@@ -2399,7 +2966,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     let activePointerId = null;
     const clearJumpPulse = () => {
       if (jumpPulseTimer) {
-        clearTimeout(jumpPulseTimer);
+        dbgClearTimeout(jumpPulseTimer);
         jumpPulseTimer = 0;
       }
     };
@@ -2416,7 +2983,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         triggerFlip();
         triggerBossPulse();
         clearJumpPulse();
-        jumpPulseTimer = setTimeout(() => {
+        jumpPulseTimer = dbgSetTimeout(() => {
           keys.jump = false;
           jumpPulseTimer = 0;
         }, 160);
@@ -2458,10 +3025,21 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       e.preventDefault();
       if (syntaxIntroActive || postVictoryActive) return;
       activePointerId = e.pointerId;
+      if (btn.setPointerCapture && e.pointerId !== undefined) {
+        try { btn.setPointerCapture(e.pointerId); } catch (_err) {}
+      }
+      if (btn === fireBtn && activeTier() === 8) {
+        utilityPumpActive = true;
+        return;
+      }
       action();
     };
     const onUp = (e) => {
       if (activePointerId !== null && e.pointerId !== undefined && e.pointerId !== activePointerId) return;
+      if (btn === fireBtn) utilityPumpActive = false;
+      if (activePointerId !== null && btn.releasePointerCapture && e.pointerId !== undefined) {
+        try { btn.releasePointerCapture(e.pointerId); } catch (_err) {}
+      }
       activePointerId = null;
     };
     btn.addEventListener('pointerdown', onDown);
@@ -2471,6 +3049,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       btn.removeEventListener('pointerdown', onDown);
       btn.removeEventListener('pointerup', onUp);
       btn.removeEventListener('pointercancel', onUp);
+      if (btn === fireBtn) utilityPumpActive = false;
       activePointerId = null;
     };
   }
@@ -2572,19 +3151,21 @@ const cleanupKeys = bindKeyEvents();
   }
   const cleanupJoystick = bindJoystickPointerEvents();
 
+  startDebugLogging();
   startLevel();
-  rafId = requestAnimationFrame(tick);
+  rafId = dbgRequestAnimationFrame(tick);
 
   window.__BennyWorldCleanup = () => {
     stopPostVictorySequence(false);
     stopSyntaxQueenIntro(false, true);
+    stopDebrisFall();
     saveProgress('auto');
-    if (rafId) cancelAnimationFrame(rafId);
+    if (rafId) dbgCancelAnimationFrame(rafId);
     airEnemies.forEach((enemy) => enemy.el.remove());
     enemyErrors.forEach((proj) => proj.el.remove());
     bennyShots.forEach((shot) => shot.el.remove());
     if (jumpPulseTimer) {
-      clearTimeout(jumpPulseTimer);
+      dbgClearTimeout(jumpPulseTimer);
       jumpPulseTimer = 0;
     }
     keys.jump = false;
@@ -2597,8 +3178,10 @@ const cleanupKeys = bindKeyEvents();
     cleanupPlane();
     cleanupFire();
     cleanupJoystick();
+    window.removeEventListener('mathpop:track-ended', onMusicTrackEnded);
     window.removeEventListener('resize', handleResize);
     cleanupProgressBtn();
+    stopDebugLogging();
     // Also call the Babylon cleanup if present
     if (window.__BennyWorldBabylonCleanup) {
       try { window.__BennyWorldBabylonCleanup(); } catch (e) {}

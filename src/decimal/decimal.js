@@ -91,9 +91,11 @@ export default function initDecimal() {
   let miniRoundEndsAt = 0;
   let miniCollected = 0;
   let miniSpawnAt = 0;
+  let miniLastClarityAt = 0;
   const miniRoundMs = 18000;
   let miniJoystick = null;
   let miniStick = null;
+  let utilityPumpHeld = false;
   let miniJoystickActive = false;
   let miniJoystickVector = { x: 0, y: 0 };
   let miniJoystickCenter = { x: 0, y: 0 };
@@ -193,6 +195,18 @@ export default function initDecimal() {
 
   function saveProfileStats(stats) {
     localStorage.setItem(profileStatsKey(), JSON.stringify(stats));
+  }
+
+  function getActiveBennyTier() {
+    const stats = loadProfileStats();
+    return Number(stats.activeTier) || 1;
+  }
+
+  function isBennyTierUnlocked(tierId) {
+    const stats = loadProfileStats();
+    const unlocks = new Set(stats.tierUnlocks || []);
+    unlocks.add(1);
+    return unlocks.has(tierId);
   }
 
   function dailyChallengeKey() {
@@ -2024,6 +2038,8 @@ export default function initDecimal() {
 
   function stopMiniRound() {
     miniGameActive = false;
+    utilityPumpHeld = false;
+    miniLastClarityAt = 0;
     if (miniAnimId) cancelAnimationFrame(miniAnimId);
     miniAnimId = null;
     miniCollectibles.forEach((d) => d.el.remove());
@@ -2233,6 +2249,27 @@ export default function initDecimal() {
       miniJoystick.addEventListener('touchcancel', resetMiniJoystick);
     }
 
+    if (miniArena) {
+      const isUtilityPumpEnabled = () => miniGameActive && getActiveBennyTier() === 8 && isBennyTierUnlocked(8);
+      const startUtilityPump = (e) => {
+        const target = e?.target;
+        if (target && typeof target.closest === 'function' && target.closest('.decimal-mini-joystick')) return;
+        if (e) e.preventDefault();
+        if (!isUtilityPumpEnabled()) return;
+        utilityPumpHeld = true;
+      };
+      const stopUtilityPump = () => {
+        utilityPumpHeld = false;
+      };
+      miniArena.addEventListener('touchstart', startUtilityPump, { passive: false });
+      miniArena.addEventListener('touchend', stopUtilityPump);
+      miniArena.addEventListener('touchcancel', stopUtilityPump);
+      miniArena.addEventListener('pointerdown', startUtilityPump);
+      miniArena.addEventListener('pointerup', stopUtilityPump);
+      miniArena.addEventListener('pointercancel', stopUtilityPump);
+      miniArena.addEventListener('pointerleave', stopUtilityPump);
+    }
+
     if (!('ontouchstart' in window) && controls) {
       controls.style.display = 'none';
     }
@@ -2242,11 +2279,13 @@ export default function initDecimal() {
     ensureMiniGameElements();
     if (!miniOverlay || !miniArena || !miniBenny) return;
     miniGameActive = true;
+    utilityPumpHeld = false;
     miniOverlay.style.display = 'flex';
     miniCollectibles = [];
     miniHazards = [];
     miniKeys = { left: false, right: false, up: false, down: false };
     miniCollected = 0;
+    miniLastClarityAt = 0;
     miniRoundEndsAt = performance.now() + miniRoundMs;
     miniSpawnAt = performance.now() + 200;
     if (miniDeskText) miniDeskText.style.width = '0%';
@@ -2262,6 +2301,8 @@ export default function initDecimal() {
 
   function endShapeBattle() {
     miniGameActive = false;
+    utilityPumpHeld = false;
+    miniLastClarityAt = 0;
     if (miniAnimId) cancelAnimationFrame(miniAnimId);
     miniAnimId = null;
     miniCollectibles.forEach((d) => d.el.remove());
@@ -2332,7 +2373,7 @@ export default function initDecimal() {
     hazard.dataset.vy = String(vy);
     hazard.style.transform = `translate(${x}px, ${y}px)`;
     miniArena.appendChild(hazard);
-    miniHazards.push({ el: hazard, x, y, vx, vy, w: 24, h: 24 });
+    miniHazards.push({ el: hazard, x, y, vx, vy, w: 24, h: 24, cured: false });
   }
 
   function miniLoop() {
@@ -2377,6 +2418,7 @@ export default function initDecimal() {
     });
 
     miniHazards.forEach((hazard) => {
+      if (hazard.cured) return;
       hazard.x += hazard.vx;
       hazard.y += hazard.vy;
       if (hazard.x <= 2 || hazard.x >= arenaRect.width - hazard.w - 2) hazard.vx *= -1;
@@ -2385,6 +2427,89 @@ export default function initDecimal() {
       hazard.y = clamp(hazard.y, 2, Math.max(2, arenaRect.height - hazard.h - 2));
       hazard.el.style.transform = `translate(${hazard.x}px, ${hazard.y}px)`;
     });
+
+    const utilityPumpActive = utilityPumpHeld && getActiveBennyTier() === 8 && isBennyTierUnlocked(8);
+    if (utilityPumpActive) {
+      const pullRange = Math.max(220, Math.min(320, Math.max(arenaRect.width, arenaRect.height) * 0.52));
+      const pullStep = 3.9;
+      const catchDistance = 28;
+      const targetX = bx + bennySize / 2;
+      const targetY = by + bennySize / 2;
+      miniHazards = miniHazards.filter((hazard) => {
+        const hx = hazard.x + hazard.w / 2;
+        const hy = hazard.y + hazard.h / 2;
+        const dx = targetX - hx;
+        const dy = targetY - hy;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        if (dist <= pullRange) {
+          hazard.x = clamp(hazard.x + (dx / dist) * pullStep, 2, Math.max(2, arenaRect.width - hazard.w - 2));
+          hazard.y = clamp(hazard.y + (dy / dist) * pullStep, 2, Math.max(2, arenaRect.height - hazard.h - 2));
+          hazard.el.style.transform = `translate(${hazard.x}px, ${hazard.y}px)`;
+        }
+        if (dist <= catchDistance) {
+          hazard.el.remove();
+          return false;
+        }
+        return true;
+      });
+    }
+
+    const conceptClarityActive = utilityPumpHeld && getActiveBennyTier() === 10 && isBennyTierUnlocked(10);
+    if (conceptClarityActive && now - miniLastClarityAt >= 180) {
+      miniLastClarityAt = now;
+      const targetX = bx + bennySize / 2;
+      const targetY = by + bennySize / 2;
+      let nearestHazard = null;
+      let nearestDist = Infinity;
+      miniHazards.forEach((hazard) => {
+        if (hazard.cured) return;
+        const hx = hazard.x + hazard.w / 2;
+        const hy = hazard.y + hazard.h / 2;
+        const dist = Math.hypot(targetX - hx, targetY - hy);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestHazard = hazard;
+        }
+      });
+      if (nearestHazard && nearestDist <= 320) {
+        nearestHazard.cured = true;
+        nearestHazard.vx = 0;
+        nearestHazard.vy = 0;
+        nearestHazard.el.classList.add('cured');
+      }
+    }
+
+    const curedHazards = miniHazards.filter((hazard) => hazard.cured);
+    if (curedHazards.length > 0) {
+      curedHazards.forEach((curedHazard) => {
+        const targets = miniHazards.filter((hazard) => !hazard.cured);
+        if (!targets.length) return;
+        let target = null;
+        let nearest = Infinity;
+        targets.forEach((hazard) => {
+          const dx = (hazard.x + hazard.w / 2) - (curedHazard.x + curedHazard.w / 2);
+          const dy = (hazard.y + hazard.h / 2) - (curedHazard.y + curedHazard.h / 2);
+          const dist = Math.hypot(dx, dy);
+          if (dist < nearest) {
+            nearest = dist;
+            target = hazard;
+          }
+        });
+        if (!target) return;
+        const dx = (target.x + target.w / 2) - (curedHazard.x + curedHazard.w / 2);
+        const dy = (target.y + target.h / 2) - (curedHazard.y + curedHazard.h / 2);
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const strikeStep = 4.4;
+        curedHazard.x = clamp(curedHazard.x + (dx / dist) * strikeStep, 2, Math.max(2, arenaRect.width - curedHazard.w - 2));
+        curedHazard.y = clamp(curedHazard.y + (dy / dist) * strikeStep, 2, Math.max(2, arenaRect.height - curedHazard.h - 2));
+        curedHazard.el.style.transform = `translate(${curedHazard.x}px, ${curedHazard.y}px)`;
+        if (dist <= 24) {
+          target.el.remove();
+          const idx = miniHazards.indexOf(target);
+          if (idx >= 0) miniHazards.splice(idx, 1);
+        }
+      });
+    }
 
     miniCollectibles = miniCollectibles.filter((desk) => {
       const hit = bx + bennySize - itemPad > desk.x
@@ -2415,6 +2540,11 @@ export default function initDecimal() {
       }
       return true;
     });
+
+    if (miniHazards.length > 0 && miniHazards.every((hazard) => hazard.cured)) {
+      miniHazards.forEach((hazard) => hazard.el.remove());
+      miniHazards = [];
+    }
 
     miniAnimId = requestAnimationFrame(miniLoop);
   }

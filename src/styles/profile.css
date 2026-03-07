@@ -278,6 +278,15 @@
   background: #31c8c8;
 }
 
+.tier-buy--danger {
+  background: #7f1d1d;
+  color: #fee2e2;
+}
+
+.tier-buy--danger:hover {
+  background: #b91c1c;
+}
+
 .tier-freeze-frame {
   margin-top: 8px;
   height: 56px;
@@ -368,9 +377,30 @@
   cursor: pointer;
 }
 
+.jukebox-song--locked {
+  cursor: default;
+  opacity: 0.9;
+}
+
 .jukebox-song.on {
   border-color: rgba(84, 255, 193, 0.7);
   background: rgba(13, 59, 48, 0.7);
+}
+
+.jukebox-buy {
+  border: none;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #1f7a3d;
+  color: #effff6;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.jukebox-buy:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .jukebox-status {
@@ -529,10 +559,13 @@
     min-height: 240px;
     padding-bottom: 10px;
   }
-  .profile-mobile-grid .benny-delete-box {
-    grid-column: 1 / -1;
-    justify-self: center;
-    width: min(92%, 280px);
+  .profile-mobile-grid .benny-delete-box,
+  .profile-mobile-grid .profile-delete-box {
+    grid-column: auto;
+    justify-self: stretch;
+    width: 100%;
+    aspect-ratio: auto;
+    min-height: 140px;
   }
   .profile-mobile-grid .jukebox-list {
     max-height: 210px;

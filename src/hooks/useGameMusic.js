@@ -58,11 +58,21 @@ export default function useGameMusic({
     const loadEnabledSongs = () => {
       const user = localStorage.getItem('mathpop_current_user');
       if (!user) return [];
+      const availableSongs = getAvailableJukeboxSongs(user);
       const raw = localStorage.getItem(`mathpop_jukebox_${user}`);
-      if (!raw) return [];
+      if (!raw) {
+        const starterState = availableSongs.reduce((acc, song, index) => {
+          acc[song.id] = index < 5;
+          return acc;
+        }, {});
+        localStorage.setItem(`mathpop_jukebox_${user}`, JSON.stringify(starterState));
+        return availableSongs
+          .filter((song) => Boolean(starterState[song.id]))
+          .map((song) => ({ title: song.label, filename: song.filename }));
+      }
       try {
         const state = JSON.parse(raw);
-        return getAvailableJukeboxSongs(user)
+        return availableSongs
           .filter((song) => Boolean(state?.[song.id]))
           .map((song) => ({ title: song.label, filename: song.filename }));
       } catch {
@@ -128,6 +138,13 @@ export default function useGameMusic({
     };
 
     const onAudioEnded = () => {
+      const endedSong = currentSong ? { ...currentSong } : null;
+      window.dispatchEvent(new CustomEvent('mathpop:track-ended', {
+        detail: {
+          title: endedSong?.title || '',
+          filename: endedSong?.filename || ''
+        }
+      }));
       if (externalTrackLock) {
         externalTrackLock = false;
         if (externalTrackStopOnEnd) {

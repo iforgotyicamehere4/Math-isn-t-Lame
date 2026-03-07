@@ -496,6 +496,82 @@ body {
   }
 }
 
+@media (min-width: 900px) and (max-width: 1600px) and (max-height: 900px) {
+  .startup-loading {
+    padding: 16px 16px 24px;
+  }
+
+  .startup-loading__image {
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .startup-loading__image-backdrop {
+    inset: -10%;
+    width: 120%;
+    height: 120%;
+    opacity: 0.74;
+  }
+
+  .startup-loading__title-halo {
+    top: clamp(10px, 3vh, 32px);
+    width: min(72vw, 700px);
+    height: clamp(84px, 15vh, 148px);
+  }
+
+  .startup-loading__bar {
+    bottom: clamp(12px, 2.6vh, 24px);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1600px) and (max-height: 900px) {
+  nav {
+    padding: 10px 18px;
+    gap: 8px;
+  }
+
+  .app-nav {
+    gap: 8px;
+  }
+
+  nav a,
+  nav button {
+    font-size: 0.95rem;
+  }
+
+  .hero-card {
+    margin: 12px auto;
+    padding: 18px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  .tagline {
+    margin: 8px auto;
+    padding: 8px 12px;
+    font-size: 1rem;
+    line-height: 1.45;
+  }
+
+  .quote-stage {
+    margin: 10px auto 14px;
+    padding: 12px 14px;
+  }
+
+  .phrase-field-wrap {
+    margin: 6px 0 8px;
+    min-height: 150px;
+  }
+
+  .quote-benny {
+    width: 46px;
+    height: 46px;
+    bottom: 6px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .startup-loading__plus,
   .startup-loading__minus,

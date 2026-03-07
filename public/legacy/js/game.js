@@ -14,7 +14,7 @@ colors cost 2500 points each; unlocks persist for Math Pup only.
    the user gets to use bennies arrow keys using the arrow keys and space bar or just the space bar. 
    first bar user uses arrow keys and space bar to shoot subtraction symbols from bennys eyes to destroy zombies.
     the second tier Benny shoots greater than signs at the zombies and it eliminates all zombies. 
-    The screen has a message that then says "Mathtality. Player One wins".
+    The screen has a message that then says "Your a Math Teacher Benny. Player One wins".
     there are 10 tiers of benny upgrades. 
    the second tier is unlocked after complleting all easy levels. the third tier is unlocked after completing all medium levels.  
    the fourth to tenth tiers are unlocked by earning more points and maintaining longer pup streaks. User profile must have 12k points to unlock all benny tiers.

@@ -80,6 +80,8 @@ self.addEventListener('fetch', (event) => {
           if (request.destination === 'document') {
             return caches.match(toScopedPath('./index.html'));
           }
+          // Always resolve with a valid Response to avoid "Failed to convert value to 'Response'"
+          return new Response('', { status: 504, statusText: 'Offline' });
         });
       })
   );

@@ -262,6 +262,7 @@
   let miniJoystick = null;
   let miniStick = null;
   let miniShootBtn = null;
+  let utilityPumpHeld = false;
   let miniJoystickActive = false;
   let miniJoystickVector = { x: 0, y: 0 };
   let miniJoystickCenter = { x: 0, y: 0 };
@@ -299,8 +300,10 @@
   let selectedCellIndex = null;
   let selectedCellElement = null;
   let correctiveLockUntil = 0;
+  let correctiveReadUnlockAt = 0;
   let correctiveLockCellIndex = null;
   let correctiveCountdownTimer = null;
+  let correctiveMissCountByCell = {};
 
   let unlockedCount = clamp(parseInt(window.localStorage.getItem(unlockKey), 10) || 3, 1, schemes.length);
   let selectedIndex = clamp(parseInt(window.localStorage.getItem(colorKey), 10) || 0, 0, schemes.length - 1);
@@ -421,7 +424,10 @@
   // Answer section event handlers
   function handleAnswerSubmit() {
     if (selectedCellIndex === null || !running) return;
-    if (isCorrectionLocked()) return;
+    if (isCorrectionLocked()) {
+      releaseCorrectionLockEarly();
+      return;
+    }
     const cell = board.children[selectedCellIndex];
     if (cell) {
       checkAnswer(cell, answerInput.value);
@@ -443,6 +449,7 @@
 
   function clearCorrectionLock() {
     correctiveLockUntil = 0;
+    correctiveReadUnlockAt = 0;
     correctiveLockCellIndex = null;
     if (correctiveCountdownTimer) {
       window.clearInterval(correctiveCountdownTimer);
@@ -453,6 +460,28 @@
     if (mobilePopupInput) mobilePopupInput.disabled = false;
     if (mobilePopupSubmit) mobilePopupSubmit.disabled = false;
     if (mobilePopupClose) mobilePopupClose.disabled = false;
+  }
+
+  function canReleaseCorrectionLockEarly() {
+    return isCorrectionLocked() && correctiveReadUnlockAt > 0 && Date.now() >= correctiveReadUnlockAt;
+  }
+
+  function releaseCorrectionLockEarly() {
+    if (!canReleaseCorrectionLockEarly()) return false;
+    clearCorrectionLock();
+    feedbackEl.textContent = 'Now try the same problem again.';
+    if (mobilePopupInstruction) {
+      mobilePopupInstruction.textContent = 'Try the same problem again.';
+    }
+    if (mobilePopupInput) {
+      mobilePopupInput.focus();
+      mobilePopupInput.select();
+    }
+    if (answerInput) {
+      answerInput.focus();
+      answerInput.select();
+    }
+    return true;
   }
 
   function buildSimpleTip(data) {
@@ -480,9 +509,9 @@
       const amount = Math.abs(Number(addSubMatch[2]));
       const right = Number(addSubMatch[3]);
       if (sign === '+') {
-        return `Step 1: subtract ${amount} on BOTH sides. Step 2: now x is alone.`;
+        return `Step 1: subtract ${amount} on BOTH sides. Use this: (${right}) - ${amount}. Step 2: now x is alone.`;
       }
-      return `Step 1: add ${amount} on BOTH sides. Step 2: now x is alone.`;
+      return `Step 1: add ${amount} on BOTH sides. Use this: (${right}) + ${amount}. Step 2: now x is alone.`;
     }
 
     const multOnlyMatch = eq.match(/^(-?\d+)x\s*=\s*(-?\d+)$/);
@@ -496,10 +525,58 @@
       const a = Number(multPlusMatch[1]);
       const sign = multPlusMatch[2];
       const b = Number(multPlusMatch[3]);
+      const right = Number(multPlusMatch[4]);
+      const shifted = sign === '+' ? right - b : right + b;
       if (sign === '+') {
-        return `Step 1: subtract ${b} on BOTH sides. Step 2: divide BOTH sides by ${a}.`;
+        return `Step 1: subtract ${b} on BOTH sides (${right} - ${b} = ${shifted}). Step 2: divide BOTH sides by ${a}.`;
       }
-      return `Step 1: add ${b} on BOTH sides. Step 2: divide BOTH sides by ${a}.`;
+      return `Step 1: add ${b} on BOTH sides (${right} + ${b} = ${shifted}). Step 2: divide BOTH sides by ${a}.`;
+    }
+
+    const groupedOverMatch = eq.match(/^\((-?\d+)x\s*([+-])\s*(\d+)\)\s*\/\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (groupedOverMatch) {
+      const a = Number(groupedOverMatch[1]);
+      const innerSign = groupedOverMatch[2];
+      const b = Number(groupedOverMatch[3]);
+      const divisor = Number(groupedOverMatch[4]);
+      const right = Number(groupedOverMatch[5]);
+      const expandedRight = right * divisor;
+      const shifted = innerSign === '+' ? expandedRight - b : expandedRight + b;
+      return `Step 1: multiply BOTH sides by ${divisor} (${right} x ${divisor} = ${expandedRight}). Step 2: ${innerSign === '+' ? `subtract ${b}` : `add ${b}`} on BOTH sides (${shifted}). Step 3: divide BOTH sides by ${a}.`;
+    }
+
+    const groupedOuterMatch = eq.match(/^(-?\d+)\(x\s*([+-])\s*(\d+)\)\s*([+-])\s*(\d+)\s*=\s*(-?\d+)$/);
+    if (groupedOuterMatch) {
+      const a = Number(groupedOuterMatch[1]);
+      const innerSign = groupedOuterMatch[2];
+      const innerB = Number(groupedOuterMatch[3]);
+      const outerSign = groupedOuterMatch[4];
+      const outerB = Number(groupedOuterMatch[5]);
+      const right = Number(groupedOuterMatch[6]);
+      const adjusted = outerSign === '+' ? right - outerB : right + outerB;
+      const innerRight = adjusted / a;
+      return `Step 1: ${outerSign === '+' ? `subtract ${outerB}` : `add ${outerB}`} on BOTH sides (${adjusted}). Step 2: divide BOTH sides by ${a} (${innerRight}). Step 3: ${innerSign === '+' ? `subtract ${innerB}` : `add ${innerB}`} to isolate x.`;
+    }
+
+    const groupedMatch = eq.match(/^(-?\d+)\(x\s*([+-])\s*(\d+)\)\s*=\s*(-?\d+)$/);
+    if (groupedMatch) {
+      const a = Number(groupedMatch[1]);
+      const innerSign = groupedMatch[2];
+      const innerB = Number(groupedMatch[3]);
+      const right = Number(groupedMatch[4]);
+      const innerRight = right / a;
+      return `Step 1: divide BOTH sides by ${a} (${innerRight}). Step 2: ${innerSign === '+' ? `subtract ${innerB}` : `add ${innerB}`} on BOTH sides to isolate x.`;
+    }
+
+    const combineLikeTermsMatch = eq.match(/^(-?\d+)x\s*([+-])\s*(\d+)x\s*=\s*(-?\d+)$/);
+    if (combineLikeTermsMatch) {
+      const first = Number(combineLikeTermsMatch[1]);
+      const sign = combineLikeTermsMatch[2];
+      const secondRaw = Number(combineLikeTermsMatch[3]);
+      const right = Number(combineLikeTermsMatch[4]);
+      const second = sign === '+' ? secondRaw : -secondRaw;
+      const combined = first + second;
+      return `Step 1: combine like terms (${first}x ${sign} ${secondRaw}x = ${combined}x). Step 2: divide BOTH sides by ${combined} to isolate x (${right} / ${combined}).`;
     }
 
     if (eq.includes('/')) {
@@ -519,8 +596,15 @@
 
   function beginCorrectionLock(cell, data) {
     clearCorrectionLock();
-    correctiveLockUntil = Date.now() + 30000;
-    correctiveLockCellIndex = Number(cell.dataset.index);
+    const cellIndex = Number(cell.dataset.index);
+    const missCount = (Number(correctiveMissCountByCell[cellIndex]) || 0) + 1;
+    correctiveMissCountByCell[cellIndex] = missCount;
+    const lockSeconds = missCount === 1 ? 6 : Math.min(15, 6 + (missCount - 1) * 4);
+    const minReadSeconds = missCount === 1 ? 3 : Math.min(6, 3 + missCount);
+    const now = Date.now();
+    correctiveLockUntil = now + lockSeconds * 1000;
+    correctiveReadUnlockAt = now + minReadSeconds * 1000;
+    correctiveLockCellIndex = cellIndex;
     const helpText = buildCorrectiveHelp(data);
     if (answerInput) answerInput.disabled = true;
     if (answerSubmit) answerSubmit.disabled = true;
@@ -529,11 +613,20 @@
     if (mobilePopupClose) mobilePopupClose.disabled = true;
 
     const tick = () => {
-      const left = Math.max(0, Math.ceil((correctiveLockUntil - Date.now()) / 1000));
+      const nowMs = Date.now();
+      const left = Math.max(0, Math.ceil((correctiveLockUntil - nowMs) / 1000));
+      const canTryNow = nowMs >= correctiveReadUnlockAt;
       if (left > 0) {
-        feedbackEl.textContent = `Read this for ${left}s. ${helpText}`;
+        if (answerSubmit) answerSubmit.disabled = !canTryNow;
+        if (mobilePopupSubmit) mobilePopupSubmit.disabled = !canTryNow;
+        if (mobilePopupClose) mobilePopupClose.disabled = !canTryNow;
+        if (canTryNow) {
+          feedbackEl.textContent = `Review done. Tap Submit to try now, or wait ${left}s. ${helpText}`;
+        } else {
+          feedbackEl.textContent = `Read this for ${left}s. ${helpText}`;
+        }
         if (mobilePopupInstruction) {
-          mobilePopupInstruction.textContent = `Read this for ${left}s. ${helpText}`;
+          mobilePopupInstruction.textContent = feedbackEl.textContent;
         }
       } else {
         clearCorrectionLock();
@@ -635,7 +728,10 @@
   
   function handleMobileSubmit() {
     if (selectedCellIndex === null || !running) return;
-    if (isCorrectionLocked()) return;
+    if (isCorrectionLocked()) {
+      releaseCorrectionLockEarly();
+      return;
+    }
     const cell = board.children[selectedCellIndex];
     if (cell) {
       const value = mobilePopupInput.value;
@@ -651,7 +747,7 @@
   function showAnswerSection(cellIndex, cellData) {
     if (!answerSection || !problemValue || !answerInput) return;
     if (isCorrectionLocked() && correctiveLockCellIndex !== cellIndex) {
-      feedbackEl.textContent = 'Finish the 30-second help on the current problem first.';
+      feedbackEl.textContent = 'Finish the current correction step first.';
       return;
     }
     
@@ -684,6 +780,7 @@
 
   function startGame() {
     clearCorrectionLock();
+    correctiveMissCountByCell = {};
     stopTimer();
     stopArena();
     stopShapeBattle(true);
@@ -734,6 +831,7 @@
     solved = 0;
     total = 0;
     solvedEquations = [];
+    correctiveMissCountByCell = {};
     board.innerHTML = '';
     board.dataset.cols = `${cols}`;
     board.dataset.level = level;
@@ -796,6 +894,7 @@
 
     if (value === data.answer) {
       clearCorrectionLock();
+      delete correctiveMissCountByCell[idx];
       data.solved = true;
       solved += 1;
       solvedEquations.push(data);
@@ -1079,13 +1178,43 @@
     }
 
     if (miniShootBtn) {
+      const isUtilityPumpEnabled = () => {
+        const { activeTier, tierUnlocks } = getTierState();
+        return miniGameActive && activeTier === 8 && isTierUnlocked(8, tierUnlocks);
+      };
+      const startUtilityPump = (e) => {
+        if (e) e.preventDefault();
+        if (!isUtilityPumpEnabled()) return false;
+        utilityPumpHeld = true;
+        return true;
+      };
+      const stopUtilityPump = () => {
+        utilityPumpHeld = false;
+      };
       const shootAction = (e) => {
         if (e) e.preventDefault();
         miniShoot();
       };
-      miniShootBtn.addEventListener('touchstart', shootAction, { passive: false });
-      miniShootBtn.addEventListener('pointerdown', shootAction);
-      miniShootBtn.addEventListener('click', shootAction);
+      miniShootBtn.addEventListener('touchstart', (e) => {
+        if (startUtilityPump(e)) return;
+        shootAction(e);
+      }, { passive: false });
+      miniShootBtn.addEventListener('touchend', stopUtilityPump);
+      miniShootBtn.addEventListener('touchcancel', stopUtilityPump);
+      miniShootBtn.addEventListener('pointerdown', (e) => {
+        if (startUtilityPump(e)) return;
+        shootAction(e);
+      });
+      miniShootBtn.addEventListener('pointerup', stopUtilityPump);
+      miniShootBtn.addEventListener('pointercancel', stopUtilityPump);
+      miniShootBtn.addEventListener('pointerleave', stopUtilityPump);
+      miniShootBtn.addEventListener('click', (e) => {
+        if (isUtilityPumpEnabled()) {
+          e.preventDefault();
+          return;
+        }
+        shootAction(e);
+      });
     }
 
     if (!('ontouchstart' in window) && controls) {
@@ -1097,6 +1226,7 @@
     ensureMiniGameElements();
     if (!miniOverlay || !miniArena || !miniBenny) return;
     miniGameActive = true;
+    utilityPumpHeld = false;
     miniOverlay.style.display = 'flex';
     miniHealth = 150;
     miniBennyHealth = miniBennyHealthMax;
@@ -1135,6 +1265,7 @@
 
   function stopShapeBattle(silent = false) {
     miniGameActive = false;
+    utilityPumpHeld = false;
     if (miniAnimId) cancelAnimationFrame(miniAnimId);
     miniAnimId = null;
     miniShots.forEach(s => s.remove());
@@ -1163,15 +1294,19 @@
     const by = parseFloat(miniBenny.dataset.y || '0');
     const dirX = miniLastDir.x || 1;
     const dirY = miniLastDir.y || 0;
-    const offsets = [-6, 6];
+    const { activeTier, tierUnlocks } = getTierState();
+    const isTeacher = activeTier === 10 && isTierUnlocked(10, tierUnlocks);
+    const offsets = isTeacher ? [0] : [-6, 6];
     offsets.forEach((off) => {
       const shot = document.createElement('div');
       shot.className = 'decimal-mini-shot';
-      shot.textContent = '−';
+      shot.textContent = isTeacher ? '│' : '−';
+      if (isTeacher) shot.classList.add('clarity-shot');
       shot.dataset.x = String(bx + 18);
       shot.dataset.y = String(by + 18 + off);
       shot.dataset.vx = String(dirX * 6);
       shot.dataset.vy = String(dirY * 6);
+      shot.dataset.cure = isTeacher ? '1' : '0';
       miniArena.appendChild(shot);
       miniShots.push(shot);
     });
@@ -1205,6 +1340,7 @@
     miniBenny.style.transform = `translate(${bx}px, ${by}px)`;
 
     miniShapes.forEach((shape, idx) => {
+      if (shape.classList.contains('cured')) return;
       let sx = parseFloat(shape.dataset.x || '0');
       let sy = parseFloat(shape.dataset.y || '0');
       const dx = bx - sx;
@@ -1219,10 +1355,97 @@
       shape.style.transform = `translate(${sx}px, ${sy}px)`;
     });
 
+    const { activeTier, tierUnlocks } = getTierState();
+    const utilityPumpActive = utilityPumpHeld && activeTier === 8 && isTierUnlocked(8, tierUnlocks);
+    if (utilityPumpActive) {
+      const pullRange = 280;
+      const pullStep = 3.9;
+      const catchDistance = 30;
+      const targetX = bx + bennySize / 2;
+      const targetY = by + bennySize / 2;
+      let suckedCount = 0;
+      miniShapes = miniShapes.filter((shape) => {
+        let sx = parseFloat(shape.dataset.x || '0');
+        let sy = parseFloat(shape.dataset.y || '0');
+        const centerX = sx + shapeSize / 2;
+        const centerY = sy + shapeSize / 2;
+        const dx = targetX - centerX;
+        const dy = targetY - centerY;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        if (dist <= pullRange) {
+          sx = clamp(sx + (dx / dist) * pullStep, 0, Math.max(0, arenaRect.width - shapeSize));
+          sy = clamp(sy + (dy / dist) * pullStep, 0, Math.max(0, arenaRect.height - shapeSize));
+          shape.dataset.x = String(sx);
+          shape.dataset.y = String(sy);
+          shape.style.transform = `translate(${sx}px, ${sy}px)`;
+        }
+        if (dist <= catchDistance) {
+          shape.remove();
+          suckedCount += 1;
+          return false;
+        }
+        return true;
+      });
+      if (suckedCount > 0) {
+        miniHealth = Math.max(0, miniHealth - (150 * suckedCount));
+        if (miniHealthFill) miniHealthFill.style.width = `${(miniHealth / 150) * 100}%`;
+        if (miniHealthText) miniHealthText.textContent = `${miniHealth} hits`;
+        if (miniHealth <= 0) {
+          stopShapeBattle(false);
+          return;
+        }
+      }
+    }
+
+    const curedShapes = miniShapes.filter((shape) => shape.classList.contains('cured'));
+    if (curedShapes.length > 0) {
+      curedShapes.forEach((shape) => {
+        const targets = miniShapes.filter((s) => !s.classList.contains('cured'));
+        if (!targets.length) return;
+        let sx = parseFloat(shape.dataset.x || '0');
+        let sy = parseFloat(shape.dataset.y || '0');
+        let target = null;
+        let nearest = Infinity;
+        targets.forEach((s) => {
+          const tx = parseFloat(s.dataset.x || '0');
+          const ty = parseFloat(s.dataset.y || '0');
+          const dx = tx - sx;
+          const dy = ty - sy;
+          const dist = Math.hypot(dx, dy);
+          if (dist < nearest) {
+            nearest = dist;
+            target = s;
+          }
+        });
+        if (!target) return;
+        const tx = parseFloat(target.dataset.x || '0');
+        const ty = parseFloat(target.dataset.y || '0');
+        const dx = tx - sx;
+        const dy = ty - sy;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        sx = clamp(sx + (dx / dist) * 4.1, 0, Math.max(0, arenaRect.width - shapeSize));
+        sy = clamp(sy + (dy / dist) * 4.1, 0, Math.max(0, arenaRect.height - shapeSize));
+        shape.dataset.x = String(sx);
+        shape.dataset.y = String(sy);
+        shape.style.transform = `translate(${sx}px, ${sy}px)`;
+        if (dist <= 24) {
+          target.remove();
+          miniShapes = miniShapes.filter((s) => s !== target);
+          miniHealth = Math.max(0, miniHealth - 1);
+          if (miniHealthFill) miniHealthFill.style.width = `${(miniHealth / 150) * 100}%`;
+          if (miniHealthText) miniHealthText.textContent = `${miniHealth} hits`;
+          if (miniHealth <= 0) {
+            stopShapeBattle(false);
+          }
+        }
+      });
+    }
+
     const now = performance.now();
     if (now >= miniNextEnemyShotAt) {
       miniNextEnemyShotAt = now + 1400;
       miniShapes.forEach((shape) => {
+        if (shape.classList.contains('cured')) return;
         const sx = parseFloat(shape.dataset.x || '0');
         const sy = parseFloat(shape.dataset.y || '0');
         const dx = bx - sx;
@@ -1264,6 +1487,13 @@
         const hit = x + 10 > sx && x < sx + shapeSize && y + 10 > sy && y < sy + shapeSize;
         if (hit) {
           shot.remove();
+          const cureBeam = shot.dataset.cure === '1';
+          if (cureBeam) {
+            if (!shape.classList.contains('cured')) {
+              shape.classList.add('cured');
+            }
+            return false;
+          }
           miniHealth = Math.max(0, miniHealth - 1);
           if (miniHealthFill) miniHealthFill.style.width = `${(miniHealth / 150) * 100}%`;
           if (miniHealthText) miniHealthText.textContent = `${miniHealth} hits`;
@@ -1307,6 +1537,16 @@
       }
       return true;
     });
+
+    if (miniShapes.length > 0 && miniShapes.every((shape) => shape.classList.contains('cured'))) {
+      miniShapes.forEach((shape) => shape.remove());
+      miniShapes = [];
+      miniHealth = 0;
+      if (miniHealthFill) miniHealthFill.style.width = '0%';
+      if (miniHealthText) miniHealthText.textContent = '0 hits';
+      stopShapeBattle(false);
+      return;
+    }
 
     miniAnimId = requestAnimationFrame(miniLoop);
   }

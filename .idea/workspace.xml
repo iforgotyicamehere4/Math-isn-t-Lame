@@ -4,25 +4,9 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0c7e416c-82ed-4236-b6fd-b7cb400569ba" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" />
+    <list default="true" id="568471b8-5851-4b67-8025-d7010949d1b2" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/js/bennyworld.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/js/bennyworld.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eslint.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/eslint.config.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/js/bennyworld.js" beforeDir="false" afterPath="$PROJECT_DIR$/public/js/bennyworld.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/js/capture.js" beforeDir="false" afterPath="$PROJECT_DIR$/public/js/capture.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/js/game.js" beforeDir="false" afterPath="$PROJECT_DIR$/public/js/game.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/__tests__/capture-generators.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/__tests__/capture-generators.test.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bennyworld/bennyworld.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/bennyworld/bennyworld.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hooks/useAutoTranslate.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useAutoTranslate.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hooks/useGameMusic.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useGameMusic.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hooks/useScriptOnce.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useScriptOnce.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/BennyWorld.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/BennyWorld.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/Capture.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Capture.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/Game.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Game.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/HowToPlay.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/HowToPlay.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/MathSynth.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/MathSynth.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/Profile.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Profile.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,10 +20,9 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 3
+  "associatedIndex": 4
 }]]></component>
-  <component name="ProjectId" id="3A6EcwTVMuSyT2d8EPILwuhJIiT" />
+  <component name="ProjectId" id="3A6JbhrgrHtG4sS4ax3UfyWaoet" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -60,11 +43,11 @@
 }]]></component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="0c7e416c-82ed-4236-b6fd-b7cb400569ba" name="Changes" comment="" />
-      <created>1771904703576</created>
+      <changelist id="568471b8-5851-4b67-8025-d7010949d1b2" name="Changes" comment="" />
+      <created>1771907159531</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1771904703576</updated>
+      <updated>1771907159531</updated>
     </task>
     <servers />
   </component>

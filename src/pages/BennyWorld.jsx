@@ -22,11 +22,20 @@ export default function BennyWorld() {
 
   useEffect(() => {
     let cancelled = false;
-    loadBabylonScript()
-      .then(() => (cancelled ? null : loadBennyWorldScript()))
-      .catch((err) => {
-        console.error('[BennyWorld] Failed to load scripts:', err?.message || err);
-      });
+    const loadAll = async () => {
+      try {
+        await loadBabylonScript();
+      } catch (err) {
+        console.error('[BennyWorld] Failed to load Babylon:', err?.message || err);
+      }
+      if (cancelled) return;
+      try {
+        await loadBennyWorldScript();
+      } catch (err) {
+        console.error('[BennyWorld] Failed to load BennyWorld:', err?.message || err);
+      }
+    };
+    loadAll();
     return () => {
       cancelled = true;
     };

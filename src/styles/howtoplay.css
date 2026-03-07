@@ -943,6 +943,41 @@
   background: rgba(6, 16, 46, 0.52);
   border: 1px solid rgba(160, 210, 255, 0.25);
 }
+.tutorial-block--important {
+  border-color: rgba(255, 214, 149, 0.58);
+  background: linear-gradient(160deg, rgba(44, 31, 12, 0.45), rgba(10, 16, 45, 0.75));
+}
+.tutorial-text {
+  margin: 0 0 8px;
+  color: #ebf8ff;
+}
+.tutorial-game-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.tutorial-game-card {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(156, 223, 255, 0.25);
+  background: rgba(6, 14, 36, 0.6);
+}
+.tutorial-game-card h4 {
+  margin: 0 0 6px;
+  font-size: 0.98rem;
+  color: #baf1ff;
+}
+.tutorial-game-card p {
+  margin: 0 0 6px;
+  color: #d3e5f7;
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+.tutorial-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .queen-line {
   margin: 8px 0 10px;
   padding: 10px;
@@ -956,6 +991,19 @@
 }
 .instructions .back-link {
   color: #a6d7ff;
+  margin-top: 2px;
+  padding: 6px 10px;
+  border: 1px solid rgba(166, 215, 255, 0.4);
+  border-radius: 8px;
+  background: rgba(8, 20, 48, 0.4);
+}
+.instructions .back-link:hover {
+  background: rgba(24, 45, 94, 0.6);
+}
+@media (max-width: 780px) {
+  .tutorial-game-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .booiiii {
   perspective: 600px;
@@ -1590,4 +1638,31 @@
     font-size: 0.65rem;
     padding-left: 0.8rem;
   }
+}
+
+/* HowToPlay simplified layout: full-page scroll, no fixed overlays */
+.howto-page {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.campfire-scene {
+  display: block;
+  width: min(900px, 92vw);
+  min-height: 100vh;
+  height: auto;
+  margin: 0 auto;
+  padding: 12px 0 24px;
+}
+
+.instructions {
+  position: relative;
+  left: auto;
+  top: auto;
+  bottom: auto;
+  transform: none;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  margin: 0;
 }

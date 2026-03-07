@@ -1413,6 +1413,11 @@
   box-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
 }
 
+.decimal-mini-shape.cured span {
+  background: #86efac;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
+}
+
 .decimal-mini-shot {
   position: absolute;
   width: 16px;
@@ -1426,6 +1431,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.decimal-mini-shot.clarity-shot {
+  color: #ecfeff;
+  border-color: rgba(125, 211, 252, 0.9);
+  text-shadow:
+    0 0 8px rgba(125, 211, 252, 0.95),
+    0 0 14px rgba(56, 189, 248, 0.72);
 }
 
 .decimal-mini-enemy-shot {

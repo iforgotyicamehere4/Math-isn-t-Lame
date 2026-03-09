@@ -153,6 +153,20 @@ export default function Decimal() {
           </div>
           <div className="hint" id="hint" />
           <div className="hint" id="decimalDailyHint" />
+          <div id="decimalCorrectivePopup" className="decimal-corrective-popup" aria-live="polite" aria-hidden="true">
+            <p id="decimalCorrectiveTitle" className="decimal-corrective-popup__title" />
+            <p id="decimalCorrectiveBody" className="decimal-corrective-popup__body" />
+            <p id="decimalCorrectiveStep" className="decimal-corrective-popup__step" />
+            <div className="decimal-corrective-popup__progress" aria-hidden="true">
+              <div id="decimalCorrectiveProgressBar" className="decimal-corrective-popup__progress-bar" />
+            </div>
+            <div className="decimal-corrective-popup__footer">
+              <p id="decimalCorrectiveCountdown" className="decimal-corrective-popup__countdown" />
+              <button id="decimalCorrectiveReplayBtn" className="decimal-corrective-popup__replay" type="button">
+                Replay
+              </button>
+            </div>
+          </div>
           
           <div className="feedback" id="feedback" style={{ marginTop: '12px' }} />
 

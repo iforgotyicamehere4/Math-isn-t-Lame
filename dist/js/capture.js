@@ -172,10 +172,49 @@ function profileStatsKey() {
   return `mathpop_profile_stats_${currentUser()}`;
 }
 
+function tierUnlocksStorageKey() {
+  return `mathpop_benny_tier_unlocks_${currentUser()}`;
+}
+
+function activeTierStorageKey() {
+  return `mathpop_benny_active_tier_${currentUser()}`;
+}
+
+function loadPersistentTierState() {
+  let tierUnlocks = [];
+  let activeTier = 1;
+  try {
+    const rawUnlocks = localStorage.getItem(tierUnlocksStorageKey());
+    const parsed = rawUnlocks ? JSON.parse(rawUnlocks) : [];
+    tierUnlocks = Array.isArray(parsed)
+      ? [...new Set(parsed.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
+      : [];
+  } catch {
+    tierUnlocks = [];
+  }
+  try {
+    activeTier = Math.max(1, Number(localStorage.getItem(activeTierStorageKey())) || 1);
+  } catch {
+    activeTier = 1;
+  }
+  return { tierUnlocks, activeTier };
+}
+
 function loadProfileStats() {
+  const persistedTier = loadPersistentTierState();
   const raw = localStorage.getItem(profileStatsKey());
   if (!raw) {
-    return { totalPoints: 0, totalCorrect: 0, totalAttempted: 0, pupStreakRecord: 0, levelsCompleted: [], games: {} };
+    return {
+      totalPoints: 0,
+      totalCorrect: 0,
+      totalAttempted: 0,
+      pupStreakRecord: 0,
+      levelsCompleted: [],
+      spentPoints: 0,
+      tierUnlocks: [...new Set([1, ...persistedTier.tierUnlocks])],
+      activeTier: persistedTier.activeTier || 1,
+      games: {}
+    };
   }
   try {
     const parsed = JSON.parse(raw);
@@ -185,10 +224,29 @@ function loadProfileStats() {
       totalAttempted: Number(parsed.totalAttempted) || 0,
       pupStreakRecord: Number(parsed.pupStreakRecord) || 0,
       levelsCompleted: Array.isArray(parsed.levelsCompleted) ? parsed.levelsCompleted : [],
+      spentPoints: Number(parsed.spentPoints) || 0,
+      tierUnlocks: [...new Set([
+        1,
+        ...persistedTier.tierUnlocks,
+        ...(Array.isArray(parsed.tierUnlocks)
+        ? [...new Set(parsed.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
+        : [])
+      ])],
+      activeTier: Math.max(1, Number(parsed.activeTier) || persistedTier.activeTier || 1),
       games: parsed.games && typeof parsed.games === 'object' ? parsed.games : {}
     };
   } catch {
-    return { totalPoints: 0, totalCorrect: 0, totalAttempted: 0, pupStreakRecord: 0, levelsCompleted: [], games: {} };
+    return {
+      totalPoints: 0,
+      totalCorrect: 0,
+      totalAttempted: 0,
+      pupStreakRecord: 0,
+      levelsCompleted: [],
+      spentPoints: 0,
+      tierUnlocks: [...new Set([1, ...persistedTier.tierUnlocks])],
+      activeTier: persistedTier.activeTier || 1,
+      games: {}
+    };
   }
 }
 
@@ -200,6 +258,12 @@ function ensureGameStats(stats, gameId) {
 }
 
 function saveProfileStats(stats) {
+  const unlocks = Array.isArray(stats?.tierUnlocks)
+    ? [...new Set([1, ...stats.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id))])]
+    : [1];
+  const tier = Math.max(1, Number(stats?.activeTier) || 1);
+  localStorage.setItem(tierUnlocksStorageKey(), JSON.stringify(unlocks));
+  localStorage.setItem(activeTierStorageKey(), String(tier));
   localStorage.setItem(profileStatsKey(), JSON.stringify(stats));
 }
 

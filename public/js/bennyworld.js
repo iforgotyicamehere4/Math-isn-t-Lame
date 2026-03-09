@@ -43,49 +43,62 @@ window.__BennyWorldBabylonCleanup = null;
     intervals: new Set(),
     rafs: new Set()
   } : null;
+  const runtimeHandles = {
+    timeouts: new Set(),
+    intervals: new Set(),
+    rafs: new Set()
+  };
 
   const dbgSetTimeout = (fn, ms) => {
-    if (!debugEnabled) return setTimeout(fn, ms);
     const id = setTimeout(() => {
-      debugState.timeouts.delete(id);
+      runtimeHandles.timeouts.delete(id);
+      if (debugEnabled) debugState.timeouts.delete(id);
       fn();
     }, ms);
-    debugState.timeouts.add(id);
+    runtimeHandles.timeouts.add(id);
+    if (debugEnabled) debugState.timeouts.add(id);
     return id;
   };
 
   const dbgClearTimeout = (id) => {
-    if (!debugEnabled) return clearTimeout(id);
-    if (id) debugState.timeouts.delete(id);
+    if (id) {
+      runtimeHandles.timeouts.delete(id);
+      if (debugEnabled) debugState.timeouts.delete(id);
+    }
     clearTimeout(id);
   };
 
   const dbgSetInterval = (fn, ms) => {
-    if (!debugEnabled) return setInterval(fn, ms);
     const id = setInterval(fn, ms);
-    debugState.intervals.add(id);
+    runtimeHandles.intervals.add(id);
+    if (debugEnabled) debugState.intervals.add(id);
     return id;
   };
 
   const dbgClearInterval = (id) => {
-    if (!debugEnabled) return clearInterval(id);
-    if (id) debugState.intervals.delete(id);
+    if (id) {
+      runtimeHandles.intervals.delete(id);
+      if (debugEnabled) debugState.intervals.delete(id);
+    }
     clearInterval(id);
   };
 
   const dbgRequestAnimationFrame = (fn) => {
-    if (!debugEnabled) return requestAnimationFrame(fn);
     const id = requestAnimationFrame((ts) => {
-      debugState.rafs.delete(id);
+      runtimeHandles.rafs.delete(id);
+      if (debugEnabled) debugState.rafs.delete(id);
       fn(ts);
     });
-    debugState.rafs.add(id);
+    runtimeHandles.rafs.add(id);
+    if (debugEnabled) debugState.rafs.add(id);
     return id;
   };
 
   const dbgCancelAnimationFrame = (id) => {
-    if (!debugEnabled) return cancelAnimationFrame(id);
-    if (id) debugState.rafs.delete(id);
+    if (id) {
+      runtimeHandles.rafs.delete(id);
+      if (debugEnabled) debugState.rafs.delete(id);
+    }
     cancelAnimationFrame(id);
   };
   
@@ -101,9 +114,12 @@ window.__BennyWorldBabylonCleanup = null;
   const joystickRadius = 35; // Radius of joystick movement
 
   if (!root || !area) return;
+  const runtimeLikelyMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
+    || (typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 4);
 
   /* --- Babylon placeholder: embedded from bennyworld-babylon.js --- */
   (() => {
+    if (runtimeLikelyMobile) return;
     // Ensure a canvas exists with id 'bwBabylon' (if not, create one and append to root)
     let canvas = document.getElementById('bwBabylon');
     let createdCanvas = false;
@@ -254,6 +270,21 @@ window.__BennyWorldBabylonCleanup = null;
     'ruler', 'calendar', 'notepad', 'graphpaper', 'indexcard',
     'planner', 'lab', 'chalk', 'computerlab', 'hallway'
   ];
+  const cloudPalette = [
+    ['#d2f1f8', '#e7f6ff', '#1e2f47'], // Ice Blue Cloud
+    ['#f6e7f1', '#fcf2f6', '#9A9A9A'], // Icy Pink Cloud
+    ['#d0fdfe', '#e6fafd', '#627188'], // Pale Blue Cloud
+    ['#c5fce7', '#def9f6', '#33cccc'], // Cloud Teal / Turquoise Cloud
+    ['#f9c1d1', '#ffd7e3', '#bbbec7'], // Strawberry / Cherry Blossom
+    ['#f7e4ad', '#fef9dc', '#40392d'], // Golden Hour / Golden Cloud
+    ['#e2a9a1', '#fae7df', '#796e6b'], // Coral / Rose Ash
+    ['#dce3fc', '#f1f4ff', '#556878'], // Twilight / Platinum
+    ['#c8e6c9', '#f5fff0', '#1a2e43'], // Lime / Cloud Green
+    ['#acc2d9', '#dbeaf8', '#232f48'], // Cloudy Blue / Dusk Blue
+    ['#e9c2f1', '#f1eafe', '#153c57'], // Raspberry / Violet
+    ['#fbe8df', '#fff7e1', '#4B4B4B']  // Toffee / Soft Yellow
+  ];
+  let cloudPaletteCursor = Math.floor(Math.random() * cloudPalette.length);
   const BENNY_COLORS = [
     { id: 'solid-01', type: 'solid', primary: '#7dd3fc' },
     { id: 'tone-01', type: 'tone', primary: '#6ee7b7', secondary: '#a3e635' },
@@ -337,6 +368,8 @@ window.__BennyWorldBabylonCleanup = null;
   const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
   const lowMemoryDevice = typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 4;
   const perfModeMobile = isMobileDevice || lowMemoryDevice;
+  if (perfModeMobile) root.classList.add('bw-low-fx');
+  root.classList.add('bw-paper-cloud-mode');
   const levelWidthBaseMultiplier = perfModeMobile ? 5 : 8;
   const levelWidthPerLevelMultiplier = perfModeMobile ? 1 : 2;
   const levelWidthMax = perfModeMobile ? 14000 : 28000;
@@ -349,6 +382,7 @@ window.__BennyWorldBabylonCleanup = null;
   const keys = { left: false, right: false, jump: false, glide: false };
   let rafId = 0;
   let lastAutoSaveAt = 0;
+  let lastPhysicsAt = 0;
   let jumpPulseTimer = 0;
 
   const benny = document.createElement('div');
@@ -398,6 +432,9 @@ window.__BennyWorldBabylonCleanup = null;
     display: block !important;
     visibility: visible !important;
   `;
+  const paperCloudLane = document.createElement('div');
+  paperCloudLane.className = 'bw-paper-cloud-lane';
+  crumblingFloor.appendChild(paperCloudLane);
   
   area.appendChild(blackHole);
   area.appendChild(crumblingFloor);
@@ -528,8 +565,15 @@ window.__BennyWorldBabylonCleanup = null;
   let bossActive = false;
   let bossPhase = 0;
   let bossHealth = 0;
+  let bossMaxHealth = 100;
   let bossX = 0;
   let bossY = 0;
+  let bossCombatUnlocked = false;
+  let bossCutsceneActive = false;
+  let bossMidBattleDialogueShown = false;
+  let bossDefeatDialogueStarted = false;
+  let bossDialogueActive = false;
+  const bossDialogueTimerIds = [];
   let mirroredControls = false;
   let bossProjectiles = [];
   let bossPatternNodes = [];
@@ -554,6 +598,9 @@ window.__BennyWorldBabylonCleanup = null;
   let freezeUntil = 0;
   let nextEnemyWaveDistance = 500;
   const bennyShotCooldownMs = 220;
+  const maxBennyShotsOnScreen = perfModeMobile ? 40 : 90;
+  const maxEnemyProjectilesOnScreen = perfModeMobile ? 30 : 70;
+  const maxBossProjectilesOnScreen = perfModeMobile ? 24 : 56;
   const syntaxQueenThemeDurationMs = 30000;
   const syntaxQueenThemeFadeStartMs = 27000;
   const syntaxQueenThemeSong = 'Syntax Queen Theme song.mp3';
@@ -627,6 +674,9 @@ window.__BennyWorldBabylonCleanup = null;
   let blackHoleCooldownUntilLevel = 0;
   let activeBlackHolePart = null;
   let debugOverlay = null;
+  let paperClouds = [];
+  let lastPaperCloudTickAt = 0;
+  let nextPaperCloudSpawnAt = 0;
 
   function startDebugLogging() {
     if (!debugEnabled || debugLogInterval) return;
@@ -703,6 +753,63 @@ window.__BennyWorldBabylonCleanup = null;
       debugOverlay.parentNode.removeChild(debugOverlay);
     }
     debugOverlay = null;
+  }
+
+  function spawnPaperCloud(now = performance.now()) {
+    if (!paperCloudLane) return;
+    if (!areaWidth || !areaHeight) refreshAreaMetrics();
+    const laneHeight = Math.max(52, Math.floor(areaHeight * 0.1));
+    const baseW = Math.max(46, Math.floor(areaWidth * 0.1));
+    const width = Math.round(baseW * (0.85 + Math.random() * 0.42));
+    const height = Math.round(width * (0.44 + Math.random() * 0.18));
+    const y = Math.max(2, Math.round(Math.random() * Math.max(8, laneHeight - height - 6)));
+    const x = areaWidth + width + 24;
+    const speed = 20 + Math.random() * 22;
+    const el = document.createElement('div');
+    el.className = 'bw-paper-cloud';
+    const tint = Math.random();
+    if (tint < 0.34) el.classList.add('tone-soft');
+    else if (tint < 0.67) el.classList.add('tone-cool');
+    const shapeRoll = Math.random();
+    if (shapeRoll < 0.25) el.classList.add('shape-puff');
+    else if (shapeRoll < 0.5) el.classList.add('shape-flat');
+    else if (shapeRoll < 0.75) el.classList.add('shape-tall');
+    else el.classList.add('shape-cluster');
+    el.style.width = `${width}px`;
+    el.style.height = `${height}px`;
+    el.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+    paperCloudLane.appendChild(el);
+    paperClouds.push({ el, x, y, speed, width });
+  }
+
+  function updatePaperClouds(now = performance.now()) {
+    if (!paperCloudLane) return;
+    if (!areaWidth || !areaHeight) refreshAreaMetrics();
+    if (!lastPaperCloudTickAt) lastPaperCloudTickAt = now;
+    const dt = Math.min(0.06, Math.max(0.001, (now - lastPaperCloudTickAt) / 1000));
+    lastPaperCloudTickAt = now;
+    if (!nextPaperCloudSpawnAt) nextPaperCloudSpawnAt = now + 120;
+
+    const nextClouds = [];
+    for (let i = 0; i < paperClouds.length; i += 1) {
+      const cloud = paperClouds[i];
+      cloud.x -= cloud.speed * dt;
+      if (cloud.x + cloud.width < -40) {
+        if (cloud.el?.parentNode) cloud.el.parentNode.removeChild(cloud.el);
+        continue;
+      }
+      cloud.el.style.transform = `translate3d(${Math.round(cloud.x)}px, ${Math.round(cloud.y)}px, 0)`;
+      nextClouds.push(cloud);
+    }
+    paperClouds = nextClouds;
+
+    const spawnGapMin = perfModeMobile ? 180 : 150;
+    const spawnGapMax = perfModeMobile ? 360 : 300;
+    const maxClouds = perfModeMobile ? 24 : 32;
+    while (now >= nextPaperCloudSpawnAt && paperClouds.length < maxClouds) {
+      spawnPaperCloud(now);
+      nextPaperCloudSpawnAt = now + spawnGapMin + Math.random() * (spawnGapMax - spawnGapMin);
+    }
   }
 
   function currentUser() {
@@ -1053,6 +1160,15 @@ window.__BennyWorldBabylonCleanup = null;
     debugKing.classList.toggle('active', active);
     bossArena.classList.toggle('active', active);
     if (!active) {
+      bossCombatUnlocked = false;
+      bossDialogueActive = false;
+      bossCutsceneActive = false;
+      bossMidBattleDialogueShown = false;
+      bossDefeatDialogueStarted = false;
+      clearBossDialogueTimers();
+      while (bossDialogueTimerIds.length) {
+        dbgClearTimeout(bossDialogueTimerIds.pop());
+      }
       mirroredControls = false;
       bossPhase = 0;
       bossPatternProgress = 0;
@@ -1062,6 +1178,82 @@ window.__BennyWorldBabylonCleanup = null;
       bossProjectiles.forEach(p => p.el.remove());
       bossProjectiles = [];
     }
+  }
+
+  function startBossDialogueSequence() {
+    if (!bossActive) return;
+    while (bossDialogueTimerIds.length) {
+      dbgClearTimeout(bossDialogueTimerIds.pop());
+    }
+    bossDialogueActive = true;
+    bossCombatUnlocked = false;
+    keys.left = false;
+    keys.right = false;
+    keys.jump = false;
+    keys.glide = false;
+    const queenLine = 'Well well well...... It looks like we have Big Trouble in little numbers......';
+    const bennyLine = 'Bark Bark Its all in the dogflexes';
+    setMessage(`Syntax Queen: "${queenLine}"`, 4200);
+    bossDialogueTimerIds.push(dbgSetTimeout(() => {
+      if (!bossActive) return;
+      setMessage(`Benny: "${bennyLine}"`, 3200);
+    }, 4300));
+    bossDialogueTimerIds.push(dbgSetTimeout(() => {
+      if (!bossActive) return;
+      bossDialogueActive = false;
+      bossCombatUnlocked = true;
+      setMessage('Fight!', 1200);
+    }, 7600));
+  }
+
+  function clearBossDialogueTimers() {
+    while (bossDialogueTimerIds.length) {
+      dbgClearTimeout(bossDialogueTimerIds.pop());
+    }
+  }
+
+  function startBossMidBattleCutscene() {
+    if (!bossActive || bossCutsceneActive || bossMidBattleDialogueShown) return;
+    bossMidBattleDialogueShown = true;
+    bossCutsceneActive = true;
+    bossCombatUnlocked = false;
+    keys.left = false;
+    keys.right = false;
+    keys.jump = false;
+    keys.glide = false;
+    clearBossDialogueTimers();
+    setMessage('Syntax Queen: "ahhh your good but not that good....... Im gonna divide you like a left over remainder."', 4200);
+    bossDialogueTimerIds.push(dbgSetTimeout(() => {
+      if (!bossActive) return;
+      setMessage('Benny: "Yeah? Well you better check your math, pal… because I don’t do leftovers."', 3800);
+    }, 4300));
+    bossDialogueTimerIds.push(dbgSetTimeout(() => {
+      if (!bossActive) return;
+      bossCutsceneActive = false;
+      bossCombatUnlocked = true;
+      setMessage('Fight!', 900);
+    }, 8100));
+  }
+
+  function startBossDefeatCutscene() {
+    if (!bossActive || bossDefeatDialogueStarted) return;
+    bossDefeatDialogueStarted = true;
+    bossCutsceneActive = true;
+    bossCombatUnlocked = false;
+    keys.left = false;
+    keys.right = false;
+    keys.jump = false;
+    keys.glide = false;
+    clearBossDialogueTimers();
+    setMessage('Syntax Queen: "fine the combination is the 3 numbers on the bottom."', 3400);
+    bossDialogueTimerIds.push(dbgSetTimeout(() => {
+      if (!bossActive) return;
+      setMessage('Benny: "Yea.... I hope your math checks out".', 2600);
+    }, 3500));
+    bossDialogueTimerIds.push(dbgSetTimeout(() => {
+      if (!bossActive) return;
+      finishDebugKingFight();
+    }, 6200));
   }
 
   function formatMsAsClock(ms) {
@@ -1313,6 +1505,10 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function spawnBossProjectile(type = 'syntax') {
+    if (bossProjectiles.length >= maxBossProjectilesOnScreen) {
+      const stale = bossProjectiles.shift();
+      if (stale?.el) stale.el.remove();
+    }
     const el = document.createElement('div');
     el.className = `bw-boss-projectile ${type}`;
     el.textContent = bossProjectilePool[Math.floor(Math.random() * bossProjectilePool.length)];
@@ -1330,7 +1526,7 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function triggerBossPulse() {
-    if (!bossActive) return;
+    if (!bossActive || !bossCombatUnlocked) return;
     const now = performance.now();
     if (now - bossPulseAt < 350) return;
     bossPulseAt = now;
@@ -1341,14 +1537,6 @@ window.__BennyWorldBabylonCleanup = null;
     area.appendChild(ring);
     dbgSetTimeout(() => ring.remove(), 260);
 
-    const bennyCx = bennyState.x + 18;
-    const bennyCy = bennyState.y + 18;
-    const bossDist = Math.hypot((bossX + 24) - bennyCx, (bossY + 24) - bennyCy);
-    if (bossPhase < 3 && bossDist < 160) {
-      bossHealth = Math.max(0, bossHealth - 1);
-      debugKing.classList.add('hit');
-      dbgSetTimeout(() => debugKing.classList.remove('hit'), 160);
-    }
   }
 
   function spawnBossPatternNodes() {
@@ -1383,12 +1571,31 @@ window.__BennyWorldBabylonCleanup = null;
   function startDebugKingFight() {
     stopPostVictorySequence(false);
     setBossMode(true);
-    // Battle arena cleanup: remove desk platforms and keep only ground.
+    bossCutsceneActive = false;
+    bossMidBattleDialogueShown = false;
+    bossDefeatDialogueStarted = false;
+    // Battle arena cleanup: remove desk platforms and all obstacle/enemy clutter.
     platforms = platforms.filter((p) => {
       const isGround = p.el && p.el.classList && p.el.classList.contains('ground');
       if (!isGround && p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el);
       return isGround;
     });
+    obstacles.forEach((ob) => {
+      if (ob?.el?.parentNode) ob.el.parentNode.removeChild(ob.el);
+    });
+    obstacles.length = 0;
+    dynamicObstacles = [];
+    staticObstacles = [];
+    airEnemies.forEach((enemy) => enemy?.el?.remove && enemy.el.remove());
+    airEnemies.length = 0;
+    enemyErrors.forEach((proj) => proj?.el?.remove && proj.el.remove());
+    enemyErrors.length = 0;
+    bennyShots.forEach((shot) => shot?.el?.remove && shot.el.remove());
+    bennyShots.length = 0;
+    bossProjectiles.forEach((proj) => proj?.el?.remove && proj.el.remove());
+    bossProjectiles = [];
+    bossPatternNodes.forEach((node) => node?.el?.remove && node.el.remove());
+    bossPatternNodes = [];
     rebuildWorldIndex();
     blackHoleActive = false;
     blackHoleTimer = 0;
@@ -1398,7 +1605,8 @@ window.__BennyWorldBabylonCleanup = null;
     crumblingFloor.classList.remove('crumpling');
     area.classList.remove('shake');
     bossWonThisLevel = false;
-    bossHealth = 12;
+    bossMaxHealth = 100;
+    bossHealth = bossMaxHealth;
     bossPhase = 1;
     bossPatternProgress = 0;
     bossPatternGraceUntil = 0;
@@ -1415,7 +1623,8 @@ window.__BennyWorldBabylonCleanup = null;
     bossY = groundY - 120;
     debugKing.style.left = `${bossX - cameraOffset}px`;
     debugKing.style.top = `${bossY}px`;
-    setMessage('Syntax Queen appears: Phase 1 - Syntax Chaos', 1600);
+    setMessage('Syntax Queen appears: Phase 1 - Syntax Chaos', 1200);
+    startBossDialogueSequence();
   }
 
   function finishDebugKingFight() {
@@ -1453,7 +1662,8 @@ window.__BennyWorldBabylonCleanup = null;
         const pattern = bossPhase === 3
           ? ` | Pattern ${bossPatternProgress}/${bossPatternSequence.length}`
           : '';
-        statusEl.textContent = `Syntax Queen: ${phaseLabel} | HP ${bossHealth}${pattern}`;
+        const lockLabel = bossCombatUnlocked ? '' : ' | Dialogue';
+        statusEl.textContent = `Syntax Queen: ${phaseLabel} | HP ${Math.max(0, Math.ceil(bossHealth))}%${pattern}${lockLabel}`;
         return;
       }
       if (deskPlaneActive) {
@@ -1489,9 +1699,14 @@ window.__BennyWorldBabylonCleanup = null;
 
   function getUnlockedTierSet() {
     const key = `mathpop_profile_stats_${currentUser()}`;
+    const fallbackKey = `mathpop_benny_tier_unlocks_${currentUser()}`;
     try {
       const parsed = JSON.parse(localStorage.getItem(key) || '{}');
-      const rawUnlocks = Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : [];
+      let rawUnlocks = Array.isArray(parsed.tierUnlocks) ? parsed.tierUnlocks : [];
+      if (!rawUnlocks.length) {
+        const fallback = JSON.parse(localStorage.getItem(fallbackKey) || '[]');
+        if (Array.isArray(fallback)) rawUnlocks = fallback;
+      }
       const unlocks = new Set(
         rawUnlocks
           .map((v) => Number(v))
@@ -1506,9 +1721,11 @@ window.__BennyWorldBabylonCleanup = null;
 
   function activeTier() {
     const key = `mathpop_profile_stats_${currentUser()}`;
+    const fallbackKey = `mathpop_benny_active_tier_${currentUser()}`;
     try {
       const parsed = JSON.parse(localStorage.getItem(key) || '{}');
-      const tier = Math.max(1, Math.min(10, Math.floor(Number(parsed.activeTier) || 1)));
+      const rawTier = Number(parsed.activeTier) || Number(localStorage.getItem(fallbackKey)) || 1;
+      const tier = Math.max(1, Math.min(10, Math.floor(rawTier)));
       const unlocks = getUnlockedTierSet();
       return unlocks.has(tier) ? tier : 1;
     } catch {
@@ -1520,11 +1737,26 @@ window.__BennyWorldBabylonCleanup = null;
     return Math.max(1, 11 - activeTier());
   }
 
+  function tierShotDamagePercent(tier) {
+    const t = Math.max(1, Math.min(10, Math.floor(Number(tier) || 1)));
+    if (t <= 1) return 3;
+    if (t === 2) return 4;
+    if (t === 3) return 5;
+    if (t === 4) return 5;
+    if (t === 5) return 6;
+    if (t === 6) return 7;
+    if (t === 7) return 8;
+    if (t === 8) return 9;
+    if (t === 9) return 10;
+    return 15;
+  }
+
   function getShotPowerConfig() {
     const tier = activeTier();
     const cfg = {
       tier,
       powerName: tierPowerNames[tier] || tierPowerNames[1],
+      bossPercentDamage: tierShotDamagePercent(tier),
       cooldown: bennyShotCooldownMs,
       shotCount: 1,
       spread: 0,
@@ -1653,6 +1885,10 @@ window.__BennyWorldBabylonCleanup = null;
   }
 
   function spawnEnemyError(enemy) {
+    if (enemyErrors.length >= maxEnemyProjectilesOnScreen) {
+      const stale = enemyErrors.shift();
+      if (stale?.el) stale.el.remove();
+    }
     const el = document.createElement('div');
     const warning = enemy.type === 'syntax';
     el.className = `bw-error-projectile ${warning ? 'warning' : 'stop'}`;
@@ -1681,6 +1917,32 @@ window.__BennyWorldBabylonCleanup = null;
     if (enemy.el) enemy.el.remove();
     const idx = airEnemies.indexOf(enemy);
     if (idx >= 0) airEnemies.splice(idx, 1);
+  }
+
+  function isNegativeNumberObstacle(ob) {
+    return Boolean(ob && ob.type === 'falling-number');
+  }
+
+  function getNegativeNumberObstacles() {
+    return obstacles.filter(isNegativeNumberObstacle);
+  }
+
+  function resetNegativeObstacle(ob, now, shotCfg = null) {
+    if (!ob) return;
+    ob.y = 24;
+    ob.x = Math.max(30, cameraOffset + 30 + Math.random() * Math.max(40, areaWidth - 60));
+    if (shotCfg && shotCfg.freezeMs > 0) {
+      ob.frozenUntil = now + shotCfg.freezeMs;
+      ob.vy = 0;
+    } else {
+      ob.frozenUntil = 0;
+    }
+  }
+
+  function clearNegativeObstacle(ob, now, shotCfg = null) {
+    const bonus = shotCfg ? (shotCfg.killBonus || 0) : 0;
+    points += 80 + Math.max(0, bonus);
+    resetNegativeObstacle(ob, now, shotCfg);
   }
 
   function awardEnemyElimination(enemy, killBonus = 0) {
@@ -1729,7 +1991,33 @@ window.__BennyWorldBabylonCleanup = null;
     return toClear.length;
   }
 
+  function clearAllNegativeObstacles(reasonText, shotCfg = null) {
+    const negatives = getNegativeNumberObstacles();
+    if (!negatives.length) return 0;
+    negatives.forEach((ob) => clearNegativeObstacle(ob, performance.now(), shotCfg));
+    if (reasonText) setMessage(reasonText, 1000);
+    return negatives.length;
+  }
+
+  function applyNegativeSplash(shot, centerObstacle, now) {
+    if (!shot.splashRadius || !shot.splashDamage || !centerObstacle) return;
+    const cx = centerObstacle.x + centerObstacle.w * 0.5;
+    const cy = centerObstacle.y + centerObstacle.h * 0.5;
+    getNegativeNumberObstacles().forEach((ob) => {
+      if (ob === centerObstacle) return;
+      const ox = ob.x + ob.w * 0.5;
+      const oy = ob.y + ob.h * 0.5;
+      const dist = Math.hypot(ox - cx, oy - cy);
+      if (dist > shot.splashRadius) return;
+      clearNegativeObstacle(ob, now, shot);
+    });
+  }
+
   function spawnShot(cfg, direction) {
+    if (bennyShots.length >= maxBennyShotsOnScreen) {
+      const stale = bennyShots.shift();
+      if (stale?.el) stale.el.remove();
+    }
     const el = document.createElement('div');
     el.className = 'bw-shot';
     if (cfg.shotClass) el.classList.add(cfg.shotClass);
@@ -1749,12 +2037,13 @@ window.__BennyWorldBabylonCleanup = null;
       killBonus: cfg.killBonus,
       clearChance: cfg.clearChance
       ,
-      cureBeam: cfg.cureBeam === true
+      cureBeam: cfg.cureBeam === true,
+      bossPercentDamage: cfg.bossPercentDamage || 1
     });
   }
 
   function fireBennyShot() {
-    if (syntaxIntroActive || postVictoryActive) return;
+    if (syntaxIntroActive || postVictoryActive || (bossActive && !bossCombatUnlocked)) return;
     const cfg = getShotPowerConfig();
     const now = performance.now();
     if (now - lastBennyShotAt < cfg.cooldown) return;
@@ -1768,12 +2057,21 @@ window.__BennyWorldBabylonCleanup = null;
       const dist = Math.hypot(dx, dy);
       if (dist < nearest) {
         nearest = dist;
-        target = enemy;
+        target = { x: enemy.x + enemy.w * 0.5, y: enemy.y + enemy.h * 0.5 };
+      }
+    });
+    getNegativeNumberObstacles().forEach((ob) => {
+      const dx = (ob.x + ob.w * 0.5) - (bennyState.x + 18);
+      const dy = (ob.y + ob.h * 0.5) - (bennyState.y + 18);
+      const dist = Math.hypot(dx, dy);
+      if (dist < nearest) {
+        nearest = dist;
+        target = { x: ob.x + ob.w * 0.5, y: ob.y + ob.h * 0.5 };
       }
     });
 
     const baseDir = target
-      ? Math.atan2((target.y + target.h * 0.5) - (bennyState.y + 18), (target.x + target.w * 0.5) - (bennyState.x + 18))
+      ? Math.atan2(target.y - (bennyState.y + 18), target.x - (bennyState.x + 18))
       : (benny.classList.contains('bw-benny--left') ? Math.PI : 0);
 
     const count = Math.max(1, Math.floor(cfg.shotCount));
@@ -1822,7 +2120,34 @@ window.__BennyWorldBabylonCleanup = null;
     root.dataset.theme = theme;
   }
 
-  function triggerGameOver() {
+  function hexToRgb(hex) {
+    const clean = String(hex || '').replace('#', '').trim();
+    if (clean.length !== 6) return [17, 36, 74];
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) return [17, 36, 74];
+    return [r, g, b];
+  }
+
+  function applyCloudPalette() {
+    if (!root) return;
+    cloudPaletteCursor = (cloudPaletteCursor + 1) % cloudPalette.length;
+    const idx = cloudPaletteCursor;
+    const [back, front, accent] = cloudPalette[idx];
+    const [sr, sg, sb] = hexToRgb(accent);
+    root.style.setProperty('--bw-cloud-back', back);
+    root.style.setProperty('--bw-cloud-front', front);
+    root.style.setProperty('--bw-cloud-accent', accent);
+    root.style.setProperty('--bw-cloud-shadow-rgb', `${Math.max(8, Math.floor(sr * 0.18))}, ${Math.max(12, Math.floor(sg * 0.28))}, ${Math.max(24, Math.floor(sb * 0.42))}`);
+  }
+
+  function triggerGameOver(options = {}) {
+    const {
+      overlayText = 'Benny needs a nap\nTry again later.',
+      restartDelayMs = 4000,
+      resetPoints = true
+    } = options;
     const overlay = qs('#bwGameOver');
     gameOver = true;
     utilityPumpActive = false;
@@ -1831,20 +2156,21 @@ window.__BennyWorldBabylonCleanup = null;
     keys.left = false;
     keys.right = false;
     keys.jump = false;
+    keys.glide = false;
     if (overlay) {
-      overlay.textContent = 'Benny needs a nap\nTry again later.';
+      overlay.textContent = overlayText;
       overlay.classList.add('is-visible');
     }
     dbgSetTimeout(() => {
       gameOver = false;
-      points = 0;
+      if (resetPoints) points = 0;
       saveProgress('auto');
       if (overlay) {
         overlay.classList.remove('is-visible');
         overlay.textContent = '';
       }
       startLevel();
-    }, 4000);
+    }, restartDelayMs);
   }
 
   function triggerFlip() {
@@ -2110,20 +2436,6 @@ window.__BennyWorldBabylonCleanup = null;
       platforms[platforms.length - 1].vx = mover.vx;
     }
 
-    const eraserCount = Math.max(
-      4,
-      Math.floor((5 + Math.min(10, Math.floor(levelIndex / 3))) * getDifficultyScale() * obstacleScale)
-    );
-    for (let i = 0; i < eraserCount; i += 1) {
-      const w = 24;
-      const h = 12;
-      const x = 40 + Math.random() * (levelWidth - w - 80);
-      const y = groundY - h;
-      const speed = (Math.random() * 1.2 + 0.6) * getDifficultyScale() * (Math.random() < 0.5 ? -1 : 1);
-      addObstacle(x, y, w, h, 'eraser');
-      obstacles[obstacles.length - 1].vx = speed;
-    }
-
     const fallingCount = Math.max(4, Math.floor((levelIndex + 5) * getDifficultyScale() * obstacleScale));
     for (let i = 0; i < fallingCount; i += 1) {
       const w = 40;
@@ -2176,9 +2488,10 @@ window.__BennyWorldBabylonCleanup = null;
     benny.style.top = `${groundY - 36}px`;
   }
 
-  function applyPhysics() {
+  function applyPhysics(stepScale = 1, now = performance.now()) {
     if (gameOver) return;
     if (syntaxIntroActive || postVictoryActive) return;
+    if (bossActive && bossCutsceneActive) return;
     if (!areaWidth || !areaHeight) refreshAreaMetrics();
     const groundY = areaHeight - 40;
     if (bossActive) {
@@ -2207,7 +2520,11 @@ window.__BennyWorldBabylonCleanup = null;
       
     }
 
-    const now = performance.now();
+    if (bossActive && !bossCombatUnlocked) {
+      bennyState.vx = 0;
+      bennyState.vy = 0;
+      bennyState.onGround = true;
+    }
     if (deskPlaneActive && now >= deskPlaneEndsAt) {
       deskPlaneActive = false;
       setMessage('Desk plane power depleted.', 1200);
@@ -2227,7 +2544,10 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     const moveRight = mirroredControls ? keys.left : keys.right;
     
     // Keyboard input
-    if (frozen) {
+    if (bossActive && !bossCombatUnlocked) {
+      bennyState.vx = 0;
+      bennyState.vy = 0;
+    } else if (frozen) {
       bennyState.vx = 0;
       bennyState.vy = 0;
     } else if (moveLeft) bennyState.vx = -speed;
@@ -2242,7 +2562,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       }
     }
 
-    const wantsJump = !frozen && (keys.jump || (autoJump && bennyState.onGround));
+    const wantsJump = !frozen && !(bossActive && !bossCombatUnlocked) && (keys.jump || (autoJump && bennyState.onGround));
     if (wantsJump && (bennyState.onGround || wallContact !== 0)) {
       const boost = bennyState.onGround ? 1.1 : 1;
       bennyState.vy = -(wallContact !== 0 ? wallJumpPower : jumpPower * boost);
@@ -2254,13 +2574,13 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     }
 
     if (!frozen) {
-      bennyState.vy = Math.min(maxFall, bennyState.vy + gravity);
+      bennyState.vy = Math.min(maxFall, bennyState.vy + gravity * stepScale);
     }
     if (deskPlaneActive) {
       if (planeRatio > 0.25) {
         bennyState.vy = Math.min(bennyState.vy, 0.75);
       } else {
-        bennyState.vy = Math.max(bennyState.vy + 0.18, 1.8);
+        bennyState.vy = Math.max(bennyState.vy + 0.18 * stepScale, 1.8);
       }
       glideActive = false;
       benny.classList.add('bw-benny--glide');
@@ -2274,8 +2594,8 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       glideActive = false;
       benny.classList.remove('bw-benny--glide');
     }
-    bennyState.x += bennyState.vx;
-    bennyState.y += bennyState.vy;
+    bennyState.x += bennyState.vx * stepScale;
+    bennyState.y += bennyState.vy * stepScale;
 
     // Allow Benny to move across the entire level width
     bennyState.x = Math.max(8, bennyState.x);
@@ -2290,7 +2610,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     wallContact = 0;
     movingPlatforms.forEach((p) => {
       if (p.vx) {
-        p.x += p.vx;
+        p.x += p.vx * stepScale;
         if (p.x < 20 || p.x + p.w > areaWidth - 20) p.vx *= -1;
       }
       if (p.x > collisionMaxX || p.x + p.w < collisionMinX) return;
@@ -2341,20 +2661,23 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
 
     dynamicObstacles.forEach((ob) => {
       if (ob.type === 'eraser') {
-        ob.x += ob.vx;
+        ob.x += ob.vx * stepScale;
         if (ob.x < 10 || ob.x + ob.w > areaWidth - 10) ob.vx *= -1;
       } else if (ob.type === 'falling') {
         if (!ob.vy) ob.vy = (0.6 + Math.random() * 0.8) * getDifficultyScale();
-        ob.y += ob.vy;
+        ob.y += ob.vy * stepScale;
         if (ob.y > groundY - ob.h) {
           ob.y = 24;
         }
       } else if (ob.type === 'falling-number') {
-        if (!ob.vy) ob.vy = 1.2 * getDifficultyScale();
-        ob.y += ob.vy;
-        if (ob.y > groundY - ob.h) {
-          ob.y = 24;
-          ob.x = 30 + Math.random() * (areaWidth - 60);
+        const frozenNegative = ob.frozenUntil && now < ob.frozenUntil;
+        if (!frozenNegative) {
+          if (!ob.vy) ob.vy = 1.2 * getDifficultyScale();
+          ob.y += ob.vy * stepScale;
+          if (ob.y > groundY - ob.h) {
+            ob.y = 24;
+            ob.x = cameraOffset + 30 + Math.random() * (areaWidth - 60);
+          }
         }
       }
       if (ob.x > collisionMaxX || ob.x + ob.w < collisionMinX) return;
@@ -2375,7 +2698,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
             setMessage('-50 points!', 800);
           }
           ob.y = 24;
-          ob.x = 30 + Math.random() * (areaWidth - 60);
+          ob.x = cameraOffset + 30 + Math.random() * (areaWidth - 60);
           if (points === 0) {
             triggerGameOver();
             return;
@@ -2388,7 +2711,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     });
     staticObstacles.forEach((ob) => {
       if (!ob.vy) ob.vy = (0.6 + Math.random() * 0.8) * getDifficultyScale();
-      ob.y += ob.vy;
+      ob.y += ob.vy * stepScale;
       if (ob.y > groundY - ob.h) {
         ob.y = 24;
       }
@@ -2406,20 +2729,24 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       }
     });
 
+    const curedEnemies = [];
+    const uncuredEnemies = [];
     airEnemies.forEach((enemy) => {
       if (enemy.cured) {
+        curedEnemies.push(enemy);
         enemy.el.classList.add('cured');
         enemy.el.style.left = `${enemy.x - cameraOffset}px`;
         enemy.el.style.top = `${enemy.y}px`;
         return;
       }
+      uncuredEnemies.push(enemy);
       if (enemy.nextHopAt <= now && Math.abs(enemy.vy) < 0.2) {
         enemy.vy = -(7.8 + Math.random() * 3.2);
         enemy.nextHopAt = now + 520 + Math.random() * 720;
       }
-      enemy.vy = Math.min(9, enemy.vy + gravity * 0.35);
-      enemy.y += enemy.vy;
-      enemy.x += enemy.vx;
+      enemy.vy = Math.min(9, enemy.vy + gravity * 0.35 * stepScale);
+      enemy.y += enemy.vy * stepScale;
+      enemy.x += enemy.vx * stepScale;
       if (enemy.y > enemy.baseY) {
         enemy.y = enemy.baseY;
         enemy.vy = 0;
@@ -2435,23 +2762,24 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       enemy.el.style.top = `${enemy.y}px`;
     });
 
-    const curedEnemies = airEnemies.filter((enemy) => enemy.cured);
     if (curedEnemies.length > 0) {
+      const availableTargets = uncuredEnemies.slice();
       curedEnemies.forEach((curedEnemy) => {
-        const uncured = airEnemies.filter((enemy) => !enemy.cured);
-        if (uncured.length === 0) {
+        if (availableTargets.length === 0) {
           awardEnemyElimination(curedEnemy, 25);
           return;
         }
         let target = null;
+        let targetIndex = -1;
         let nearest = Infinity;
-        uncured.forEach((enemy) => {
+        availableTargets.forEach((enemy, idx) => {
           const dx = (enemy.x + enemy.w * 0.5) - (curedEnemy.x + curedEnemy.w * 0.5);
           const dy = (enemy.y + enemy.h * 0.5) - (curedEnemy.y + curedEnemy.h * 0.5);
           const dist = Math.hypot(dx, dy);
           if (dist < nearest) {
             nearest = dist;
             target = enemy;
+            targetIndex = idx;
           }
         });
         if (!target) return;
@@ -2459,26 +2787,28 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         const dy = (target.y + target.h * 0.5) - (curedEnemy.y + curedEnemy.h * 0.5);
         const dist = Math.max(1, Math.hypot(dx, dy));
         const strikeStep = 4.6;
-        curedEnemy.x += (dx / dist) * strikeStep;
-        curedEnemy.y += (dy / dist) * strikeStep;
+        curedEnemy.x += (dx / dist) * strikeStep * stepScale;
+        curedEnemy.y += (dy / dist) * strikeStep * stepScale;
         curedEnemy.el.style.left = `${curedEnemy.x - cameraOffset}px`;
         curedEnemy.el.style.top = `${curedEnemy.y}px`;
         if (dist <= 24) {
           awardEnemyElimination(target, 20);
+          if (targetIndex >= 0) availableTargets.splice(targetIndex, 1);
           setMessage('Cured error rewrote a syntax bug!', 700);
         }
       });
     }
 
     const tier = activeTier();
-    if (utilityPumpActive && tier === 8 && airEnemies.length) {
+    if (utilityPumpActive && tier === 8 && (airEnemies.length || getNegativeNumberObstacles().length)) {
       const bennyCenterX = bennyState.x + 18;
       const bennyCenterY = bennyState.y + 18;
       const pullRange = 320;
       const catchDistance = 26;
-      const pullStep = 6.2;
+      const pullStep = 6.2 * stepScale;
       const killBonus = getShotPowerConfig().killBonus || 0;
       let sucked = 0;
+      let neutralized = 0;
       for (let i = airEnemies.length - 1; i >= 0; i -= 1) {
         const enemy = airEnemies[i];
         const enemyCenterX = enemy.x + enemy.w * 0.5;
@@ -2498,20 +2828,41 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
           sucked += 1;
         }
       }
-      if (sucked > 0 && now - utilityPumpLastMessageAt > 450) {
-        setMessage(`Utility Pump! ${sucked} bug${sucked === 1 ? '' : 's'} cleared.`, 700);
+      const negatives = getNegativeNumberObstacles();
+      for (let i = 0; i < negatives.length; i += 1) {
+        const ob = negatives[i];
+        const centerX = ob.x + ob.w * 0.5;
+        const centerY = ob.y + ob.h * 0.5;
+        const dx = bennyCenterX - centerX;
+        const dy = bennyCenterY - centerY;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        if (dist <= pullRange) {
+          ob.x += (dx / dist) * pullStep;
+          ob.y += (dy / dist) * pullStep;
+          ob.el.style.left = `${ob.x - cameraOffset}px`;
+          ob.el.style.top = `${ob.y}px`;
+        }
+        if (dist <= catchDistance) {
+          clearNegativeObstacle(ob, now, { killBonus });
+          neutralized += 1;
+        }
+      }
+      if ((sucked > 0 || neutralized > 0) && now - utilityPumpLastMessageAt > 450) {
+        setMessage(`Utility Pump! ${sucked} bug${sucked === 1 ? '' : 's'} + ${neutralized} negative${neutralized === 1 ? '' : 's'} cleared.`, 700);
         utilityPumpLastMessageAt = now;
       }
     }
 
+    const airEnemySet = new Set(airEnemies);
+    const negativeObstacles = getNegativeNumberObstacles();
     enemyErrors = enemyErrors.filter((proj) => {
-      proj.x += proj.vx;
-      proj.y += proj.vy;
+      proj.x += proj.vx * stepScale;
+      proj.y += proj.vy * stepScale;
       proj.el.style.left = `${proj.x - cameraOffset}px`;
       proj.el.style.top = `${proj.y}px`;
       const hit = !proj.returned && Math.abs((bennyState.x + 18) - proj.x) < 20 && Math.abs((bennyState.y + 18) - proj.y) < 20;
       if (hit) {
-        const ownerAlive = proj.owner && airEnemies.includes(proj.owner);
+        const ownerAlive = proj.owner && airEnemySet.has(proj.owner);
         if (!ownerAlive) {
           proj.el.remove();
           return false;
@@ -2529,7 +2880,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         return true;
       }
       if (proj.returned) {
-        if (!proj.owner || !airEnemies.includes(proj.owner)) {
+        if (!proj.owner || !airEnemySet.has(proj.owner)) {
           proj.el.remove();
           return false;
         }
@@ -2555,14 +2906,19 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     });
 
     bennyShots = bennyShots.filter((shot) => {
-      shot.x += shot.vx;
-      shot.y += shot.vy;
+      shot.x += shot.vx * stepScale;
+      shot.y += shot.vy * stepScale;
       shot.el.style.left = `${shot.x - cameraOffset}px`;
       shot.el.style.top = `${shot.y}px`;
 
-      const enemyProjIndex = enemyErrors.findIndex((proj) =>
-        Math.abs(shot.x - proj.x) < 18 && Math.abs(shot.y - proj.y) < 18
-      );
+      let enemyProjIndex = -1;
+      for (let i = 0; i < enemyErrors.length; i += 1) {
+        const proj = enemyErrors[i];
+        if (Math.abs(shot.x - proj.x) < 18 && Math.abs(shot.y - proj.y) < 18) {
+          enemyProjIndex = i;
+          break;
+        }
+      }
       if (enemyProjIndex !== -1) {
         const [blockedProj] = enemyErrors.splice(enemyProjIndex, 1);
         if (blockedProj && blockedProj.el) blockedProj.el.remove();
@@ -2612,6 +2968,60 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
           return false;
         }
       }
+
+      let hitNegative = null;
+      for (let i = 0; i < negativeObstacles.length; i += 1) {
+        const ob = negativeObstacles[i];
+        const withinX = shot.x >= ob.x && shot.x <= ob.x + ob.w;
+        const withinY = shot.y >= ob.y && shot.y <= ob.y + ob.h;
+        if (withinX && withinY) {
+          hitNegative = ob;
+          break;
+        }
+      }
+      if (hitNegative) {
+        clearNegativeObstacle(hitNegative, now, shot);
+        if (shot.splashRadius > 0 && shot.splashDamage > 0) {
+          applyNegativeSplash(shot, hitNegative, now);
+        }
+        if (shot.freezeMs > 0) {
+          freezeUntil = Math.max(freezeUntil, now + shot.freezeMs);
+        }
+        if (shot.clearChance > 0 && Math.random() < shot.clearChance) {
+          const clearedNeg = clearAllNegativeObstacles('Power wipe! Negative wave cleared.', shot);
+          if (clearedNeg > 0) {
+            shot.el.remove();
+            return false;
+          }
+        }
+        if (shot.pierceLeft > 0) {
+          shot.pierceLeft -= 1;
+        } else {
+          shot.el.remove();
+          return false;
+        }
+      }
+      if (bossActive && bossCombatUnlocked) {
+        const hitBossX = shot.x >= bossX && shot.x <= bossX + 64;
+        const hitBossY = shot.y >= bossY && shot.y <= bossY + 64;
+        if (hitBossX && hitBossY) {
+          const dmgPct = Math.max(1, Number(shot.bossPercentDamage) || 1);
+          bossHealth = Math.max(0, bossHealth - dmgPct);
+          debugKing.classList.add('hit');
+          dbgSetTimeout(() => debugKing.classList.remove('hit'), 140);
+          if (bossHealth <= 0) {
+            startBossDefeatCutscene();
+          } else if (bossHealth <= 50 && !bossMidBattleDialogueShown) {
+            startBossMidBattleCutscene();
+          }
+          if (shot.pierceLeft > 0) {
+            shot.pierceLeft -= 1;
+          } else {
+            shot.el.remove();
+            return false;
+          }
+        }
+      }
       const out = shot.x < cameraOffset - 120 || shot.x > cameraOffset + areaWidth + 120 || shot.y < -120 || shot.y > areaHeight + 120;
       if (out) {
         shot.el.remove();
@@ -2619,6 +3029,16 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       }
       return true;
     });
+
+    if (bennyState.y > areaHeight + 80) {
+      setMessage('Benny fell through the clouds!', 1200);
+      triggerGameOver({
+        overlayText: 'Benny fell through the clouds!\nRestarting level...',
+        restartDelayMs: 1400,
+        resetPoints: false
+      });
+      return;
+    }
 
     if (bennyState.y > groundY) {
       bennyState.y = groundY - 36;
@@ -2638,7 +3058,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       }
     }
 
-    distance += Math.abs(bennyState.vx) * 0.2;
+    distance += Math.abs(bennyState.vx) * 0.2 * stepScale;
     
     // Camera follow: Keep Benny in left 25% of viewport
     const cameraTarget = bennyState.x - areaWidth * 0.25;
@@ -2663,14 +3083,16 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     );
     const nextVisiblePlatforms = [...staticVisiblePlatforms, ...movingPlatforms];
     const nextVisibleObstacles = [...staticVisibleObstacles, ...dynamicObstacles];
+    const nextVisiblePlatformSet = new Set(nextVisiblePlatforms);
+    const nextVisibleObstacleSet = new Set(nextVisibleObstacles);
 
     for (let i = 0; i < visiblePlatforms.length; i += 1) {
       const oldEntity = visiblePlatforms[i];
-      if (!nextVisiblePlatforms.includes(oldEntity)) setEntityVisible(oldEntity, false);
+      if (!nextVisiblePlatformSet.has(oldEntity)) setEntityVisible(oldEntity, false);
     }
     for (let i = 0; i < visibleObstacles.length; i += 1) {
       const oldEntity = visibleObstacles[i];
-      if (!nextVisibleObstacles.includes(oldEntity)) setEntityVisible(oldEntity, false);
+      if (!nextVisibleObstacleSet.has(oldEntity)) setEntityVisible(oldEntity, false);
     }
 
     // Update visible platform positions with camera offset.
@@ -2721,11 +3143,11 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       debugKing.style.left = `${bossX - cameraOffset}px`;
       debugKing.style.top = `${bossY}px`;
 
-      if (bossPhase === 1 && bossHealth <= 8) {
+      if (bossPhase === 1 && bossHealth <= 66) {
         bossPhase = 2;
         mirroredControls = true;
         setMessage('Phase 2 - Logic Illusions (controls mirrored!)', 1600);
-      } else if (bossPhase === 2 && bossHealth <= 4) {
+      } else if (bossPhase === 2 && bossHealth <= 33) {
         bossPhase = 3;
         mirroredControls = false;
         bossPatternProgress = 0;
@@ -2734,22 +3156,29 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
         setMessage('Phase 3 - Infinite Loop Arena. Solve the pattern!', 1800);
       }
 
-      const spawnEvery = bossSpawnMs[bossPhase] || 700;
-      if (now - bossLastSpawnAt >= spawnEvery) {
-        const projectileType = bossPhase === 2 ? 'illusion' : 'syntax';
-        spawnBossProjectile(projectileType);
-        bossLastSpawnAt = now;
+      if (bossCombatUnlocked) {
+        const spawnEvery = bossSpawnMs[bossPhase] || 700;
+        if (now - bossLastSpawnAt >= spawnEvery) {
+          const projectileType = bossPhase === 2 ? 'illusion' : 'syntax';
+          spawnBossProjectile(projectileType);
+          bossLastSpawnAt = now;
+        }
       }
 
       bossProjectiles = bossProjectiles.filter((proj) => {
-        proj.x += proj.vx;
-        proj.y += proj.vy;
+        proj.x += proj.vx * stepScale;
+        proj.y += proj.vy * stepScale;
         proj.el.style.left = `${proj.x - cameraOffset}px`;
         proj.el.style.top = `${proj.y}px`;
-        const hitBenny = Math.abs((bennyState.x + 18) - proj.x) < 24 && Math.abs((bennyState.y + 18) - proj.y) < 24;
+        const hitBenny = bossCombatUnlocked && Math.abs((bennyState.x + 18) - proj.x) < 24 && Math.abs((bennyState.y + 18) - proj.y) < 24;
         if (hitBenny) {
-          points = Math.max(0, points - (proj.type === 'illusion' ? 40 : 25));
-          setMessage(proj.type === 'illusion' ? 'Fake answer trap! -40' : 'Syntax hit! -25', 900);
+          points = Math.max(0, points - 100);
+          setMessage('Syntax Queen hit! -100', 900);
+          if (points <= 0) {
+            proj.el.remove();
+            triggerGameOver();
+            return false;
+          }
           proj.el.remove();
           return false;
         }
@@ -2856,16 +3285,21 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
   }
 
   function tick() {
+    const now = performance.now();
+    if (!lastPhysicsAt) lastPhysicsAt = now;
+    const elapsedMs = Math.max(8, Math.min(40, now - lastPhysicsAt));
+    const stepScale = Math.max(0.9, Math.min(1.5, elapsedMs / 16.6667));
+    lastPhysicsAt = now;
     updatePostVictorySequence();
     updateSyntaxQueenIntro();
-    applyPhysics();
-    while (distance >= nextEnemyWaveDistance) {
+    updatePaperClouds(now);
+    applyPhysics(stepScale, now);
+    while (!bossActive && !syntaxIntroActive && !postVictoryActive && distance >= nextEnemyWaveDistance) {
       spawnDistanceEnemyWave();
       nextEnemyWaveDistance += 500;
     }
     checkGoal();
     updateHud();
-    const now = performance.now();
     if (!gameOver && now - lastAutoSaveAt >= 15000) {
       saveProgress('auto');
       lastAutoSaveAt = now;
@@ -2886,20 +3320,26 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     syncBlackHoleWindowForLevel();
     applyBennyColor();
     setTheme();
+    applyCloudPalette();
     if (levelLabel) levelLabel.textContent = `Level ${levelIndex + 1}`;
     buildLevel();
     applyEasyTestStartDistance();
+    lastPhysicsAt = 0;
     const activePower = getShotPowerConfig().powerName;
     setMessage(`Active power: ${activePower}`, 1200);
+    if (!paperClouds.length) {
+      for (let i = 0; i < 10; i += 1) spawnPaperCloud();
+    }
     saveProgress('auto');
   }
 
+  let difficultySelectChangeHandler = null;
   if (difficultySelect) {
     difficulty = normalizeDifficulty(difficultySelect.value || 'easy');
     loadProgress(false);
     applyEasyTestStartLevel();
     root.dataset.difficulty = difficulty;
-    difficultySelect.addEventListener('change', () => {
+    difficultySelectChangeHandler = () => {
       difficulty = normalizeDifficulty(difficultySelect.value || 'easy');
       root.dataset.difficulty = difficulty;
       if (!loadProgress(false)) {
@@ -2913,7 +3353,8 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       applyEasyTestStartLevel();
       saveProgress('auto');
       startLevel();
-    });
+    };
+    difficultySelect.addEventListener('change', difficultySelectChangeHandler);
   }
 
   let cleanupProgressBtn = () => {};
@@ -2928,7 +3369,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
 
   function bindKeyEvents() {
     const down = (e) => {
-      if (syntaxIntroActive || postVictoryActive) return;
+      if (syntaxIntroActive || postVictoryActive || (bossActive && !bossCombatUnlocked)) return;
       if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
       if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') {
@@ -2947,7 +3388,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
       if (e.key === 'Shift') keys.glide = true;
     };
     const up = (e) => {
-      if (syntaxIntroActive || postVictoryActive) return;
+      if (syntaxIntroActive || postVictoryActive || (bossActive && !bossCombatUnlocked)) return;
       if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
       if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
@@ -2972,7 +3413,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     };
     const onDown = (e) => {
       e.preventDefault();
-      if (syntaxIntroActive || postVictoryActive) return;
+      if (syntaxIntroActive || postVictoryActive || (bossActive && !bossCombatUnlocked)) return;
       activePointerId = e.pointerId;
       if (btn.setPointerCapture && e.pointerId !== undefined) {
         try { btn.setPointerCapture(e.pointerId); } catch (_err) {}
@@ -3023,7 +3464,7 @@ const speed = (bennyState.onGround ? moveSpeed * 1.2 : moveSpeed) * speedMultipl
     let activePointerId = null;
     const onDown = (e) => {
       e.preventDefault();
-      if (syntaxIntroActive || postVictoryActive) return;
+      if (syntaxIntroActive || postVictoryActive || (bossActive && !bossCombatUnlocked)) return;
       activePointerId = e.pointerId;
       if (btn.setPointerCapture && e.pointerId !== undefined) {
         try { btn.setPointerCapture(e.pointerId); } catch (_err) {}
@@ -3178,9 +3619,20 @@ const cleanupKeys = bindKeyEvents();
     cleanupPlane();
     cleanupFire();
     cleanupJoystick();
+    if (difficultySelectChangeHandler && difficultySelect) {
+      difficultySelect.removeEventListener('change', difficultySelectChangeHandler);
+      difficultySelectChangeHandler = null;
+    }
     window.removeEventListener('mathpop:track-ended', onMusicTrackEnded);
     window.removeEventListener('resize', handleResize);
     cleanupProgressBtn();
+    Array.from(runtimeHandles.timeouts).forEach((id) => dbgClearTimeout(id));
+    Array.from(runtimeHandles.intervals).forEach((id) => dbgClearInterval(id));
+    Array.from(runtimeHandles.rafs).forEach((id) => dbgCancelAnimationFrame(id));
+    paperClouds.forEach((cloud) => cloud?.el?.remove && cloud.el.remove());
+    paperClouds = [];
+    lastPaperCloudTickAt = 0;
+    nextPaperCloudSpawnAt = 0;
     stopDebugLogging();
     // Also call the Babylon cleanup if present
     if (window.__BennyWorldBabylonCleanup) {

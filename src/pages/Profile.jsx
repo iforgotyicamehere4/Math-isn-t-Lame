@@ -221,8 +221,42 @@ function loadJukeboxSpent(user) {
   return Math.floor(parsed);
 }
 
+function tierUnlocksStorageKey(user) {
+  return `mathpop_benny_tier_unlocks_${user}`;
+}
+
+function activeTierStorageKey(user) {
+  return `mathpop_benny_active_tier_${user}`;
+}
+
+function loadPersistentTierState(user) {
+  if (!user) return { tierUnlocks: [], activeTier: 1 };
+  let tierUnlocks = [];
+  let activeTier = 1;
+  try {
+    const raw = localStorage.getItem(tierUnlocksStorageKey(user));
+    tierUnlocks = normalizeTierUnlocks(raw ? JSON.parse(raw) : []);
+  } catch {
+    tierUnlocks = [];
+  }
+  try {
+    activeTier = Math.max(1, Number(localStorage.getItem(activeTierStorageKey(user))) || 1);
+  } catch {
+    activeTier = 1;
+  }
+  return { tierUnlocks, activeTier };
+}
+
+function savePersistentTierState(user, tierUnlocks, activeTier) {
+  if (!user) return;
+  const normalizedUnlocks = normalizeTierUnlocks([1, ...(tierUnlocks || [])]);
+  localStorage.setItem(tierUnlocksStorageKey(user), JSON.stringify(normalizedUnlocks));
+  localStorage.setItem(activeTierStorageKey(user), String(Math.max(1, Number(activeTier) || 1)));
+}
+
 function loadProfileStats(user) {
   if (!user) return null;
+  const persistedTier = loadPersistentTierState(user);
   const raw = localStorage.getItem(`mathpop_profile_stats_${user}`);
   if (!raw) {
     return {
@@ -231,8 +265,8 @@ function loadProfileStats(user) {
       totalAttempted: 0,
       pupStreakRecord: 0,
       levelsCompleted: [],
-      tierUnlocks: [],
-      activeTier: 1,
+      tierUnlocks: normalizeTierUnlocks([1, ...persistedTier.tierUnlocks]),
+      activeTier: persistedTier.activeTier || 1,
       games: {}
     };
   }
@@ -244,8 +278,8 @@ function loadProfileStats(user) {
       totalAttempted: Number(parsed.totalAttempted) || 0,
       pupStreakRecord: Number(parsed.pupStreakRecord) || 0,
       levelsCompleted: Array.isArray(parsed.levelsCompleted) ? parsed.levelsCompleted : [],
-      tierUnlocks: normalizeTierUnlocks(parsed.tierUnlocks),
-      activeTier: Number(parsed.activeTier) || 1,
+      tierUnlocks: normalizeTierUnlocks([1, ...(parsed.tierUnlocks || []), ...persistedTier.tierUnlocks]),
+      activeTier: Math.max(1, Number(parsed.activeTier) || persistedTier.activeTier || 1),
       games: parsed.games && typeof parsed.games === 'object' ? parsed.games : {}
     };
   } catch {
@@ -255,8 +289,8 @@ function loadProfileStats(user) {
       totalAttempted: 0,
       pupStreakRecord: 0,
       levelsCompleted: [],
-      tierUnlocks: [],
-      activeTier: 1,
+      tierUnlocks: normalizeTierUnlocks([1, ...persistedTier.tierUnlocks]),
+      activeTier: persistedTier.activeTier || 1,
       games: {}
     };
   }
@@ -431,6 +465,7 @@ export default function Profile() {
             activeTier: tier.id
           };
           localStorage.setItem(`mathpop_profile_stats_${currentUser}`, JSON.stringify(updated));
+          savePersistentTierState(currentUser, updated.tierUnlocks, updated.activeTier);
           setRefresh((v) => v + 1);
         }
       });
@@ -441,6 +476,7 @@ export default function Profile() {
       }
     }
     localStorage.setItem(`mathpop_profile_stats_${currentUser}`, JSON.stringify(next));
+    savePersistentTierState(currentUser, next.tierUnlocks, next.activeTier || activeTier);
     setRefresh((v) => v + 1);
   };
   const activateTier = (tier) => {
@@ -451,6 +487,7 @@ export default function Profile() {
       activeTier: tier.id
     };
     localStorage.setItem(`mathpop_profile_stats_${currentUser}`, JSON.stringify(next));
+    savePersistentTierState(currentUser, next.tierUnlocks, next.activeTier);
     setRefresh((v) => v + 1);
   };
 

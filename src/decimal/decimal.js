@@ -23,6 +23,13 @@ export default function initDecimal() {
   const backBtn = document.getElementById('backBtn');
   const promptEl = document.getElementById('prompt');
   const hintEl = document.getElementById('hint');
+  let correctivePopupEl = document.getElementById('decimalCorrectivePopup');
+  let correctivePopupTitleEl = document.getElementById('decimalCorrectiveTitle');
+  let correctivePopupBodyEl = document.getElementById('decimalCorrectiveBody');
+  let correctivePopupStepEl = document.getElementById('decimalCorrectiveStep');
+  let correctivePopupProgressBarEl = document.getElementById('decimalCorrectiveProgressBar');
+  let correctivePopupCountdownEl = document.getElementById('decimalCorrectiveCountdown');
+  let correctiveReplayBtnEl = document.getElementById('decimalCorrectiveReplayBtn');
   const scoreEl = document.getElementById('score');
   const timerEl = document.getElementById('timer');
   const streakEl = document.getElementById('streak');
@@ -111,6 +118,15 @@ export default function initDecimal() {
   let correctiveLockAxis = null;
   let correctiveLockIndex = null;
   let correctiveCountdownTimer = null;
+  const CORRECTIVE_ANIMATION_MS = 30000;
+  let correctiveAnimationKey = '';
+  let correctiveAnimationStartedAt = 0;
+  let correctiveAnimationSteps = [];
+  let correctiveStepRenderKey = '';
+  let correctiveReplayTimer = null;
+  let correctiveReplayExpr = '';
+  let correctiveReplayLevel = 'easy';
+  let correctiveReplayHelpText = '';
   const DAILY_CHALLENGE_POINTS = 8000;
   const dailyChallenge = (() => {
     const raw = window.__DecimalDailyChallenge;
@@ -132,6 +148,34 @@ export default function initDecimal() {
 
   function profileStatsKey() {
     return `mathpop_profile_stats_${currentUser()}`;
+  }
+
+  function tierUnlocksStorageKey() {
+    return `mathpop_benny_tier_unlocks_${currentUser()}`;
+  }
+
+  function activeTierStorageKey() {
+    return `mathpop_benny_active_tier_${currentUser()}`;
+  }
+
+  function loadPersistentTierState() {
+    let tierUnlocks = [];
+    let activeTier = 1;
+    try {
+      const rawUnlocks = localStorage.getItem(tierUnlocksStorageKey());
+      const parsed = rawUnlocks ? JSON.parse(rawUnlocks) : [];
+      tierUnlocks = Array.isArray(parsed)
+        ? [...new Set(parsed.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
+        : [];
+    } catch {
+      tierUnlocks = [];
+    }
+    try {
+      activeTier = Math.max(1, Number(localStorage.getItem(activeTierStorageKey())) || 1);
+    } catch {
+      activeTier = 1;
+    }
+    return { tierUnlocks, activeTier };
   }
 
   function deskFuelKey() {
@@ -167,9 +211,20 @@ export default function initDecimal() {
   }
 
   function loadProfileStats() {
+    const persistedTier = loadPersistentTierState();
     const raw = localStorage.getItem(profileStatsKey());
     if (!raw) {
-      return { totalPoints: 0, totalCorrect: 0, totalAttempted: 0, pupStreakRecord: 0, levelsCompleted: [], games: {} };
+      return {
+        totalPoints: 0,
+        totalCorrect: 0,
+        totalAttempted: 0,
+        pupStreakRecord: 0,
+        levelsCompleted: [],
+        spentPoints: 0,
+        tierUnlocks: [...new Set([1, ...persistedTier.tierUnlocks])],
+        activeTier: persistedTier.activeTier || 1,
+        games: {}
+      };
     }
     try {
       const parsed = JSON.parse(raw);
@@ -179,10 +234,29 @@ export default function initDecimal() {
         totalAttempted: Number(parsed.totalAttempted) || 0,
         pupStreakRecord: Number(parsed.pupStreakRecord) || 0,
         levelsCompleted: Array.isArray(parsed.levelsCompleted) ? parsed.levelsCompleted : [],
+        spentPoints: Number(parsed.spentPoints) || 0,
+        tierUnlocks: [...new Set([
+          1,
+          ...persistedTier.tierUnlocks,
+          ...(Array.isArray(parsed.tierUnlocks)
+          ? [...new Set(parsed.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
+          : [])
+        ])],
+        activeTier: Math.max(1, Number(parsed.activeTier) || persistedTier.activeTier || 1),
         games: parsed.games && typeof parsed.games === 'object' ? parsed.games : {}
       };
     } catch {
-      return { totalPoints: 0, totalCorrect: 0, totalAttempted: 0, pupStreakRecord: 0, levelsCompleted: [], games: {} };
+      return {
+        totalPoints: 0,
+        totalCorrect: 0,
+        totalAttempted: 0,
+        pupStreakRecord: 0,
+        levelsCompleted: [],
+        spentPoints: 0,
+        tierUnlocks: [...new Set([1, ...persistedTier.tierUnlocks])],
+        activeTier: persistedTier.activeTier || 1,
+        games: {}
+      };
     }
   }
 
@@ -194,6 +268,12 @@ export default function initDecimal() {
   }
 
   function saveProfileStats(stats) {
+    const unlocks = Array.isArray(stats?.tierUnlocks)
+      ? [...new Set([1, ...stats.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id))])]
+      : [1];
+    const tier = Math.max(1, Number(stats?.activeTier) || 1);
+    localStorage.setItem(tierUnlocksStorageKey(), JSON.stringify(unlocks));
+    localStorage.setItem(activeTierStorageKey(), String(tier));
     localStorage.setItem(profileStatsKey(), JSON.stringify(stats));
   }
 
@@ -445,6 +525,269 @@ export default function initDecimal() {
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function shuffle(arr){ return arr.slice().sort(()=>Math.random()-0.5); }
   function displayNumber(n){ return Number(n).toFixed(3).replace(/\.?0+$/,''); }
+  function stopCorrectiveReplayTimer() {
+    if (correctiveReplayTimer) {
+      clearInterval(correctiveReplayTimer);
+      correctiveReplayTimer = null;
+    }
+  }
+  function renderCorrectiveFallingLetters(targetEl, text) {
+    if (!targetEl) return;
+    const content = String(text || '');
+    targetEl.textContent = '';
+    targetEl.setAttribute('aria-label', content);
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < content.length; i += 1) {
+      const ch = content[i];
+      const span = document.createElement('span');
+      span.className = 'decimal-corrective-letter';
+      span.style.animationDelay = `${i * 16}ms`;
+      if (ch === ' ') {
+        span.classList.add('decimal-corrective-letter--space');
+        span.textContent = '\u00A0';
+      } else {
+        span.textContent = ch;
+      }
+      frag.appendChild(span);
+    }
+    targetEl.appendChild(frag);
+  }
+  function resetCorrectiveAnimation() {
+    stopCorrectiveReplayTimer();
+    correctiveAnimationKey = '';
+    correctiveAnimationStartedAt = 0;
+    correctiveAnimationSteps = [];
+    correctiveStepRenderKey = '';
+    correctiveReplayExpr = '';
+    correctiveReplayLevel = 'easy';
+    correctiveReplayHelpText = '';
+    if (correctivePopupStepEl) correctivePopupStepEl.textContent = '';
+    if (correctivePopupProgressBarEl) correctivePopupProgressBarEl.style.width = '0%';
+    if (correctivePopupProgressBarEl && correctivePopupProgressBarEl.parentElement) {
+      correctivePopupProgressBarEl.parentElement.style.display = '';
+    }
+    if (correctivePopupCountdownEl) correctivePopupCountdownEl.style.display = '';
+    if (correctivePopupStepEl) correctivePopupStepEl.style.display = '';
+    if (correctiveReplayBtnEl) correctiveReplayBtnEl.style.display = 'none';
+  }
+  function hideCorrectivePopup() {
+    if (!correctivePopupEl) return;
+    correctivePopupEl.classList.remove('show');
+    correctivePopupEl.setAttribute('aria-hidden', 'true');
+    resetCorrectiveAnimation();
+    if (correctivePopupTitleEl) correctivePopupTitleEl.textContent = '';
+    if (correctivePopupBodyEl) correctivePopupBodyEl.textContent = '';
+    if (correctivePopupCountdownEl) correctivePopupCountdownEl.textContent = '';
+  }
+  function tokenizeExpression(expr, level) {
+    const cleaned = normalizeExpression(expr || '', level);
+    return cleaned.match(/(\d+\.\d+|\d+|[+\-*/])/g) || [];
+  }
+  function firstMulDivIndex(tokens) {
+    for (let i = 0; i < tokens.length; i += 1) {
+      if (tokens[i] === '*' || tokens[i] === '/') return i;
+    }
+    return -1;
+  }
+  function applyBinaryOperation(a, op, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    if (op === '+') return a + b;
+    if (op === '-') return a - b;
+    if (op === '*') return a * b;
+    if (op === '/') return b === 0 ? null : a / b;
+    return null;
+  }
+  function buildDecimalCorrectiveSteps(expr, level, helpText) {
+    const tokens = tokenizeExpression(expr, level);
+    const fallback = [
+      helpText || 'Do one small step at a time.',
+      'Use that result to do the next step.',
+      'Final answer: ?'
+    ];
+    if (!tokens.length) return fallback;
+
+    if (level === 'medium') {
+      const opIndex = tokens.findIndex((t) => t === '+' || t === '-');
+      if (opIndex <= 0 || opIndex >= tokens.length - 1) return fallback;
+      const a = Number(tokens[opIndex - 1]);
+      const op = tokens[opIndex];
+      const b = Number(tokens[opIndex + 1]);
+      const first = applyBinaryOperation(a, op, b);
+      if (!Number.isFinite(first)) return fallback;
+      const tail = tokens.slice(opIndex + 2);
+      if (!tail.length) {
+        return [
+          `Line up decimal points first, then do ${displayNumber(a)} ${op} ${displayNumber(b)} place by place.`,
+          `Work from right to left in each decimal place and regroup if needed.`,
+          `Nearest whole number: ${Math.round(first)}. Final answer: ?`
+        ];
+      }
+      return [
+        `Line up decimal points. First solve ${displayNumber(a)} ${op} ${displayNumber(b)}.`,
+        `Now use that result with the rest: ${displayNumber(first)} ${tail.join(' ')}.`,
+        'Continue left to right and keep decimal points lined up. Final answer: ?'
+      ];
+    }
+
+    if (level === 'mathamatical') {
+      const mdIndex = firstMulDivIndex(tokens);
+      if (mdIndex > 0 && mdIndex < tokens.length - 1) {
+        const a = Number(tokens[mdIndex - 1]);
+        const op = tokens[mdIndex];
+        const b = Number(tokens[mdIndex + 1]);
+        const first = applyBinaryOperation(a, op, b);
+        if (!Number.isFinite(first)) return fallback;
+        const rewritten = [
+          ...tokens.slice(0, mdIndex - 1),
+          displayNumber(first),
+          ...tokens.slice(mdIndex + 2)
+        ];
+        return [
+          `Use order of operations: do multiplication/division first. Solve ${displayNumber(a)} ${op} ${displayNumber(b)} first.`,
+          `Rewrite the expression as: ${rewritten.join(' ')}.`,
+          'Then solve + and - left to right. Final answer: ?'
+        ];
+      }
+      const opIndex = tokens.findIndex((t) => t === '+' || t === '-');
+      if (opIndex > 0 && opIndex < tokens.length - 1) {
+        const a = Number(tokens[opIndex - 1]);
+        const op = tokens[opIndex];
+        const b = Number(tokens[opIndex + 1]);
+        return [
+          `No multiply/divide first here, so start with ${displayNumber(a)} ${op} ${displayNumber(b)}.`,
+          'Keep decimal points aligned for addition/subtraction.',
+          'Continue left to right for the rest. Final answer: ?'
+        ];
+      }
+    }
+    return fallback;
+  }
+  function showCorrectivePopup(expr, level, helpText, secondsLeft) {
+    if (!correctivePopupEl) return;
+    const key = `${level}|${expr}|${helpText || ''}`;
+    if (key !== correctiveAnimationKey) {
+      correctiveAnimationKey = key;
+      correctiveAnimationStartedAt = Date.now();
+      correctiveAnimationSteps = buildDecimalCorrectiveSteps(expr, level, helpText);
+    }
+    const elapsed = Math.max(0, Date.now() - correctiveAnimationStartedAt);
+    const progress = clamp(elapsed / CORRECTIVE_ANIMATION_MS, 0, 1);
+    const stepCount = Math.max(1, correctiveAnimationSteps.length);
+    const msPerStep = CORRECTIVE_ANIMATION_MS / stepCount;
+    const stepIndex = Math.min(stepCount - 1, Math.floor(elapsed / msPerStep));
+    const activeStep = correctiveAnimationSteps[stepIndex] || helpText || 'Take it one step at a time.';
+    const stepText = `Step ${stepIndex + 1}/${stepCount}: ${activeStep}`;
+    const showTopContent = progress >= 0.999;
+    const canRetryNow = !(Number.isFinite(secondsLeft) && secondsLeft > 0);
+    const fullBreakdown = correctiveAnimationSteps.length
+      ? correctiveAnimationSteps.map((step, idx) => `Step ${idx + 1}/${stepCount}: ${step}`).join('\n')
+      : `Step 1/1: ${helpText || 'Take it one step at a time.'}`;
+    if (correctivePopupTitleEl) {
+      correctivePopupTitleEl.textContent = showTopContent
+        ? `Try this one again: ${normalizeExpression(expr || '', level)}`
+        : '';
+    }
+    if (correctivePopupBodyEl) {
+      correctivePopupBodyEl.textContent = showTopContent
+        ? (helpText || 'Use one operation at a time.')
+        : '';
+    }
+    if (correctivePopupStepEl) correctivePopupStepEl.style.display = '';
+    if (showTopContent) {
+      const renderKey = `full|${fullBreakdown}`;
+      if (renderKey !== correctiveStepRenderKey) {
+        correctiveStepRenderKey = renderKey;
+        if (correctivePopupStepEl) correctivePopupStepEl.textContent = fullBreakdown;
+      }
+    } else {
+      const renderKey = `${stepIndex}|${stepText}`;
+      if (renderKey !== correctiveStepRenderKey) {
+        correctiveStepRenderKey = renderKey;
+        renderCorrectiveFallingLetters(correctivePopupStepEl, stepText);
+      }
+    }
+    if (correctivePopupProgressBarEl) {
+      correctivePopupProgressBarEl.style.width = `${Math.round(progress * 100)}%`;
+      if (correctivePopupProgressBarEl.parentElement) {
+        correctivePopupProgressBarEl.parentElement.style.display = showTopContent ? 'none' : '';
+      }
+    }
+    if (correctivePopupCountdownEl) {
+      correctivePopupCountdownEl.style.display = showTopContent && !canRetryNow ? 'none' : '';
+      correctivePopupCountdownEl.textContent = !canRetryNow
+        ? `Read for ${secondsLeft}s, then retry.`
+        : 'You can retry now.';
+    }
+    if (correctiveReplayBtnEl) {
+      correctiveReplayBtnEl.style.display = showTopContent && canRetryNow ? '' : 'none';
+    }
+    correctiveReplayExpr = expr || '';
+    correctiveReplayLevel = level || 'easy';
+    correctiveReplayHelpText = helpText || '';
+    correctivePopupEl.classList.add('show');
+    correctivePopupEl.setAttribute('aria-hidden', 'false');
+  }
+  function bindCorrectiveReplayButton() {
+    if (!correctiveReplayBtnEl || correctiveReplayBtnEl.dataset.bound === '1') return;
+    correctiveReplayBtnEl.dataset.bound = '1';
+    correctiveReplayBtnEl.addEventListener('click', () => {
+      if (!correctiveReplayExpr) return;
+      stopCorrectiveReplayTimer();
+      correctiveAnimationStartedAt = Date.now();
+      correctiveStepRenderKey = '';
+      showCorrectivePopup(correctiveReplayExpr, correctiveReplayLevel, correctiveReplayHelpText, 0);
+      correctiveReplayTimer = setInterval(() => {
+        showCorrectivePopup(correctiveReplayExpr, correctiveReplayLevel, correctiveReplayHelpText, 0);
+        if (Date.now() - correctiveAnimationStartedAt >= CORRECTIVE_ANIMATION_MS) {
+          stopCorrectiveReplayTimer();
+          showCorrectivePopup(correctiveReplayExpr, correctiveReplayLevel, correctiveReplayHelpText, 0);
+        }
+      }, 250);
+    });
+  }
+  function ensureCorrectivePopupDom() {
+    if (correctivePopupEl && correctivePopupTitleEl && correctivePopupBodyEl && correctivePopupStepEl
+      && correctivePopupProgressBarEl && correctivePopupCountdownEl && correctiveReplayBtnEl) {
+      bindCorrectiveReplayButton();
+      return;
+    }
+    const mount = hintEl?.parentElement || document.querySelector('.decimal-page .game-panel');
+    if (!mount) return;
+    let popup = document.getElementById('decimalCorrectivePopup');
+    if (!popup) {
+      popup = document.createElement('div');
+      popup.id = 'decimalCorrectivePopup';
+      popup.className = 'decimal-corrective-popup';
+      popup.setAttribute('aria-live', 'polite');
+      popup.setAttribute('aria-hidden', 'true');
+      popup.innerHTML = `
+        <p id="decimalCorrectiveTitle" class="decimal-corrective-popup__title"></p>
+        <p id="decimalCorrectiveBody" class="decimal-corrective-popup__body"></p>
+        <p id="decimalCorrectiveStep" class="decimal-corrective-popup__step"></p>
+        <div class="decimal-corrective-popup__progress" aria-hidden="true">
+          <div id="decimalCorrectiveProgressBar" class="decimal-corrective-popup__progress-bar"></div>
+        </div>
+        <div class="decimal-corrective-popup__footer">
+          <p id="decimalCorrectiveCountdown" class="decimal-corrective-popup__countdown"></p>
+          <button id="decimalCorrectiveReplayBtn" class="decimal-corrective-popup__replay" type="button">Replay</button>
+        </div>
+      `;
+      if (feedbackEl && feedbackEl.parentNode === mount) {
+        mount.insertBefore(popup, feedbackEl);
+      } else {
+        mount.appendChild(popup);
+      }
+    }
+    correctivePopupEl = document.getElementById('decimalCorrectivePopup');
+    correctivePopupTitleEl = document.getElementById('decimalCorrectiveTitle');
+    correctivePopupBodyEl = document.getElementById('decimalCorrectiveBody');
+    correctivePopupStepEl = document.getElementById('decimalCorrectiveStep');
+    correctivePopupProgressBarEl = document.getElementById('decimalCorrectiveProgressBar');
+    correctivePopupCountdownEl = document.getElementById('decimalCorrectiveCountdown');
+    correctiveReplayBtnEl = document.getElementById('decimalCorrectiveReplayBtn');
+    bindCorrectiveReplayButton();
+  }
+  bindCorrectiveReplayButton();
 
   function getRawLevelValue() {
     return (levelEl && levelEl.value) || 'easy20';
@@ -1540,7 +1883,8 @@ export default function initDecimal() {
     return correctiveLockUntil > Date.now();
   }
 
-  function clearCorrectiveLock() {
+  function clearCorrectiveLock(options = {}) {
+    const hidePopup = options.hidePopup !== false;
     correctiveLockUntil = 0;
     correctiveLockAxis = null;
     correctiveLockIndex = null;
@@ -1548,7 +1892,9 @@ export default function initDecimal() {
       clearInterval(correctiveCountdownTimer);
       correctiveCountdownTimer = null;
     }
+    stopCorrectiveReplayTimer();
     if (inputEl) inputEl.disabled = false;
+    if (hidePopup) hideCorrectivePopup();
   }
 
   function buildCorrectiveHelpForExpression(expr, level) {
@@ -1583,6 +1929,7 @@ export default function initDecimal() {
   }
 
   function startCorrectiveLock(expr, level, axis, index) {
+    ensureCorrectivePopupDom();
     clearCorrectiveLock();
     correctiveLockUntil = Date.now() + 30000;
     correctiveLockAxis = axis;
@@ -1597,17 +1944,21 @@ export default function initDecimal() {
     if (promptEl) {
       promptEl.textContent = `Try ${unit} ${unitNum} again after help: ${expr}`;
     }
+    if (feedbackEl) feedbackEl.textContent = '';
+    if (hintEl) hintEl.textContent = '';
     const render = () => {
       const left = Math.max(0, Math.ceil((correctiveLockUntil - Date.now()) / 1000));
       if (left <= 0) {
-        clearCorrectiveLock();
-        if (feedbackEl) feedbackEl.textContent = `Try ${unit} ${unitNum} again now.`;
+        clearCorrectiveLock({ hidePopup: false });
+        if (feedbackEl) feedbackEl.textContent = '';
         if (hintEl) hintEl.textContent = `Tip: ${buildHintForExpression(expr, level)}`;
         if (inputEl) inputEl.disabled = false;
+        showCorrectivePopup(expr, level, helpText, 0);
         return;
       }
-      if (feedbackEl) feedbackEl.textContent = `Read this help for ${left}s, then try the same problem again.`;
-      if (hintEl) hintEl.textContent = `Help: ${helpText}`;
+      if (feedbackEl) feedbackEl.textContent = '';
+      if (hintEl) hintEl.textContent = '';
+      showCorrectivePopup(expr, level, helpText, left);
     };
     render();
     correctiveCountdownTimer = setInterval(render, 250);
@@ -1791,6 +2142,7 @@ export default function initDecimal() {
   }
 
   function initUI() {
+    ensureCorrectivePopupDom();
     applyLevelConfig();
     setBackgroundPattern();
     updateGridPreview();

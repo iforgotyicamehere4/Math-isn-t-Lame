@@ -113,73 +113,511 @@ window.__MathPupStateReset = true;
 
   function buildAdditionTip(a, b) {
     if (!Number.isFinite(a) || !Number.isFinite(b)) return 'Tip: add in small steps.';
-    const absA = Math.abs(a);
-    const absB = Math.abs(b);
-    const big = absA >= absB ? a : b;
-    const small = absA >= absB ? b : a;
-    const smallAbs = Math.abs(small);
-
     if (a >= 0 && b >= 0) {
-      const base = `Tip: start at ${big} and count ${smallAbs} more.`;
-      if (smallAbs <= 3) return base;
-      const gap = (10 - (Math.abs(big) % 10)) % 10;
-      if (gap > 0 && gap < smallAbs) {
-        return `${base} Make a 10 first if you can.`;
-      }
-      return `${base} Break ${smallAbs} into smaller parts.`;
+      if (Math.max(a, b) >= 10) return 'Tip: add 10 first, then add what is left.';
+      if (Math.max(a, b) >= 5) return 'Tip: add 5 first, then add what is left.';
+      return 'Tip: start at the bigger number and count up.';
     }
-
     if (a < 0 && b < 0) {
-      return 'Tip: two negative numbers stay negative. Add the big parts, then keep one minus sign.';
+      return 'Tip: both are negative, so the answer stays negative.';
     }
-
-    return 'Tip: adding a negative means move left on the number line. Compare the big parts, then keep the sign of the bigger part.';
+    return 'Tip: with one negative and one positive, subtract the small part from the big part.';
   }
 
   function buildAdditionHelp(a, b) {
     if (!Number.isFinite(a) || !Number.isFinite(b)) {
       return 'Help: go slow. Count one step at a time.';
     }
-    const absA = Math.abs(a);
-    const absB = Math.abs(b);
-    const big = absA >= absB ? a : b;
-    const small = absA >= absB ? b : a;
-    const smallAbs = Math.abs(small);
-
     if (a >= 0 && b >= 0) {
-      const countWords = [];
-      const steps = Math.min(smallAbs, 6);
-      for (let i = 1; i <= steps; i += 1) {
-        countWords.push(String(big + i));
+      const isCarryCase = Number.isInteger(a)
+        && Number.isInteger(b)
+        && a >= 0
+        && b >= 0
+        && a <= 99
+        && b <= 99
+        && ((a % 10) + (b % 10) >= 10);
+      if (isCarryCase) {
+        const onesA = a % 10;
+        const onesB = b % 10;
+        const onesSum = onesA + onesB;
+        const carry = Math.floor(onesSum / 10);
+        const onesDigit = onesSum % 10;
+        const tensA = Math.floor(a / 10);
+        const tensB = Math.floor(b / 10);
+        const tensTotal = tensA + tensB + carry;
+        return `Help: start with ones first. ${onesA} + ${onesB}. Carry ${carry} to tens. Then add tens: ${tensA} + ${tensB} + ${carry} = ${tensTotal}. Put ${tensTotal} and ${onesDigit} together to make ${a + b}.`;
       }
-      if (smallAbs <= 6) {
-        return `Help: start at ${big}. Count up ${smallAbs}: ${countWords.join(', ')}.`;
+      const start = Math.max(a, b);
+      const addPart = Math.min(a, b);
+      if (addPart >= 10) {
+        const first = 10;
+        const rest = addPart - first;
+        const firstAnswer = start + first;
+        return `Help: addition means putting groups together. Start with the bigger number ${start}. Add ${first} first to get ${firstAnswer}. Then add ${rest} more to get ${a + b}.`;
       }
-      return `Help: start at ${big}. Count up ${smallAbs} one by one.`;
+      if (addPart >= 5) {
+        const first = 5;
+        const rest = addPart - first;
+        const firstAnswer = start + first;
+        return `Help: addition means putting groups together. Start with the bigger number ${start}. Add ${first} first to get ${firstAnswer}. Then add ${rest} more to get ${a + b}.`;
+      }
+      return `Help: addition means putting groups together. Start with the bigger number ${start}, then count up ${addPart} steps.`;
     }
     if (a < 0 && b < 0) {
-      return `Help: both have a minus sign. Add ${Math.abs(a)} and ${Math.abs(b)}. Keep one minus sign.`;
+      const total = Math.abs(a) + Math.abs(b);
+      return `Help: both numbers are below zero. Add the sizes ${Math.abs(a)} and ${Math.abs(b)} to get ${total}, then keep one minus sign: -${total}.`;
     }
-    return 'Help: one number has a minus sign. Minus means move left on the number line.';
+    const pos = Math.max(a, b);
+    const negSize = Math.min(Math.abs(a), Math.abs(b));
+    const diff = Math.abs(pos - negSize);
+    const result = a + b;
+    const signWord = result >= 0 ? 'positive' : 'negative';
+    return `Help: one number is positive and one is negative, so they pull against each other. Subtract ${pos} - ${negSize} = ${diff}. The bigger pull is ${signWord}, so the answer is ${result}.`;
+  }
+
+  function buildSubtractionHelp(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+      return 'Help: subtraction means take away.';
+    }
+    const isSameTensSingleDigitCase = Number.isInteger(a)
+      && Number.isInteger(b)
+      && a >= 10
+      && a <= 99
+      && b >= 10
+      && b <= 99
+      && b >= 0
+      && Math.floor(a / 10) === Math.floor(b / 10)
+      && Math.abs(a - b) <= 9;
+    if (isSameTensSingleDigitCase) {
+      const tens = Math.floor(a / 10);
+      const onesA = a % 10;
+      const onesB = b % 10;
+      if (a >= b) {
+        return `Help: the ${tens} from ${a} and the ${tens} from ${b} cancel to 0. Now use ones only: ${onesA} - ${onesB}.`;
+      }
+      return `Help: the ${tens} from ${a} and the ${tens} from ${b} cancel to 0. Use bigger ones first: ${onesB} - ${onesA}, then keep a minus sign because ${b} is bigger.`;
+    }
+    if (b < 0) {
+      return `Help: subtraction means take away. Taking away a negative is the same as adding. So ${a} - (${b}) is ${a} + ${Math.abs(b)}.`;
+    }
+    if (a < b) {
+      const flip = b - a;
+      return `Help: subtraction means how far apart two numbers are. ${a} - ${b} goes below zero. Reverse to find the distance: ${b} - ${a} = ${flip}. Then put a minus sign: -${flip}.`;
+    }
+    if (b >= 5) {
+      const first = 5;
+      const rest = b - first;
+      const firstAnswer = a - first;
+      return `Help: subtraction means take away. Start at ${a}. Subtract ${first} first to get ${firstAnswer}. Then subtract ${rest} more to get ${a - b}.`;
+    }
+    return `Help: subtraction means take away. Start at ${a}, then count back ${b} steps to get ${a - b}.`;
+  }
+
+  function buildMultiplicationHelp(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+      return 'Help: multiplication is repeated addition.';
+    }
+    if (a === 0 || b === 0) {
+      return 'Help: zero groups of anything is zero, so the answer is 0.';
+    }
+    const result = a * b;
+    if (a < 0 || b < 0) {
+      const absA = Math.abs(a);
+      const absB = Math.abs(b);
+      const absResult = absA * absB;
+      if (a < 0 && b < 0) {
+        return `Help: first multiply sizes: ${absA} x ${absB} = ${absResult}. Two negatives make a positive, so the answer is ${absResult}.`;
+      }
+      return `Help: first multiply sizes: ${absA} x ${absB} = ${absResult}. One negative and one positive make a negative answer: -${absResult}.`;
+    }
+    const hasTrailingZero = (n) => Number.isInteger(n) && n >= 10 && n <= 99 && (n % 10 === 0);
+    const isTwoDigit = (n) => Number.isInteger(n) && n >= 10 && n <= 99;
+    if (isTwoDigit(a) && isTwoDigit(b) && !hasTrailingZero(a) && !hasTrailingZero(b)) {
+      const top = Math.max(a, b);
+      const bottom = Math.min(a, b);
+      const topOnes = top % 10;
+      const topTens = Math.floor(top / 10);
+      const bottomOnes = bottom % 10;
+      const bottomTens = Math.floor(bottom / 10);
+      const onesMul = topOnes * bottomOnes;
+      const carry1 = Math.floor(onesMul / 10);
+      const firstRowTens = topTens * bottomOnes + carry1;
+      const secondRow = top * bottomTens;
+      return `Help: use the carry-over stack method with the bigger number ${top}. First do ${topOnes} x ${bottomOnes} = ${onesMul}; write ${onesMul % 10}, carry ${carry1}. Then ${topTens} x ${bottomOnes} + ${carry1} = ${firstRowTens} (first row ${firstRowTens}${onesMul % 10}). Next do ${top} x ${bottomTens} = ${secondRow} and shift one place. Add rows to get ${a * b}.`;
+    }
+    if ((hasTrailingZero(a) && isTwoDigit(b)) || (hasTrailingZero(b) && isTwoDigit(a))) {
+      const tensNum = hasTrailingZero(a) ? a : b;
+      const twoDigitNum = hasTrailingZero(a) ? b : a;
+      const d = Math.floor(tensNum / 10);
+      const ones = twoDigitNum % 10;
+      const tens = Math.floor(twoDigitNum / 10);
+      if (d * ones >= 10) {
+        // Use the generic path when ones multiplication requires carrying.
+      } else {
+        const partOnes = d * ones;
+        const partTens = d * tens;
+        return `Help: use the stack way with the bigger number ${tensNum}. First do ${d} x ${ones} = ${partOnes}. Then do ${d} x ${tens} = ${partTens}. Put them together, then add the 0 from ${tensNum}.`;
+      }
+    }
+    const big = Math.max(a, b);
+    const small = Math.min(a, b);
+    if (big >= 10) {
+      const first = 10;
+      const rest = big - first;
+      const firstAnswer = small * first;
+      return `Help: multiplication is equal groups. Start with the bigger number ${big}. Split it into ${first} and ${rest}. Do ${small} x ${first} = ${firstAnswer}, then ${small} x ${rest} = ${small * rest}. Add them: ${firstAnswer} + ${small * rest} = ${result}.`;
+    }
+    if (big >= 5) {
+      const first = 5;
+      const rest = big - first;
+      const firstAnswer = small * first;
+      return `Help: multiplication is equal groups. Start with the bigger number ${big}. Split it into ${first} and ${rest}. Do ${small} x ${first} = ${firstAnswer}, then ${small} x ${rest} = ${small * rest}. Add them: ${firstAnswer} + ${small * rest} = ${result}.`;
+    }
+    return `Help: multiplication means equal groups. ${a} x ${b} means ${a} groups of ${b}, or ${b} + ${b} + ${b}...`;
+  }
+
+  function buildDivisionHelp(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+      return 'Help: division means split into equal groups.';
+    }
+    if (b === 0) return 'Help: dividing by zero is not allowed.';
+    const result = a / b;
+    const absA = Math.abs(a);
+    const absB = Math.abs(b);
+    if ((a < 0 && b > 0) || (a > 0 && b < 0)) {
+      return `Help: divide sizes first: ${absA} / ${absB} = ${absA / absB}. One number is negative, so the answer is negative: ${result}.`;
+    }
+    if (a < 0 && b < 0) {
+      return `Help: divide sizes first: ${absA} / ${absB} = ${absA / absB}. Two negatives make a positive answer: ${result}.`;
+    }
+    if (absA >= absB * 10) {
+      const tenChunk = absB * 10;
+      const rest = absA - tenChunk;
+      return `Help: division means equal groups. ${absA} / ${absB}: first split ${tenChunk} into ${absB} groups to get 10. Then split ${rest} by ${absB} to get ${rest / absB}. Add 10 + ${rest / absB} = ${result}.`;
+    }
+    return `Help: division asks how many ${b}'s fit into ${a}. Check with multiplication: ${b} x ${result} = ${a}.`;
+  }
+
+  function buildCorrectiveSteps(problem, fallbackHelp) {
+    if (!problem) return [fallbackHelp || 'Take it one step at a time.'];
+    const a = Number(problem.a);
+    const b = Number(problem.b);
+    const op = problem.op;
+    const answer = Number.isFinite(problem.answer)
+      ? Number(problem.answer)
+      : computeAnswer(problem.expr || `${a}${op}${b}`);
+
+    const maskedFinalStep = (value) => {
+      const near = Math.round(Number(value));
+      return `Nearest whole number: ${near}. Final answer: ?`;
+    };
+    const countSequence = (start, steps, dir = 1, maxShown = 2) => {
+      const shown = [];
+      for (let i = 1; i <= Math.min(maxShown, Math.max(0, steps)); i += 1) {
+        shown.push(String(start + (i * dir)));
+      }
+      shown.push('?');
+      return shown.join(', ');
+    };
+    const isTwoDigit = (n) => Number.isInteger(n) && Math.abs(n) >= 10 && Math.abs(n) <= 99;
+    const hasTrailingZero = (n) => isTwoDigit(n) && (Math.abs(n) % 10 === 0);
+
+    const classifyCorrectiveStrategy = () => {
+      if (op === '+') {
+        if (a >= 0 && b >= 0) {
+          if (Number.isInteger(a) && Number.isInteger(b) && isTwoDigit(a) && isTwoDigit(b) && ((a % 10) + (b % 10) >= 10)) {
+            return 'add_carry_two_digit';
+          }
+          if (Number.isInteger(a) && Number.isInteger(b) && (a % 10) + (b % 10) >= 10) {
+            return 'add_carry';
+          }
+          if (Math.min(a, b) >= 5) return 'add_break_apart';
+          return 'add_count_up';
+        }
+        if (a < 0 && b < 0) return 'add_two_negatives';
+        return 'add_mixed_sign';
+      }
+
+      if (op === '-') {
+        if (b < 0) return 'sub_minus_negative';
+        if (a < 0 && b >= 0) return 'sub_from_negative';
+        if (Number.isInteger(a) && Number.isInteger(b)
+          && a >= 10 && a <= 99 && b >= 10 && b <= 99
+          && Math.floor(a / 10) === Math.floor(b / 10)
+          && Math.abs(a - b) <= 9) {
+          return 'sub_cancel_tens';
+        }
+        if (a < b) return 'sub_reverse_for_negative';
+        if (Number.isInteger(a) && Number.isInteger(b) && b <= 9) return 'sub_count_back';
+        return 'sub_break_apart';
+      }
+
+      if (op === '*') {
+        if (a === 0 || b === 0) return 'mul_zero';
+        if ((a < 0) || (b < 0)) return 'mul_signs';
+        if (isTwoDigit(a) && isTwoDigit(b)) return 'mul_carry_stack';
+        if (hasTrailingZero(a) || hasTrailingZero(b)) return 'mul_with_zero_place';
+        return 'mul_groups';
+      }
+
+      if (op === '/') {
+        if (b === 0) return 'div_zero';
+        if ((a < 0) || (b < 0)) return 'div_signs';
+        if (Math.abs(a) >= Math.abs(b) * 10) return 'div_chunking';
+        return 'div_fact_family';
+      }
+      return 'fallback';
+    };
+
+    const strategyBuilders = {
+      add_carry: () => {
+        const onesA = Math.abs(a % 10);
+        const onesB = Math.abs(b % 10);
+        const carry = Math.floor((onesA + onesB) / 10);
+        const onesDigit = (onesA + onesB) % 10;
+        return [
+          `Start with ones first: ${onesA} + ${onesB}. If ones make 10 or more, write only the ones place and carry ${carry} to the next place.`,
+          `Write ${onesDigit} in the ones place and put carried ${carry} above the next column.`,
+          'Now add the next column with the carry. Then put both places together for the final number: ?'
+        ];
+      },
+      add_carry_two_digit: () => {
+        const top = Math.max(a, b);
+        const bottom = Math.min(a, b);
+        const onesTop = top % 10;
+        const onesBottom = bottom % 10;
+        const carry = Math.floor((onesTop + onesBottom) / 10);
+        return [
+          `Line up vertically and start with ones: ${onesTop} + ${onesBottom}. If it is 10 or more, carry ${carry} to the tens.`,
+          `${top}\n+${bottom}\n---\n??\nCarry ${carry} above the tens column.`,
+          'Add tens with the carried value, then combine tens and ones to make the final answer: ?'
+        ];
+      },
+      add_break_apart: () => {
+        const big = Math.max(a, b);
+        const small = Math.min(a, b);
+        const first = small >= 10 ? 10 : 5;
+        const rest = small - first;
+        return [
+          `Start with the bigger number ${big}. Break ${small} into ${first} and ${rest}.`,
+          `Add ${first} first, then add ${rest}.`,
+          maskedFinalStep(answer)
+        ];
+      },
+      add_count_up: () => {
+        const big = Math.max(a, b);
+        const small = Math.min(a, b);
+        const stepWord = small === 1 ? 'step' : 'steps';
+        return [
+          `Start with the bigger number ${big}.`,
+          `Count up ${small} ${stepWord}: ${countSequence(big, small, 1)}`,
+          maskedFinalStep(answer)
+        ];
+      },
+      add_two_negatives: () => {
+        const absA = Math.abs(a);
+        const absB = Math.abs(b);
+        return [
+          `Add the sizes first: ${absA} + ${absB}.`,
+          'Both numbers are negative, so the answer keeps one minus sign.',
+          maskedFinalStep(answer)
+        ];
+      },
+      add_mixed_sign: () => {
+        const big = Math.max(Math.abs(a), Math.abs(b));
+        const small = Math.min(Math.abs(a), Math.abs(b));
+        const signSide = Math.abs(a) >= Math.abs(b) ? (a >= 0 ? 'positive' : 'negative') : (b >= 0 ? 'positive' : 'negative');
+        return [
+          `One is positive and one is negative, so subtract sizes: ${big} - ${small}.`,
+          `The bigger size decides the sign. Here the bigger side is ${signSide}.`,
+          maskedFinalStep(answer)
+        ];
+      },
+      sub_minus_negative: () => [
+        'Subtracting a negative is the same as adding a positive.',
+        `${a} - (${b}) becomes ${a} + ${Math.abs(b)}.`,
+        maskedFinalStep(answer)
+      ],
+      sub_from_negative: () => [
+        'Start at a negative number and move farther left when subtracting a positive.',
+        `Think of distance from zero: ${Math.abs(a)} then ${Math.abs(b)} more.`,
+        maskedFinalStep(answer)
+      ],
+      sub_cancel_tens: () => {
+        const tens = Math.floor(a / 10);
+        const onesA = a % 10;
+        const onesB = b % 10;
+        if (a >= b) {
+          return [
+            `The ${tens} from ${a} and the ${tens} from ${b} are the same, so they cancel to 0.`,
+            `Now use ones only: ${onesA} - ${onesB}. The tens are not needed anymore.`,
+            `${onesA} - ${onesB} = ?`
+          ];
+        }
+        return [
+          `The ${tens} from ${a} and the ${tens} from ${b} are the same, so they cancel to 0.`,
+          `Now use the bigger ones first: ${onesB} - ${onesA}, then keep a minus sign.`,
+          `${onesB} - ${onesA} = ? with a minus sign.`
+        ];
+      },
+      sub_reverse_for_negative: () => [
+        `${a} - ${b} goes below zero.`,
+        `Reverse with the bigger number first: ${b} - ${a}.`,
+        'Put a minus sign in front of that distance: ?'
+      ],
+      sub_count_back: () => {
+        const stepWord = b === 1 ? 'step' : 'steps';
+        return [
+          `Start with ${a}.`,
+          `Count ${b} ${stepWord} back: ${countSequence(a, b, -1)}`,
+          maskedFinalStep(answer)
+        ];
+      },
+      sub_break_apart: () => {
+        const onesB = Math.abs(b % 10);
+        const tensB = Math.floor(Math.abs(b) / 10);
+        return [
+          `Break ${b} into tens and ones: ${tensB * 10} and ${onesB}.`,
+          `Subtract tens first, then subtract ones.`,
+          maskedFinalStep(answer)
+        ];
+      },
+      mul_zero: () => [
+        'Anything times 0 is 0.',
+        'Zero groups means nothing is in the group.',
+        maskedFinalStep(0)
+      ],
+      mul_signs: () => {
+        const signRule = (a < 0 && b < 0)
+          ? 'Two negatives make a positive.'
+          : 'One negative and one positive make a negative.';
+        return [
+          `Multiply sizes first: ${Math.abs(a)} x ${Math.abs(b)}.`,
+          signRule,
+          maskedFinalStep(answer)
+        ];
+      },
+      mul_carry_stack: () => {
+        const top = Math.max(a, b);
+        const bottom = Math.min(a, b);
+        const onesTop = top % 10;
+        const onesBottom = bottom % 10;
+        const carry = Math.floor((onesTop * onesBottom) / 10);
+        return [
+          `Use vertical multiplication with the bigger number on top (${top}). Start at ones: ${onesTop} x ${onesBottom}.`,
+          `Write ones place, carry ${carry} to the tens column, then multiply tens.`,
+          'Finish remaining row(s), shift one place for tens row, then add rows for the final answer: ?'
+        ];
+      },
+      mul_with_zero_place: () => {
+        const tensNum = hasTrailingZero(a) ? a : b;
+        const other = hasTrailingZero(a) ? b : a;
+        const d = Math.floor(Math.abs(tensNum) / 10);
+        return [
+          `Ignore the 0 in ${tensNum} for now and multiply ${d} by each place in ${other}.`,
+          'Write partial result using carry-over if needed.',
+          `Add back one 0 place from ${tensNum} to finish: ?`
+        ];
+      },
+      mul_groups: () => {
+        const big = Math.max(Math.abs(a), Math.abs(b));
+        const small = Math.min(Math.abs(a), Math.abs(b));
+        const chunk = big >= 10 ? 10 : 5;
+        const rest = big - chunk;
+        return [
+          `Think in equal groups. Split ${big} into ${chunk} and ${rest}.`,
+          `Do ${small} x ${chunk}, then ${small} x ${rest}.`,
+          maskedFinalStep(answer)
+        ];
+      },
+      div_zero: () => ['Division by zero is not allowed.', 'Pick a non-zero divisor.', 'Final answer: ?'],
+      div_signs: () => {
+        const signRule = (a < 0 && b < 0)
+          ? 'Two negatives make a positive.'
+          : 'One negative and one positive make a negative.';
+        return [
+          `Divide sizes first: ${Math.abs(a)} / ${Math.abs(b)}.`,
+          signRule,
+          maskedFinalStep(answer)
+        ];
+      },
+      div_chunking: () => {
+        const absA = Math.abs(a);
+        const absB = Math.abs(b);
+        const tenChunk = absB * 10;
+        const rest = absA - tenChunk;
+        return [
+          `Break ${absA} into ${tenChunk} and ${rest}.`,
+          `Divide each part by ${absB}.`,
+          maskedFinalStep(answer)
+        ];
+      },
+      div_fact_family: () => [
+        `Ask: how many ${b}'s fit into ${a}?`,
+        `Use multiplication check: ${b} x ? = ${a}.`,
+        maskedFinalStep(answer)
+      ],
+      fallback: () => {
+        const sentenceSteps = String(fallbackHelp || '')
+          .split(/(?<=[.!?])\s+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        if (!sentenceSteps.length) return ['Take it one step at a time.', 'Work one column at a time.', 'Final answer: ?'];
+        return [
+          sentenceSteps[0] || 'Take it one step at a time.',
+          sentenceSteps[1] || 'Use the same rule on the next part.',
+          sentenceSteps[2] || 'Final answer: ?'
+        ];
+      }
+    };
+
+    const key = classifyCorrectiveStrategy();
+    const builder = strategyBuilders[key] || strategyBuilders.fallback;
+    const built = builder();
+    return Array.isArray(built) && built.length >= 3
+      ? built.slice(0, 3)
+      : [...(built || []), 'Final answer: ?'].slice(0, 3);
   }
 
   function buildHint(problem) {
     if (!problem) return '';
-    const a = problem.a;
-    const b = problem.b;
     const op = problem.op;
-    if (op === '+') return buildAdditionTip(a, b);
-    if (op === '-') return `Hint: think "${b} + ? = ${a}".`;
-    if (op === '*') return `Hint: ${a} groups of ${b} (add ${b} ${a} times).`;
-    if (op === '/') return `Hint: think "${b} x ? = ${a}".`;
-    const expr = formatExpression(problem.expr);
+    if (op === '+') return 'Tip: this is addition. Add.';
+    if (op === '-') return 'Tip: this is subtraction. Subtract.';
+    if (op === '*') return 'Tip: this is multiplication. Multiply.';
+    if (op === '/') return 'Tip: this is division. Divide.';
+    const expr = String(problem.expr || '');
     if (expr) {
-      if (/[*/]/.test(problem.expr)) {
-        return `Hint: solve ${expr} using order of operations.`;
+      const ops = [];
+      let prevNonSpace = '';
+      for (let i = 0; i < expr.length; i += 1) {
+        const ch = expr[i];
+        if (ch === ' ') continue;
+        const isDigit = ch >= '0' && ch <= '9';
+        if (ch === '+' || ch === '*' || ch === '/') ops.push(ch);
+        if (ch === '-') {
+          if (prevNonSpace && ((prevNonSpace >= '0' && prevNonSpace <= '9') || prevNonSpace === ')')) {
+            ops.push(ch);
+          }
+        }
+        if (isDigit || ch === ')' || ch === '(' || ch === '+' || ch === '-' || ch === '*' || ch === '/') {
+          prevNonSpace = ch;
+        }
       }
-      return `Hint: solve ${expr} left to right.`;
+      const opWord = {
+        '+': 'addition',
+        '-': 'subtraction',
+        '*': 'multiplication',
+        '/': 'division'
+      };
+      const words = ops.map((symbol) => opWord[symbol]).filter(Boolean);
+      if (words.length === 1) return `Tip: this is ${words[0]}.`;
+      if (words.length > 1) {
+        if (words.length === 2) return `Tip: this problem uses ${words[0]} and ${words[1]}.`;
+        return `Tip: this problem uses ${words.slice(0, -1).join(', ')}, and ${words[words.length - 1]}.`;
+      }
     }
-    return 'Hint: use order of operations (x and / before + and -).';
+    return 'Tip: check the signs and do that operation.';
   }
 
   function buildCorrectiveHint(problem, userAnswer, expected) {
@@ -206,17 +644,15 @@ window.__MathPupStateReset = true;
       return signLine ? `${core} ${signLine}` : core;
     }
     if (op === '-') {
-      const core = b < 0
-        ? `Subtracting a negative means add ${Math.abs(b)}. Start at ${a}, then move right ${Math.abs(b)} steps.`
-        : `Start at ${a}. Take away ${b}. If ${b} is bigger than ${a}, the answer is negative.`;
+      const core = buildSubtractionHelp(a, b);
       return signLine ? `${core} ${signLine}` : core;
     }
     if (op === '*') {
-      const core = `Multiply: ${a} groups of ${b}.`;
+      const core = buildMultiplicationHelp(a, b);
       return signLine ? `${core} ${signLine}` : core;
     }
     if (op === '/') {
-      const core = `Divide ${a} by ${b}. Check with ${b} x answer = ${a}.`;
+      const core = buildDivisionHelp(a, b);
       return signLine ? `${core} ${signLine}` : core;
     }
 
@@ -592,6 +1028,13 @@ window.__MathPupStateReset = true;
   const bennyUnlockInfoEl = qs('#bennyUnlockInfo');
   const mathHintEl = qs('#mathHint');
   const dailyChallengeHintEl = qs('#dailyChallengeHint');
+  const correctivePopupEl = qs('#mathCorrectivePopup');
+  const correctivePopupTitleEl = qs('#mathCorrectiveTitle');
+  const correctivePopupBodyEl = qs('#mathCorrectiveBody');
+  const correctivePopupStepEl = qs('#mathCorrectiveStep');
+  const correctivePopupProgressBarEl = qs('#mathCorrectiveProgressBar');
+  const correctivePopupCountdownEl = qs('#mathCorrectiveCountdown');
+  const correctiveReplayBtnEl = qs('#mathCorrectiveReplayBtn');
   let bennyDock = null;
   const mobileControls = qs('#mobileControls');
   const mobileJoystick = qs('#mobileJoystick');
@@ -612,6 +1055,160 @@ window.__MathPupStateReset = true;
   function setHint(message) {
     if (!mathHintEl) return;
     mathHintEl.textContent = message || '';
+  }
+
+  const CORRECTIVE_ANIMATION_MS = 30000;
+  let correctiveAnimationKey = '';
+  let correctiveAnimationStartedAt = 0;
+  let correctiveAnimationSteps = [];
+  let correctiveStepRenderKey = '';
+  let correctiveReplayTimer = null;
+  let correctiveReplayProblem = null;
+  let correctiveReplayHelpText = '';
+
+  function stopCorrectiveReplayTimer() {
+    if (correctiveReplayTimer) {
+      clearInterval(correctiveReplayTimer);
+      correctiveReplayTimer = null;
+    }
+  }
+
+  function renderFallingLetters(targetEl, text) {
+    if (!targetEl) return;
+    const content = String(text || '');
+    targetEl.textContent = '';
+    targetEl.setAttribute('aria-label', content);
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < content.length; i += 1) {
+      const ch = content[i];
+      const span = document.createElement('span');
+      span.className = 'math-corrective-letter';
+      span.style.animationDelay = `${i * 16}ms`;
+      if (ch === ' ') {
+        span.classList.add('math-corrective-letter--space');
+        span.textContent = '\u00A0';
+      } else {
+        span.textContent = ch;
+      }
+      frag.appendChild(span);
+    }
+    targetEl.appendChild(frag);
+  }
+
+  function resetCorrectiveAnimation() {
+    stopCorrectiveReplayTimer();
+    correctiveAnimationKey = '';
+    correctiveAnimationStartedAt = 0;
+    correctiveAnimationSteps = [];
+    correctiveStepRenderKey = '';
+    correctiveReplayProblem = null;
+    correctiveReplayHelpText = '';
+    if (correctivePopupStepEl) correctivePopupStepEl.textContent = '';
+    if (correctivePopupProgressBarEl) correctivePopupProgressBarEl.style.width = '0%';
+    if (correctivePopupProgressBarEl && correctivePopupProgressBarEl.parentElement) {
+      correctivePopupProgressBarEl.parentElement.style.display = '';
+    }
+    if (correctivePopupCountdownEl) correctivePopupCountdownEl.style.display = '';
+    if (correctivePopupStepEl) correctivePopupStepEl.style.display = '';
+    if (correctiveReplayBtnEl) correctiveReplayBtnEl.style.display = 'none';
+  }
+
+  function hideCorrectivePopup() {
+    if (!correctivePopupEl) return;
+    correctivePopupEl.classList.remove('show');
+    correctivePopupEl.setAttribute('aria-hidden', 'true');
+    resetCorrectiveAnimation();
+    if (correctivePopupTitleEl) correctivePopupTitleEl.textContent = '';
+    if (correctivePopupBodyEl) correctivePopupBodyEl.textContent = '';
+    if (correctivePopupCountdownEl) correctivePopupCountdownEl.textContent = '';
+  }
+
+  function showCorrectivePopup(problem, helpText, secondsLeft) {
+    if (!correctivePopupEl) return;
+    const key = `${problem?.id || problem?.expr || `${problem?.a ?? ''}${problem?.op ?? ''}${problem?.b ?? ''}`}|${helpText || ''}`;
+    if (key !== correctiveAnimationKey) {
+      correctiveAnimationKey = key;
+      correctiveAnimationStartedAt = Date.now();
+      correctiveAnimationSteps = buildCorrectiveSteps(problem, helpText);
+    }
+    const elapsed = Math.max(0, Date.now() - correctiveAnimationStartedAt);
+    const progress = clamp(elapsed / CORRECTIVE_ANIMATION_MS, 0, 1);
+    const stepCount = Math.max(1, correctiveAnimationSteps.length);
+    const msPerStep = CORRECTIVE_ANIMATION_MS / stepCount;
+    const stepIndex = Math.min(stepCount - 1, Math.floor(elapsed / msPerStep));
+    const activeStep = correctiveAnimationSteps[stepIndex] || helpText || 'Take it one step at a time.';
+    const stepText = `Step ${stepIndex + 1}/${stepCount}: ${activeStep}`;
+    const expr = problem && problem.expr
+      ? formatExpression(problem.expr)
+      : formatExpression(`${problem?.a ?? ''}${problem?.op ?? ''}${problem?.b ?? ''}`);
+    const showTopContent = progress >= 0.999;
+    const canRetryNow = !(Number.isFinite(secondsLeft) && secondsLeft > 0);
+    const fullBreakdown = correctiveAnimationSteps.length
+      ? correctiveAnimationSteps.map((step, idx) => `Step ${idx + 1}/${stepCount}: ${step}`).join('\n')
+      : `Step 1/1: ${helpText || 'Take it one step at a time.'}`;
+    const firstStepText = correctiveAnimationSteps[0]
+      ? `Step 1/${stepCount}: ${correctiveAnimationSteps[0]}`
+      : '';
+    if (correctivePopupTitleEl) {
+      correctivePopupTitleEl.textContent = showTopContent
+        ? (expr ? `Try this one again: ${expr}` : 'Try this one again')
+        : '';
+    }
+    if (correctivePopupBodyEl) {
+      correctivePopupBodyEl.textContent = showTopContent
+        ? `${helpText || 'Take it one step at a time.'} ${firstStepText}`
+        : '';
+    }
+    if (correctivePopupStepEl) correctivePopupStepEl.style.display = '';
+    if (showTopContent) {
+      const renderKey = `full|${fullBreakdown}`;
+      if (renderKey !== correctiveStepRenderKey) {
+        correctiveStepRenderKey = renderKey;
+        if (correctivePopupStepEl) correctivePopupStepEl.textContent = fullBreakdown;
+      }
+    } else {
+      const renderKey = `${stepIndex}|${stepText}`;
+      if (renderKey !== correctiveStepRenderKey) {
+        correctiveStepRenderKey = renderKey;
+        renderFallingLetters(correctivePopupStepEl, stepText);
+      }
+    }
+    if (correctivePopupProgressBarEl) {
+      correctivePopupProgressBarEl.style.width = `${Math.round(progress * 100)}%`;
+      if (correctivePopupProgressBarEl.parentElement) {
+        correctivePopupProgressBarEl.parentElement.style.display = showTopContent ? 'none' : '';
+      }
+    }
+    if (correctivePopupCountdownEl) {
+      correctivePopupCountdownEl.style.display = showTopContent && !canRetryNow ? 'none' : '';
+      correctivePopupCountdownEl.textContent = !canRetryNow
+        ? `Read for ${secondsLeft}s, then retry.`
+        : 'You can retry now.';
+    }
+    if (correctiveReplayBtnEl) {
+      correctiveReplayBtnEl.style.display = showTopContent && canRetryNow ? '' : 'none';
+    }
+    correctiveReplayProblem = problem || null;
+    correctiveReplayHelpText = helpText || '';
+    correctivePopupEl.classList.add('show');
+    correctivePopupEl.setAttribute('aria-hidden', 'false');
+  }
+
+  if (correctiveReplayBtnEl) {
+    correctiveReplayBtnEl.addEventListener('click', () => {
+      if (!correctiveReplayProblem) return;
+      stopCorrectiveReplayTimer();
+      correctiveAnimationStartedAt = Date.now();
+      correctiveStepRenderKey = '';
+      showCorrectivePopup(correctiveReplayProblem, correctiveReplayHelpText, 0);
+      correctiveReplayTimer = setInterval(() => {
+        showCorrectivePopup(correctiveReplayProblem, correctiveReplayHelpText, 0);
+        if (Date.now() - correctiveAnimationStartedAt >= CORRECTIVE_ANIMATION_MS) {
+          stopCorrectiveReplayTimer();
+          showCorrectivePopup(correctiveReplayProblem, correctiveReplayHelpText, 0);
+        }
+      }, 250);
+    });
   }
   if (gameInfo) gameInfo.appendChild(typedContainer);
 
@@ -1007,7 +1604,36 @@ window.__MathPupStateReset = true;
     return `mathpop_profile_stats_${currentUser()}`;
   }
 
+  function tierUnlocksStorageKey() {
+    return `mathpop_benny_tier_unlocks_${currentUser()}`;
+  }
+
+  function activeTierStorageKey() {
+    return `mathpop_benny_active_tier_${currentUser()}`;
+  }
+
+  function loadPersistentTierState() {
+    let tierUnlocks = [];
+    let activeTier = 1;
+    try {
+      const rawUnlocks = localStorage.getItem(tierUnlocksStorageKey());
+      const parsed = rawUnlocks ? JSON.parse(rawUnlocks) : [];
+      tierUnlocks = Array.isArray(parsed)
+        ? [...new Set(parsed.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
+        : [];
+    } catch {
+      tierUnlocks = [];
+    }
+    try {
+      activeTier = Math.max(1, Number(localStorage.getItem(activeTierStorageKey())) || 1);
+    } catch {
+      activeTier = 1;
+    }
+    return { tierUnlocks, activeTier };
+  }
+
   function loadProfileStats() {
+    const persistedTier = loadPersistentTierState();
     const raw = localStorage.getItem(profileStatsKey());
     if (!raw) {
       return {
@@ -1017,8 +1643,8 @@ window.__MathPupStateReset = true;
         pupStreakRecord: 0,
         levelsCompleted: [],
         spentPoints: 0,
-        tierUnlocks: [],
-        activeTier: 1,
+        tierUnlocks: [...new Set([1, ...persistedTier.tierUnlocks])],
+        activeTier: persistedTier.activeTier || 1,
         games: {}
       };
     }
@@ -1031,10 +1657,14 @@ window.__MathPupStateReset = true;
         pupStreakRecord: Number(parsed.pupStreakRecord) || 0,
         levelsCompleted: Array.isArray(parsed.levelsCompleted) ? parsed.levelsCompleted : [],
         spentPoints: Number(parsed.spentPoints) || 0,
-        tierUnlocks: Array.isArray(parsed.tierUnlocks)
+        tierUnlocks: [...new Set([
+          1,
+          ...persistedTier.tierUnlocks,
+          ...(Array.isArray(parsed.tierUnlocks)
           ? [...new Set(parsed.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
-          : [],
-        activeTier: Number(parsed.activeTier) || 1,
+          : [])
+        ])],
+        activeTier: Math.max(1, Number(parsed.activeTier) || persistedTier.activeTier || 1),
         games: parsed.games && typeof parsed.games === 'object' ? parsed.games : {}
       };
     } catch (e) {
@@ -1045,8 +1675,8 @@ window.__MathPupStateReset = true;
         pupStreakRecord: 0,
         levelsCompleted: [],
         spentPoints: 0,
-        tierUnlocks: [],
-        activeTier: 1,
+        tierUnlocks: [...new Set([1, ...persistedTier.tierUnlocks])],
+        activeTier: persistedTier.activeTier || 1,
         games: {}
       };
     }
@@ -1068,6 +1698,12 @@ window.__MathPupStateReset = true;
   }
 
   function saveProfileStats(stats) {
+    const unlocks = Array.isArray(stats?.tierUnlocks)
+      ? [...new Set([1, ...stats.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id))])]
+      : [1];
+    const tier = Math.max(1, Number(stats?.activeTier) || 1);
+    localStorage.setItem(tierUnlocksStorageKey(), JSON.stringify(unlocks));
+    localStorage.setItem(activeTierStorageKey(), String(tier));
     localStorage.setItem(profileStatsKey(), JSON.stringify(stats));
   }
 
@@ -1439,7 +2075,8 @@ window.__MathPupStateReset = true;
     }
   }
 
-  function clearCorrectivePauseTimeout() {
+  function clearCorrectivePauseTimeout(options = {}) {
+    const keepPopupState = Boolean(options.keepPopupState);
     if (correctivePauseTimeout) {
       clearTimeout(correctivePauseTimeout);
       correctivePauseTimeout = null;
@@ -1449,6 +2086,9 @@ window.__MathPupStateReset = true;
       correctiveCountdownTimer = null;
     }
     correctiveLockUntil = 0;
+    if (!keepPopupState) {
+      hideCorrectivePopup();
+    }
   }
 
   function clearMiniGame() {
@@ -2215,7 +2855,8 @@ window.__MathPupStateReset = true;
       typedContainer.textContent = '';
       retryUsedThisRound = false;
       statusEl.textContent = 'Answer the problem!';
-      setHint(problem.op === '+' ? buildHint(problem) : '');
+      setHint(buildHint(problem));
+      hideCorrectivePopup();
     } catch (err) {
       console.error('Problem generation error', err);
       engine.config.operators = prevOps;
@@ -2252,10 +2893,12 @@ window.__MathPupStateReset = true;
       recordProblemTiming(levelName, activeProblem, elapsedMs, 'incorrect');
       clearCorrectivePauseTimeout();
       const token = ++correctivePauseToken;
-      setHint(buildCorrectiveHint(activeProblem, answerStr, expected));
+      const correctiveText = buildCorrectiveHint(activeProblem, answerStr, expected);
+      setHint('');
       correctiveLockUntil = Date.now() + 30000;
       const renderCorrectiveCountdown = () => {
         const left = Math.max(0, Math.ceil((correctiveLockUntil - Date.now()) / 1000));
+        showCorrectivePopup(activeProblem, correctiveText, left);
         if (left <= 0) return;
         statusEl.textContent = `Read this help for ${left}s, then try the same problem again.`;
         if (timerEl && !miniGameActive) {
@@ -2270,7 +2913,7 @@ window.__MathPupStateReset = true;
         if (!running || miniGameActive || levelExpired) return;
         if (token !== correctivePauseToken) return;
         if (!engine.currentProblem) return;
-        clearCorrectivePauseTimeout();
+        clearCorrectivePauseTimeout({ keepPopupState: true });
         roundActive = true;
         timerLevelName = levelName;
         problemStartAt = performance.now();
@@ -2281,6 +2924,7 @@ window.__MathPupStateReset = true;
           window.mathPupTimer.startRound(levelName);
         }
         statusEl.textContent = 'Second chance: try this same problem.';
+        showCorrectivePopup(activeProblem, correctiveText, 0);
       }, 30000);
       return;
     }

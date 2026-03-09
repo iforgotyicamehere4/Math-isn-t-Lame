@@ -384,25 +384,31 @@ window.__BennyWorldBabylonCleanup = null;
     root.dataset.theme = theme;
   }
 
-  function triggerGameOver() {
+  function triggerGameOver(options = {}) {
+    const {
+      overlayText = 'Benny needs a nap\nTry again later.',
+      restartDelayMs = 4000,
+      resetPoints = true
+    } = options;
     const overlay = qs('#bwGameOver');
     gameOver = true;
     keys.left = false;
     keys.right = false;
     keys.jump = false;
+    keys.glide = false;
     if (overlay) {
-      overlay.textContent = 'Benny needs a nap\nTry again later.';
+      overlay.textContent = overlayText;
       overlay.classList.add('is-visible');
     }
     setTimeout(() => {
       gameOver = false;
-      points = 0;
+      if (resetPoints) points = 0;
       if (overlay) {
         overlay.classList.remove('is-visible');
         overlay.textContent = '';
       }
       startLevel();
-    }, 4000);
+    }, restartDelayMs);
   }
 
   function triggerFlip() {
@@ -754,6 +760,16 @@ window.__BennyWorldBabylonCleanup = null;
         }
       }
     });
+
+    if (bennyState.y > rect.height + 80) {
+      setMessage('Benny fell through the clouds!', 1200);
+      triggerGameOver({
+        overlayText: 'Benny fell through the clouds!\nRestarting level...',
+        restartDelayMs: 1400,
+        resetPoints: false
+      });
+      return;
+    }
 
     if (bennyState.y > groundY) {
       bennyState.y = groundY - 36;

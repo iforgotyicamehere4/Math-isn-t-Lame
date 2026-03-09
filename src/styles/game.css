@@ -179,10 +179,142 @@
 }
 
 .game-page--mathpup .math-hint {
-  margin: 6px 0 0;
-  font-size: 0.95rem;
-  line-height: 1.35;
+  margin: 8px 0 0;
+  font-size: 0.98rem;
+  line-height: 1.5;
   color: #ffe7a6;
+}
+
+.game-page--mathpup .math-corrective-popup {
+  display: none;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 180, 96, 0.55);
+  background: rgba(38, 16, 6, 0.86);
+  color: #fff5df;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  line-height: 1.45;
+}
+
+.game-page--mathpup .math-corrective-popup.show {
+  display: block;
+}
+
+.game-page--mathpup .math-corrective-popup__title,
+.game-page--mathpup .math-corrective-popup__body,
+.game-page--mathpup .math-corrective-popup__countdown {
+  margin: 0;
+}
+
+.game-page--mathpup .math-corrective-popup__title {
+  font-weight: 800;
+  color: #ffcf80;
+  line-height: 1.35;
+}
+
+.game-page--mathpup .math-corrective-popup__body {
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.game-page--mathpup .math-corrective-popup__step {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(12, 4, 2, 0.6);
+  border: 1px solid rgba(255, 207, 128, 0.35);
+  line-height: 1.55;
+  color: #fff0cf;
+  min-height: 58px;
+  white-space: pre-wrap;
+}
+
+.game-page--mathpup .math-corrective-letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(-14px) rotate(-8deg) scale(0.92);
+  animation: correctiveLetterDrop 420ms cubic-bezier(0.22, 0.9, 0.25, 1) forwards;
+}
+
+.game-page--mathpup .math-corrective-letter--space {
+  width: 0.33em;
+}
+
+@keyframes correctiveLetterDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px) rotate(-8deg) scale(0.92);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(2px) rotate(0deg) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+
+.game-page--mathpup .math-corrective-popup__progress {
+  margin-top: 10px;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.game-page--mathpup .math-corrective-popup__progress-bar {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #ffcf80, #ff9f5f);
+  transition: width 180ms linear;
+}
+
+.game-page--mathpup .math-corrective-popup__countdown {
+  margin-top: 8px;
+  color: #ffe7a6;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.game-page--mathpup .math-corrective-popup__footer {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.game-page--mathpup .math-corrective-popup__footer .math-corrective-popup__countdown {
+  margin-top: 0;
+}
+
+.game-page--mathpup .math-corrective-popup__replay {
+  display: none;
+  padding: 6px 12px;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 207, 128, 0.65);
+  background: rgba(255, 170, 102, 0.16);
+  color: #ffdfb1;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.game-page--mathpup .math-corrective-popup__replay:hover {
+  background: rgba(255, 170, 102, 0.26);
+}
+
+@media (max-width: 640px) {
+  .game-page--mathpup .math-corrective-popup {
+    padding: 11px 12px;
+  }
+  .game-page--mathpup .math-corrective-popup__step {
+    min-height: 64px;
+  }
 }
 
 .game-page--mathpup .benny-dock {
@@ -433,28 +565,66 @@
   content: "";
   position: absolute;
   left: 8px;
-  top: -8px;
-  width: 0;
-  height: 0;
-  border-left: 16px solid transparent;
-  border-right: 16px solid transparent;
-  border-bottom: 28px solid #6d28d9;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+  top: -9px;
+  width: 32px;
+  height: 30px;
+  border-radius: 13px 13px 7px 7px;
+  background:
+    radial-gradient(8px 8px at 34% 24%, rgba(255, 172, 214, 0.95) 0%, rgba(255, 172, 214, 0.95) 36%, rgba(255, 172, 214, 0) 40%),
+    radial-gradient(9px 9px at 68% 58%, rgba(251, 191, 36, 0.95) 0%, rgba(251, 191, 36, 0.95) 34%, rgba(251, 191, 36, 0) 40%),
+    radial-gradient(7px 7px at 46% 78%, rgba(52, 211, 153, 0.9) 0%, rgba(52, 211, 153, 0.9) 36%, rgba(52, 211, 153, 0) 42%),
+    linear-gradient(180deg, rgba(252, 165, 165, 0.96) 0%, rgba(236, 72, 153, 0.96) 40%, rgba(168, 85, 247, 0.94) 100%);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  border: 2px solid rgba(255, 255, 255, 0.58);
+  box-shadow:
+    inset 0 -6px 10px rgba(103, 8, 94, 0.34),
+    inset 0 5px 8px rgba(255, 255, 255, 0.24),
+    0 3px 6px rgba(0, 0, 0, 0.44),
+    0 0 10px rgba(251, 113, 133, 0.45);
+  transform-origin: 50% 82%;
+  animation: wizardLavaLampHat 2.6s ease-in-out infinite;
 }
 
 .game-shell .benny.wizard .benny-base::after {
-  content: "/";
+  content: "";
   position: absolute;
-  right: -6px;
-  top: 6px;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 22px;
-  font-weight: 900;
-  color: #f5d0fe;
-  text-shadow:
-    0 0 6px rgba(217, 70, 239, 0.8),
-    0 0 12px rgba(250, 204, 21, 0.6);
-  transform: rotate(-12deg);
+  left: 7px;
+  top: 18px;
+  width: 34px;
+  height: 8px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.42) 40%, rgba(255, 255, 255, 0) 72%);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    0 0 12px rgba(249, 115, 22, 0.38);
+  transform: rotate(-2deg);
+}
+
+@keyframes wizardLavaLampHat {
+  0% {
+    background-position:
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+    transform: rotate(-1deg) translateY(0);
+  }
+  50% {
+    background-position:
+      1px 3px,
+      -2px -2px,
+      2px 1px,
+      0 0;
+    transform: rotate(1.5deg) translateY(-1px);
+  }
+  100% {
+    background-position:
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+    transform: rotate(-1deg) translateY(0);
+  }
 }
 
 .game-shell .benny.nuclear .benny-base::before {

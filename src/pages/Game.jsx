@@ -198,6 +198,20 @@ export default function Game() {
           </div>
           <p id="mathHint" className="math-hint" aria-live="polite" />
           <p id="dailyChallengeHint" className="math-hint" aria-live="polite" />
+          <div id="mathCorrectivePopup" className="math-corrective-popup" aria-live="polite" aria-hidden="true">
+            <p id="mathCorrectiveTitle" className="math-corrective-popup__title" />
+            <p id="mathCorrectiveBody" className="math-corrective-popup__body" />
+            <p id="mathCorrectiveStep" className="math-corrective-popup__step" />
+            <div className="math-corrective-popup__progress" aria-hidden="true">
+              <div id="mathCorrectiveProgressBar" className="math-corrective-popup__progress-bar" />
+            </div>
+            <div className="math-corrective-popup__footer">
+              <p id="mathCorrectiveCountdown" className="math-corrective-popup__countdown" />
+              <button id="mathCorrectiveReplayBtn" className="math-corrective-popup__replay" type="button">
+                Replay
+              </button>
+            </div>
+          </div>
           <div className="mobile-answer" aria-label="Answer input">
             <input
               id="mobileAnswer"

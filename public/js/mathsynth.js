@@ -47,10 +47,49 @@
     return `mathpop_profile_stats_${currentUser()}`;
   }
 
+  function tierUnlocksStorageKey() {
+    return `mathpop_benny_tier_unlocks_${currentUser()}`;
+  }
+
+  function activeTierStorageKey() {
+    return `mathpop_benny_active_tier_${currentUser()}`;
+  }
+
+  function loadPersistentTierState() {
+    let tierUnlocks = [];
+    let activeTier = 1;
+    try {
+      const rawUnlocks = localStorage.getItem(tierUnlocksStorageKey());
+      const parsed = rawUnlocks ? JSON.parse(rawUnlocks) : [];
+      tierUnlocks = Array.isArray(parsed)
+        ? [...new Set(parsed.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
+        : [];
+    } catch {
+      tierUnlocks = [];
+    }
+    try {
+      activeTier = Math.max(1, Number(localStorage.getItem(activeTierStorageKey())) || 1);
+    } catch {
+      activeTier = 1;
+    }
+    return { tierUnlocks, activeTier };
+  }
+
   function loadProfileStats() {
+    const persistedTier = loadPersistentTierState();
     const raw = localStorage.getItem(profileStatsKey());
     if (!raw) {
-      return { totalPoints: 0, totalCorrect: 0, totalAttempted: 0, pupStreakRecord: 0, levelsCompleted: [], games: {} };
+      return {
+        totalPoints: 0,
+        totalCorrect: 0,
+        totalAttempted: 0,
+        pupStreakRecord: 0,
+        levelsCompleted: [],
+        spentPoints: 0,
+        tierUnlocks: [...new Set([1, ...persistedTier.tierUnlocks])],
+        activeTier: persistedTier.activeTier || 1,
+        games: {}
+      };
     }
     try {
       const parsed = JSON.parse(raw);
@@ -60,10 +99,29 @@
         totalAttempted: Number(parsed.totalAttempted) || 0,
         pupStreakRecord: Number(parsed.pupStreakRecord) || 0,
         levelsCompleted: Array.isArray(parsed.levelsCompleted) ? parsed.levelsCompleted : [],
+        spentPoints: Number(parsed.spentPoints) || 0,
+        tierUnlocks: [...new Set([
+          1,
+          ...persistedTier.tierUnlocks,
+          ...(Array.isArray(parsed.tierUnlocks)
+          ? [...new Set(parsed.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id)))]
+          : [])
+        ])],
+        activeTier: Math.max(1, Number(parsed.activeTier) || persistedTier.activeTier || 1),
         games: parsed.games && typeof parsed.games === 'object' ? parsed.games : {}
       };
     } catch {
-      return { totalPoints: 0, totalCorrect: 0, totalAttempted: 0, pupStreakRecord: 0, levelsCompleted: [], games: {} };
+      return {
+        totalPoints: 0,
+        totalCorrect: 0,
+        totalAttempted: 0,
+        pupStreakRecord: 0,
+        levelsCompleted: [],
+        spentPoints: 0,
+        tierUnlocks: [...new Set([1, ...persistedTier.tierUnlocks])],
+        activeTier: persistedTier.activeTier || 1,
+        games: {}
+      };
     }
   }
 
@@ -75,6 +133,12 @@
   }
 
   function saveProfileStats(stats) {
+    const unlocks = Array.isArray(stats?.tierUnlocks)
+      ? [...new Set([1, ...stats.tierUnlocks.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id >= 1).map((id) => Math.floor(id))])]
+      : [1];
+    const tier = Math.max(1, Number(stats?.activeTier) || 1);
+    localStorage.setItem(tierUnlocksStorageKey(), JSON.stringify(unlocks));
+    localStorage.setItem(activeTierStorageKey(), String(tier));
     localStorage.setItem(profileStatsKey(), JSON.stringify(stats));
   }
 
@@ -503,72 +567,74 @@
 
   function buildCorrectiveHelp(data) {
     const eq = String(data?.equation || '');
-    const addSubMatch = eq.match(/^x\s*([+-])\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    const normalizedEq = eq.replace(/\u2212/g, '-').trim();
+    const sayNumber = (value) => (value < 0 ? `negative ${Math.abs(value)}` : `${value}`);
+    const inverseMoveText = (term) => (term >= 0 ? `subtract ${term}` : `add ${Math.abs(term)}`);
+    const multiplySignRule = (a, b) => {
+      if (a === 0 || b === 0) return 'Any number times zero is zero.';
+      if ((a < 0 && b > 0) || (a > 0 && b < 0)) return 'A negative times a positive is negative.';
+      return 'Two numbers with the same sign multiply to a positive.';
+    };
+
+    const subtractNegativeMatch = normalizedEq.match(/^x\s*-\s*(?:\(\s*)?-(\d+)(?:\s*\))?\s*=\s*(-?\d+)$/);
+    if (subtractNegativeMatch) {
+      const amount = Number(subtractNegativeMatch[1]);
+      const right = Number(subtractNegativeMatch[2]);
+      const finalValue = right - amount;
+      return `Step 1: look at the expression x - (-${amount}). You are subtracting a negative number, and subtracting a negative turns into addition. So rewrite the equation as x + ${amount} = ${right}. Benny should read that as "x plus ${amount} equals ${sayNumber(right)}". Step 2: isolate x by undoing +${amount}. The opposite of +${amount} is -${amount}, so subtract ${amount} from both sides: x + ${amount} - ${amount} = ${right} - ${amount}. That simplifies to x = ${right} - ${amount}. Step 3: evaluate ${right} - ${amount}. Start at ${right} and move ${amount} units left on the number line. That gives x = ${finalValue}.`;
+    }
+
+    const divideLinearMatch = normalizedEq.match(/^x\s*\/\s*(-?\d+)\s*\+\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (divideLinearMatch) {
+      const divisor = Number(divideLinearMatch[1]);
+      const addTerm = Number(divideLinearMatch[2]);
+      const right = Number(divideLinearMatch[3]);
+      const shifted = right - addTerm;
+      const finalValue = shifted * divisor;
+      return `Step 1: identify both operations in x / ${divisor} + ${addTerm} = ${right}. The variable is first divided by ${divisor}, then ${addTerm} is added. To reach x, undo the +${addTerm} part first. Step 2: ${inverseMoveText(addTerm)} on both sides: x / ${divisor} = ${shifted}. Now undo division by ${divisor} by multiplying both sides by ${divisor}: x = ${shifted} x ${divisor}. Step 3: multiply ${shifted} x ${divisor}. ${multiplySignRule(shifted, divisor)} The result is x = ${finalValue}.`;
+    }
+
+    const addSubMatch = normalizedEq.match(/^x\s*([+-])\s*(-?\d+)\s*=\s*(-?\d+)$/);
     if (addSubMatch) {
       const sign = addSubMatch[1];
-      const amount = Math.abs(Number(addSubMatch[2]));
+      const raw = Number(addSubMatch[2]);
       const right = Number(addSubMatch[3]);
-      if (sign === '+') {
-        return `Step 1: subtract ${amount} on BOTH sides. Use this: (${right}) - ${amount}. Step 2: now x is alone.`;
-      }
-      return `Step 1: add ${amount} on BOTH sides. Use this: (${right}) + ${amount}. Step 2: now x is alone.`;
+      const term = sign === '+' ? raw : -raw;
+      const finalValue = right - term;
+      return `Step 1: read the equation as x ${sign} ${raw} = ${right}. This means x has ${term >= 0 ? `+${term}` : `${term}`} attached to it, so we need the opposite move to isolate x. Step 2: ${inverseMoveText(term)} on both sides. That gives x = ${right} ${term >= 0 ? '-' : '+'} ${Math.abs(term)}. Step 3: compute ${right} ${term >= 0 ? '-' : '+'} ${Math.abs(term)} to get x = ${finalValue}.`;
     }
 
-    const multOnlyMatch = eq.match(/^(-?\d+)x\s*=\s*(-?\d+)$/);
+    const multOnlyMatch = normalizedEq.match(/^(-?\d+)x\s*=\s*(-?\d+)$/);
     if (multOnlyMatch) {
       const a = Number(multOnlyMatch[1]);
-      return `Step 1: divide BOTH sides by ${a}. Step 2: now x is alone.`;
+      const right = Number(multOnlyMatch[2]);
+      const finalValue = right / a;
+      return `Step 1: in ${a}x = ${right}, x is being multiplied by ${a}. To isolate x, we need the opposite operation. Step 2: divide both sides by ${a}: (${a}x) / ${a} = ${right} / ${a}. The left side simplifies to x, so x = ${right} / ${a}. Step 3: evaluate ${right} / ${a}. That gives x = ${finalValue}.`;
     }
 
-    const multPlusMatch = eq.match(/^(-?\d+)x\s*([+-])\s*(\d+)\s*=\s*(-?\d+)$/);
-    if (multPlusMatch) {
-      const a = Number(multPlusMatch[1]);
-      const sign = multPlusMatch[2];
-      const b = Number(multPlusMatch[3]);
-      const right = Number(multPlusMatch[4]);
-      const shifted = sign === '+' ? right - b : right + b;
-      if (sign === '+') {
-        return `Step 1: subtract ${b} on BOTH sides (${right} - ${b} = ${shifted}). Step 2: divide BOTH sides by ${a}.`;
-      }
-      return `Step 1: add ${b} on BOTH sides (${right} + ${b} = ${shifted}). Step 2: divide BOTH sides by ${a}.`;
+    const multPlusConstMatch = normalizedEq.match(/^(-?\d+)x\s*([+-])\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (multPlusConstMatch) {
+      const a = Number(multPlusConstMatch[1]);
+      const sign = multPlusConstMatch[2];
+      const bRaw = Number(multPlusConstMatch[3]);
+      const right = Number(multPlusConstMatch[4]);
+      const bTerm = sign === '+' ? bRaw : -bRaw;
+      const shifted = right - bTerm;
+      const finalValue = shifted / a;
+      return `Step 1: in ${a}x ${sign} ${bRaw} = ${right}, the ${bTerm >= 0 ? `+${bTerm}` : `${bTerm}`} is attached to the x term. Undo that constant part first. Step 2: ${inverseMoveText(bTerm)} on both sides, so ${a}x = ${shifted}. Step 3: divide both sides by ${a}: x = ${shifted} / ${a} = ${finalValue}.`;
     }
 
-    const groupedOverMatch = eq.match(/^\((-?\d+)x\s*([+-])\s*(\d+)\)\s*\/\s*(-?\d+)\s*=\s*(-?\d+)$/);
-    if (groupedOverMatch) {
-      const a = Number(groupedOverMatch[1]);
-      const innerSign = groupedOverMatch[2];
-      const b = Number(groupedOverMatch[3]);
-      const divisor = Number(groupedOverMatch[4]);
-      const right = Number(groupedOverMatch[5]);
-      const expandedRight = right * divisor;
-      const shifted = innerSign === '+' ? expandedRight - b : expandedRight + b;
-      return `Step 1: multiply BOTH sides by ${divisor} (${right} x ${divisor} = ${expandedRight}). Step 2: ${innerSign === '+' ? `subtract ${b}` : `add ${b}`} on BOTH sides (${shifted}). Step 3: divide BOTH sides by ${a}.`;
+    const reverseLinearMatch = normalizedEq.match(/^(-?\d+)\s*-\s*(-?\d+)x\s*=\s*(-?\d+)$/);
+    if (reverseLinearMatch) {
+      const leftConst = Number(reverseLinearMatch[1]);
+      const a = Number(reverseLinearMatch[2]);
+      const right = Number(reverseLinearMatch[3]);
+      const moved = right - leftConst;
+      const finalValue = moved / (-a);
+      return `Step 1: in ${leftConst} - ${a}x = ${right}, the x term is negative (${ -a }x). Move the constant ${leftConst} first. Step 2: subtract ${leftConst} from both sides: -${a}x = ${moved}. Step 3: divide both sides by -${a}: x = ${moved} / -${a} = ${finalValue}.`;
     }
 
-    const groupedOuterMatch = eq.match(/^(-?\d+)\(x\s*([+-])\s*(\d+)\)\s*([+-])\s*(\d+)\s*=\s*(-?\d+)$/);
-    if (groupedOuterMatch) {
-      const a = Number(groupedOuterMatch[1]);
-      const innerSign = groupedOuterMatch[2];
-      const innerB = Number(groupedOuterMatch[3]);
-      const outerSign = groupedOuterMatch[4];
-      const outerB = Number(groupedOuterMatch[5]);
-      const right = Number(groupedOuterMatch[6]);
-      const adjusted = outerSign === '+' ? right - outerB : right + outerB;
-      const innerRight = adjusted / a;
-      return `Step 1: ${outerSign === '+' ? `subtract ${outerB}` : `add ${outerB}`} on BOTH sides (${adjusted}). Step 2: divide BOTH sides by ${a} (${innerRight}). Step 3: ${innerSign === '+' ? `subtract ${innerB}` : `add ${innerB}`} to isolate x.`;
-    }
-
-    const groupedMatch = eq.match(/^(-?\d+)\(x\s*([+-])\s*(\d+)\)\s*=\s*(-?\d+)$/);
-    if (groupedMatch) {
-      const a = Number(groupedMatch[1]);
-      const innerSign = groupedMatch[2];
-      const innerB = Number(groupedMatch[3]);
-      const right = Number(groupedMatch[4]);
-      const innerRight = right / a;
-      return `Step 1: divide BOTH sides by ${a} (${innerRight}). Step 2: ${innerSign === '+' ? `subtract ${innerB}` : `add ${innerB}`} on BOTH sides to isolate x.`;
-    }
-
-    const combineLikeTermsMatch = eq.match(/^(-?\d+)x\s*([+-])\s*(\d+)x\s*=\s*(-?\d+)$/);
+    const combineLikeTermsMatch = normalizedEq.match(/^(-?\d+)x\s*([+-])\s*(-?\d+)x\s*=\s*(-?\d+)$/);
     if (combineLikeTermsMatch) {
       const first = Number(combineLikeTermsMatch[1]);
       const sign = combineLikeTermsMatch[2];
@@ -576,36 +642,172 @@
       const right = Number(combineLikeTermsMatch[4]);
       const second = sign === '+' ? secondRaw : -secondRaw;
       const combined = first + second;
-      return `Step 1: combine like terms (${first}x ${sign} ${secondRaw}x = ${combined}x). Step 2: divide BOTH sides by ${combined} to isolate x (${right} / ${combined}).`;
+      const finalValue = right / combined;
+      return `Step 1: combine like terms on the left: ${first}x ${sign} ${secondRaw}x = ${combined}x. Now the equation is ${combined}x = ${right}. Step 2: isolate x by dividing both sides by ${combined}: x = ${right} / ${combined}. Step 3: compute ${right} / ${combined} to get x = ${finalValue}.`;
     }
 
-    if (eq.includes('/')) {
-      return 'Step 1: clear the slash by multiplying both sides by the bottom number. Step 2: keep x by itself.';
+    const twoSideLinearMatch = normalizedEq.match(/^(-?\d+)x\s*([+-])\s*(-?\d+)\s*=\s*(-?\d+)x\s*([+-])\s*(-?\d+)$/);
+    if (twoSideLinearMatch) {
+      const leftA = Number(twoSideLinearMatch[1]);
+      const leftSign = twoSideLinearMatch[2];
+      const leftB = Number(twoSideLinearMatch[3]);
+      const rightA = Number(twoSideLinearMatch[4]);
+      const rightSign = twoSideLinearMatch[5];
+      const rightB = Number(twoSideLinearMatch[6]);
+      const leftConst = leftSign === '+' ? leftB : -leftB;
+      const rightConst = rightSign === '+' ? rightB : -rightB;
+      const coef = leftA - rightA;
+      const constSide = rightConst - leftConst;
+      const finalValue = constSide / coef;
+      return `Step 1: move all x terms to one side. Subtract ${rightA}x from both sides, giving ${coef}x ${leftConst >= 0 ? `+ ${leftConst}` : `- ${Math.abs(leftConst)}`} = ${rightConst}. Step 2: move the constant term to the other side: ${coef}x = ${constSide}. Step 3: divide by ${coef}: x = ${constSide} / ${coef} = ${finalValue}.`;
     }
-    if (/\d+\(x/.test(eq) || /\(\d*x/.test(eq)) {
-      return 'Step 1: undo the outside multiply first. Step 2: then solve what is inside the parentheses.';
+
+    const groupedOverPlusMatch = normalizedEq.match(/^\((-?\d+)x\s*([+-])\s*(-?\d+)\)\s*\/\s*(-?\d+)\s*\+\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (groupedOverPlusMatch) {
+      const a = Number(groupedOverPlusMatch[1]);
+      const innerSign = groupedOverPlusMatch[2];
+      const innerB = Number(groupedOverPlusMatch[3]);
+      const divisor = Number(groupedOverPlusMatch[4]);
+      const outerB = Number(groupedOverPlusMatch[5]);
+      const right = Number(groupedOverPlusMatch[6]);
+      const noOuter = right - outerB;
+      const expanded = noOuter * divisor;
+      const innerTerm = innerSign === '+' ? innerB : -innerB;
+      const shifted = expanded - innerTerm;
+      const finalValue = shifted / a;
+      return `Step 1: in (${a}x ${innerSign} ${innerB}) / ${divisor} + ${outerB} = ${right}, remove the outside +${outerB} first. ${inverseMoveText(outerB)} on both sides to get (${a}x ${innerSign} ${innerB}) / ${divisor} = ${noOuter}. Step 2: clear the division by multiplying both sides by ${divisor}: ${a}x ${innerSign} ${innerB} = ${expanded}. Step 3: isolate x by moving ${innerTerm >= 0 ? `+${innerTerm}` : `${innerTerm}`} and dividing by ${a}: x = ${shifted} / ${a} = ${finalValue}.`;
     }
-    if (/=.+x/.test(eq)) {
-      return 'Step 1: move x terms to one side. Step 2: move plain numbers to the other side. Step 3: divide.';
+
+    const groupedOverMatch = normalizedEq.match(/^\((-?\d+)x\s*([+-])\s*(-?\d+)\)\s*\/\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (groupedOverMatch) {
+      const a = Number(groupedOverMatch[1]);
+      const innerSign = groupedOverMatch[2];
+      const innerB = Number(groupedOverMatch[3]);
+      const divisor = Number(groupedOverMatch[4]);
+      const right = Number(groupedOverMatch[5]);
+      const expandedRight = right * divisor;
+      const innerTerm = innerSign === '+' ? innerB : -innerB;
+      const shifted = expandedRight - innerTerm;
+      const finalValue = shifted / a;
+      return `Step 1: clear the fraction in (${a}x ${innerSign} ${innerB}) / ${divisor} = ${right} by multiplying both sides by ${divisor}. Now ${a}x ${innerSign} ${innerB} = ${expandedRight}. Step 2: move ${innerTerm >= 0 ? `+${innerTerm}` : `${innerTerm}`} to the other side, so ${a}x = ${shifted}. Step 3: divide both sides by ${a}: x = ${shifted} / ${a} = ${finalValue}.`;
     }
-    if (/\d+x/.test(eq)) {
-      return 'Step 1: move plus/minus number away from x. Step 2: divide by the x number friend.';
+
+    const groupedOuterMatch = normalizedEq.match(/^(-?\d+)\(x\s*([+-])\s*(-?\d+)\)\s*([+-])\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (groupedOuterMatch) {
+      const a = Number(groupedOuterMatch[1]);
+      const innerSign = groupedOuterMatch[2];
+      const innerB = Number(groupedOuterMatch[3]);
+      const outerSign = groupedOuterMatch[4];
+      const outerB = Number(groupedOuterMatch[5]);
+      const right = Number(groupedOuterMatch[6]);
+      const outerTerm = outerSign === '+' ? outerB : -outerB;
+      const adjusted = right - outerTerm;
+      const innerRight = adjusted / a;
+      const innerTerm = innerSign === '+' ? innerB : -innerB;
+      const finalValue = innerRight - innerTerm;
+      return `Step 1: undo the outside ${outerTerm >= 0 ? `+${outerTerm}` : `${outerTerm}`} first. ${inverseMoveText(outerTerm)} on both sides gives ${a}(x ${innerSign} ${innerB}) = ${adjusted}. Step 2: divide both sides by ${a}: x ${innerSign} ${innerB} = ${innerRight}. Step 3: isolate x by ${inverseMoveText(innerTerm)}: x = ${finalValue}.`;
     }
-    return 'Do the same move to both sides until x is by itself.';
+
+    const groupedMatch = normalizedEq.match(/^(-?\d+)\(x\s*([+-])\s*(-?\d+)\)\s*=\s*(-?\d+)$/);
+    if (groupedMatch) {
+      const a = Number(groupedMatch[1]);
+      const innerSign = groupedMatch[2];
+      const innerB = Number(groupedMatch[3]);
+      const right = Number(groupedMatch[4]);
+      const innerRight = right / a;
+      const innerTerm = innerSign === '+' ? innerB : -innerB;
+      const finalValue = innerRight - innerTerm;
+      return `Step 1: in ${a}(x ${innerSign} ${innerB}) = ${right}, undo the outside multiplication first by dividing both sides by ${a}. Step 2: now you have x ${innerSign} ${innerB} = ${innerRight}. Use the opposite move on ${innerTerm >= 0 ? `+${innerTerm}` : `${innerTerm}`}. Step 3: ${inverseMoveText(innerTerm)} to isolate x, so x = ${finalValue}.`;
+    }
+
+    const nestedCoeffMatch = normalizedEq.match(/^(-?\d+)\((-?\d+)x\s*([+-])\s*(-?\d+)\)\s*=\s*(-?\d+)$/);
+    if (nestedCoeffMatch) {
+      const outer = Number(nestedCoeffMatch[1]);
+      const innerA = Number(nestedCoeffMatch[2]);
+      const innerSign = nestedCoeffMatch[3];
+      const innerB = Number(nestedCoeffMatch[4]);
+      const right = Number(nestedCoeffMatch[5]);
+      const afterOuter = right / outer;
+      const innerTerm = innerSign === '+' ? innerB : -innerB;
+      const shifted = afterOuter - innerTerm;
+      const finalValue = shifted / innerA;
+      return `Step 1: undo the outside factor ${outer} first. Divide both sides by ${outer}: ${innerA}x ${innerSign} ${innerB} = ${afterOuter}. Step 2: move ${innerTerm >= 0 ? `+${innerTerm}` : `${innerTerm}`} to the other side, giving ${innerA}x = ${shifted}. Step 3: divide by ${innerA}: x = ${shifted} / ${innerA} = ${finalValue}.`;
+    }
+
+    const rightExpandedMatch = normalizedEq.match(/^(-?\d+)x\s*([+-])\s*(-?\d+)\s*=\s*\(x\s*([+-])\s*(-?\d+)\)\s*\*\s*(-?\d+)$/);
+    if (rightExpandedMatch) {
+      const leftA = Number(rightExpandedMatch[1]);
+      const leftSign = rightExpandedMatch[2];
+      const leftB = Number(rightExpandedMatch[3]);
+      const rightInnerSign = rightExpandedMatch[4];
+      const rightInnerB = Number(rightExpandedMatch[5]);
+      const rightMul = Number(rightExpandedMatch[6]);
+      const leftConst = leftSign === '+' ? leftB : -leftB;
+      const innerTerm = rightInnerSign === '+' ? rightInnerB : -rightInnerB;
+      const rightConst = innerTerm * rightMul;
+      const coef = leftA - rightMul;
+      const constSide = rightConst - leftConst;
+      const finalValue = constSide / coef;
+      return `Step 1: expand the right side: (x ${rightInnerSign} ${rightInnerB}) x ${rightMul} becomes ${rightMul}x ${rightConst >= 0 ? `+ ${rightConst}` : `- ${Math.abs(rightConst)}`}. Step 2: move x terms together and constants together, giving ${coef}x = ${constSide}. Step 3: divide both sides by ${coef}: x = ${constSide} / ${coef} = ${finalValue}.`;
+    }
+
+    const dividedEqualsXMatch = normalizedEq.match(/^\((-?\d+)x\s*([+-])\s*(-?\d+)\)\s*\/\s*(-?\d+)\s*=\s*x\s*([+-])\s*(-?\d+)$/);
+    if (dividedEqualsXMatch) {
+      const leftA = Number(dividedEqualsXMatch[1]);
+      const leftSign = dividedEqualsXMatch[2];
+      const leftB = Number(dividedEqualsXMatch[3]);
+      const divisor = Number(dividedEqualsXMatch[4]);
+      const rightSign = dividedEqualsXMatch[5];
+      const rightB = Number(dividedEqualsXMatch[6]);
+      const leftConst = leftSign === '+' ? leftB : -leftB;
+      const rightConst = rightSign === '+' ? rightB : -rightB;
+      const expandedA = leftA;
+      const expandedConst = leftConst;
+      const movedCoef = expandedA - divisor;
+      const movedConst = (rightConst * divisor) - expandedConst;
+      const finalValue = movedConst / movedCoef;
+      return `Step 1: clear the division by multiplying both sides by ${divisor}. You get ${expandedA}x ${expandedConst >= 0 ? `+ ${expandedConst}` : `- ${Math.abs(expandedConst)}`} = ${divisor}x ${rightConst * divisor >= 0 ? `+ ${Math.abs(rightConst * divisor)}` : `- ${Math.abs(rightConst * divisor)}`}. Step 2: move x terms to one side and constants to the other, which simplifies to ${movedCoef}x = ${movedConst}. Step 3: divide by ${movedCoef}: x = ${movedConst} / ${movedCoef} = ${finalValue}.`;
+    }
+
+    const divideXMatch = normalizedEq.match(/^x\s*\/\s*(-?\d+)\s*=\s*(-?\d+)$/);
+    if (divideXMatch) {
+      const divisor = Number(divideXMatch[1]);
+      const right = Number(divideXMatch[2]);
+      const finalValue = right * divisor;
+      return `Step 1: look at what is happening to x in x / ${divisor} = ${right}. x is divided by ${divisor}. Step 2: undo division by multiplying both sides by ${divisor}: x / ${divisor} x ${divisor} = ${right} x ${divisor}. That simplifies to x = ${right} x ${divisor}. Step 3: multiply ${right} and ${divisor}. ${multiplySignRule(right, divisor)} So x = ${finalValue}.`;
+    }
+
+    if (normalizedEq.includes('/')) {
+      return 'Step 1: identify what is being divided and clear the denominator by multiplying both sides. Step 2: simplify the new equation and move any constant away from the x term. Step 3: divide by the remaining x coefficient to isolate x.';
+    }
+    if (/=.+x/.test(normalizedEq)) {
+      return 'Step 1: move every x term to one side of the equation. Step 2: move regular numbers to the other side and simplify. Step 3: divide by the coefficient on x to finish.';
+    }
+    if (/\d+\(x/.test(normalizedEq) || /\(\d*x/.test(normalizedEq)) {
+      return 'Step 1: undo the outside operation around the parentheses first. Step 2: simplify the inside expression so only one x term remains. Step 3: do the opposite operation to leave x by itself.';
+    }
+    if (/\d+x/.test(normalizedEq)) {
+      return 'Step 1: identify the operation attached to x. Step 2: use the opposite operation on both sides to simplify. Step 3: finish the arithmetic so x is alone.';
+    }
+    return 'Step 1: read the equation and identify what is attached to x. Step 2: do the opposite operation on both sides in a balanced way. Step 3: simplify the arithmetic to get a final value for x.';
   }
 
   function beginCorrectionLock(cell, data) {
     clearCorrectionLock();
     const cellIndex = Number(cell.dataset.index);
-    const missCount = (Number(correctiveMissCountByCell[cellIndex]) || 0) + 1;
-    correctiveMissCountByCell[cellIndex] = missCount;
-    const lockSeconds = missCount === 1 ? 6 : Math.min(15, 6 + (missCount - 1) * 4);
-    const minReadSeconds = missCount === 1 ? 3 : Math.min(6, 3 + missCount);
+    correctiveMissCountByCell[cellIndex] = (Number(correctiveMissCountByCell[cellIndex]) || 0) + 1;
+    const lockSeconds = 60;
+    const minReadSeconds = 60;
     const now = Date.now();
     correctiveLockUntil = now + lockSeconds * 1000;
     correctiveReadUnlockAt = now + minReadSeconds * 1000;
     correctiveLockCellIndex = cellIndex;
     const helpText = buildCorrectiveHelp(data);
+    const stepMatches = Array.from(
+      helpText.matchAll(/Step\s+\d+:\s*([\s\S]*?)(?=(?:\s*Step\s+\d+:)|$)/g)
+    ).map((m) => String(m[1] || '').trim()).filter(Boolean);
+    const correctionSteps = stepMatches.length > 0 ? stepMatches : [helpText];
+    const stepDurationSeconds = 20;
     if (answerInput) answerInput.disabled = true;
     if (answerSubmit) answerSubmit.disabled = true;
     if (mobilePopupInput) mobilePopupInput.disabled = true;
@@ -616,14 +818,20 @@
       const nowMs = Date.now();
       const left = Math.max(0, Math.ceil((correctiveLockUntil - nowMs) / 1000));
       const canTryNow = nowMs >= correctiveReadUnlockAt;
+      const elapsedSeconds = Math.max(0, Math.floor((nowMs - now) / 1000));
+      const stepIndex = Math.min(
+        correctionSteps.length - 1,
+        Math.floor(elapsedSeconds / stepDurationSeconds)
+      );
+      const stepText = `Step ${stepIndex + 1}/${correctionSteps.length}: ${correctionSteps[stepIndex]}`;
       if (left > 0) {
         if (answerSubmit) answerSubmit.disabled = !canTryNow;
         if (mobilePopupSubmit) mobilePopupSubmit.disabled = !canTryNow;
         if (mobilePopupClose) mobilePopupClose.disabled = !canTryNow;
         if (canTryNow) {
-          feedbackEl.textContent = `Review done. Tap Submit to try now, or wait ${left}s. ${helpText}`;
+          feedbackEl.textContent = `Review done. Tap Submit to try now, or wait ${left}s. ${stepText}`;
         } else {
-          feedbackEl.textContent = `Read this for ${left}s. ${helpText}`;
+          feedbackEl.textContent = `Read this for ${left}s. ${stepText}`;
         }
         if (mobilePopupInstruction) {
           mobilePopupInstruction.textContent = feedbackEl.textContent;
